@@ -7,20 +7,13 @@
 
 int main(){
     std::string filenamejson =  "StokesData.json";
+    std::ofstream simulationfile("SimulationData.txt");
     
-    ProblemData simData;
+    SimulationData simData;
 
     simData.ReadJson(filenamejson);
-
-    simData.PrintData();
     
-    // ------------------------ Getting number of domains and fractures ------------------------
-//    if(input.find("Domains") == input.end()) DebugStop();
-//    const int ndom = input["Domains"].size();
-//    if(input.find("Fractures") == input.end());
-//    const int nfrac = input["Fractures"].size();
-//    sim_data.mTReservoirProperties.mPorosityAndVolumeScale.resize(ndom+nfrac+1);
-//    int countPhi = 0;
+    simData.Print(simulationfile);
     
 	return 0;
 }
