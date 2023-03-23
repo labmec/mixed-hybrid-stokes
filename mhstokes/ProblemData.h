@@ -2,6 +2,10 @@
 #define PROBLEMDATA_H
 
 #include <iostream>
+#include <json.hpp>
+#include <pzfmatrix.h>
+#include <pzvec.h>
+#include <string>
 
 // declaration of simulation data class.
 // all the data herein used are storaged in a .json file. It can be called and storaged using ReadJson
@@ -10,14 +14,23 @@ class SimulationData{
 private:
     using json = nlohmann::json; // declaration of json class
     
-    std::string fMeshName = "none"; // name of the finite element geometric mesh
-    int fpOrder = -1; // polynomial approximation order
+    std::string fMeshName = "none";
+    
+    TPZManVector<REAL,3> fX0 = {0.,0.,0.};
+    TPZManVector<REAL,3> fX1 = {0.,0.,0.};
+    
+    int fdiv  = -1;
+    
+    int fVelpOrder = -1; // polynomial approximation order for velocity
+    
+    int fTracpOrder = -1; // polynomial approximation order for traction
     
     // struct responsible to summarize all the data from every domain
     struct fDomainData {
         std::string name = "none"; // domains name
         int matID = -1; // domain material ID
         double viscosity = -1.; // domain viscosity
+        int dim = -1;
     };
     
     std::vector<fDomainData> fdomain; // vector containing every domain created
@@ -39,20 +52,29 @@ public:
     
     void ReadJson(std::string jsonfile);
     
-    void Print(std::ostream& out = std::cout); // you can pass a file, so that the simulation data will be printed inside it. Otherwise, it will be displayed on terminal
+    void Print(std::ostream& out = std::cout);
+    // you can pass a file, so that the simulation data will be printed inside it. Otherwise, it will be displayed on terminal
     
-    const std::string& MeshName() const {return fMeshName;} // setter using reference variable
-    std::string& MeshName(){return fMeshName;} // getter using reference variable
+    const std::string& MeshName() const {return fMeshName;} //setter using reference variable;
+    std::string& MeshName(){return fMeshName;}  //getter using reference variable
     
-    const int& POrder() const {return fpOrder;}
-    int& POrder(){return fpOrder;}
+    TPZManVector<REAL> X0(){return fX0;}
+    TPZManVector<REAL> X1(){return fX1;}
+    
+    const int& nDiv() const {return fdiv;}
+    int& nDiv(){return fdiv;}
+    
+    const int& VelpOrder() const {return fVelpOrder;}
+    int& VelpOrder(){return fVelpOrder;}
+    
+    const int& TracpOrder() const {return fTracpOrder;}
+    int& tracpOrder(){return fTracpOrder;}
 
     const std::vector<fDomainData>& DomainVec() const {return fdomain;}
     std::vector<fDomainData>& DomainVec(){return fdomain;}
     
     const std::vector<fBcData>& BCs() const {return fbcvec;}
     std::vector<fBcData>& BCs(){return fbcvec;}
-    
 };
 
 #endif

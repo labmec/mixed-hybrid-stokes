@@ -26,7 +26,7 @@ void ExampleH1(){
     const TPZManVector<REAL, 3> X1 = {1.,1.,1.};
     
     // number of divisions in x,y and z directions
-    int ndiv = 20;
+    int ndiv = 2;
     
     const TPZManVector<int, 3> division = {ndiv, ndiv, ndiv};
     
@@ -91,6 +91,12 @@ void ExampleH1(){
     
     std::ofstream coutfile(compfile);
     TPZVTKGeoMesh::PrintCMeshVTK(cmesh, coutfile);
+    
+    std::ofstream cmshfile("cmesh.txt");
+    cmesh->Print(cmshfile);
+    
+    std::ofstream gmeshfile("gmesh.txt");
+    gmesh->Print(gmeshfile);
     
     // creates an Analysis Object
     TPZLinearAnalysis analysis(cmesh);
