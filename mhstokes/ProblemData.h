@@ -19,11 +19,13 @@ private:
     TPZManVector<REAL,3> fX0 = {0.,0.,0.};
     TPZManVector<REAL,3> fX1 = {0.,0.,0.};
     
-    int fdiv  = -1;
+    TPZManVector<int, 3> fdiv = { -1, -1, -1};
     
     int fVelpOrder = -1; // polynomial approximation order for velocity
     
     int fTracpOrder = -1; // polynomial approximation order for traction
+    
+    int fDim = -1;
     
     // struct responsible to summarize all the data from every domain
     struct fDomainData {
@@ -58,17 +60,23 @@ public:
     const std::string& MeshName() const {return fMeshName;} //setter using reference variable;
     std::string& MeshName(){return fMeshName;}  //getter using reference variable
     
-    TPZManVector<REAL> X0(){return fX0;}
-    TPZManVector<REAL> X1(){return fX1;}
+    const TPZManVector<REAL,3>& X0() const {return fX0;}
+    TPZManVector<REAL,3>& X0(){return fX0;}
     
-    const int& nDiv() const {return fdiv;}
-    int& nDiv(){return fdiv;}
+    const TPZManVector<REAL,3>& X1() const {return fX1;}
+    TPZManVector<REAL,3>& X1(){return fX1;}
+    
+    const TPZManVector<int, 3>& nDiv() const {return fdiv;}
+    TPZManVector<int, 3>& nDiv(){return fdiv;}
     
     const int& VelpOrder() const {return fVelpOrder;}
     int& VelpOrder(){return fVelpOrder;}
     
     const int& TracpOrder() const {return fTracpOrder;}
     int& tracpOrder(){return fTracpOrder;}
+    
+    const int& Dim() const {return fDim;}
+    int& Dim(){return fDim;}
 
     const std::vector<fDomainData>& DomainVec() const {return fdomain;}
     std::vector<fDomainData>& DomainVec(){return fdomain;}

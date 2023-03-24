@@ -31,6 +31,7 @@ void SimulationData::ReadJson(std::string file){
     if(input.find("MeshDiv") == input.end()) DebugStop();
     if(input.find("VelpOrder") == input.end()) DebugStop();
     if(input.find("TracpOrder") == input.end()) DebugStop();
+    if(input.find("Dim") == input.end()) DebugStop();
     if(input.find("Domain") == input.end()) DebugStop();
     if(input.find("Boundary") == input.end()) DebugStop();
     
@@ -40,35 +41,36 @@ void SimulationData::ReadJson(std::string file){
     //X0
     int i = 0;
     for(auto& coord : input["MeshX0"]){
-        fX0[i] = coord;
-        i++;
+        fX0[i++] = coord;
     }
     
     //X1
     i = 0;
     for(auto& coord : input["MeshX1"]){
-        fX1[i] = coord;
-        i++;
+        fX1[i++] = coord;
     }
     
     // names as follows
-    fdiv = input["MeshDiv"];
+    i = 0;
+    for(auto& div : input["MeshDiv"]){
+        fdiv[i++] = div;
+    }
     
     fVelpOrder = input["VelpOrder"];
     
     fTracpOrder = input["TracpOrder"];
+    
+    fDim = input["Dim"];
     
     fDomainData domaindata;
     for(auto& domainjson : input["Domain"]){
         if(domainjson.find("name") == domainjson.end()) DebugStop();
         if(domainjson.find("matID") == domainjson.end()) DebugStop();
         if(domainjson.find("viscosity") == domainjson.end()) DebugStop();
-        if(domainjson.find("dim") == domainjson.end()) DebugStop();
         
         domaindata.name = domainjson["name"];
         domaindata.matID = domainjson["matID"];
         domaindata.viscosity = domainjson["viscosity"];
-        domaindata.dim = domainjson["dim"];
         
         fdomain.push_back(domaindata);
     }

@@ -18,13 +18,10 @@
 #include "TPZMeshOperator.h"
 #include "ProblemData.h"
 
-TPZGeoMesh* CreateGMesh(SimulationData* simData){
+TPZGeoMesh* TPZMeshOperator::CreateGMesh(SimulationData* simData){
     TPZGeoMesh* gmesh = new TPZGeoMesh;
-
-    int ndiv = simData->nDiv();
-    TPZVec<int> divisions = {ndiv, ndiv, ndiv};
-    
-    TPZGenGrid2D grid(divisions , simData->X0(), simData->X1());
+   
+    TPZGenGrid2D grid(simData->nDiv(), simData->X0(), simData->X1());
     grid.SetElementType(MMeshType::EQuadrilateral);
 
     grid.Read(gmesh);
@@ -33,14 +30,14 @@ TPZGeoMesh* CreateGMesh(SimulationData* simData){
     grid.SetBC(gmesh, 6, -2);
     grid.SetBC(gmesh, 7, -3);
 
-    InsertInterfaceElement(gmesh);
+   TPZMeshOperator::InsertInterfaceElement(gmesh);
 
-    gmesh -> BuildConnectivity();
+    gmesh->BuildConnectivity();
 
     return gmesh;
 }
 
-void InsertInterfaceElement(TPZGeoMesh* gmesh){
+void TPZMeshOperator::InsertInterfaceElement(TPZGeoMesh* gmesh){
     int64_t nEl = gmesh -> NElements();
     
     for(int64_t el = 0; el < nEl; el++){
@@ -89,43 +86,34 @@ void InsertInterfaceElement(TPZGeoMesh* gmesh){
     }
 }
 
-TPZCompMesh* CreateCMeshV(SimulationData* simData, TPZGeoMesh* gmesh){
+TPZCompMesh* TPZMeshOperator::CreateCMeshV(SimulationData* simData, TPZGeoMesh* gmesh){
     TPZCompMesh* cmesh_v = new TPZCompMesh(gmesh);
-    cmesh_v -> SetDefaultOrder(simData -> VelpOrder());
-    cmesh_v->SetDimModel(simData->DomainVec()[0].dim); // change i in the case of more than 1 domain
+    cmesh_v->SetDefaultOrder(simData->VelpOrder());
+    cmesh_v->SetDimModel(simData->Dim()); // change i in the case of more than 1 domain
 
     // domain's material - 2D
-    auto* mat = new TPZNullMaterial<>(simData->DomainVec()[0].matID);
+    auto* mat = new TPZNullMaterial<>(simData->Dim());
     cmesh_v -> InsertMaterialObject(mat);
 
     cmesh_v -> SetAllCreateFunctionsHDiv();
 
     // boundary conditions' material
-    TPZFMatrix<STATE> val1(1.,1.,0.);
-    TPZManVector<STATE> val2(2.,0.);
+    TPZFMatrix<STATE> val1(1, 1, 0.);
+    TPZManVector<STATE> val2(2, 0.);
 
-    auto BCbott = mat -> CreateBC(mat, -1, 0, val1, val2);
-    cmesh_v -> InsertMaterialObject(BCbott);
+    auto BCbott = mat->CreateBC(mat, -1, 0, val1, val2);
+    cmesh_v->InsertMaterialObject(BCbott);
 
     auto BCtop = mat -> CreateBC(mat, -2, 0, val1, val2);
-    cmesh_v -> InsertMaterialObject(BCtop);
+    cmesh_v->InsertMaterialObject(BCtop);
 
     auto BCleft = mat -> CreateBC(mat, -3, 0, val1, val2);
-    cmesh_v -> InsertMaterialObject(BCleft);
+    cmesh_v->InsertMaterialObject(BCleft);
 
     auto BCright = mat -> CreateBC(mat, -4, 0, val1, val2);
     cmesh_v -> InsertMaterialObject(BCright);
     
     int64_t ncel = cmesh_v -> NElements();
-    
-    for(int64_t i = 0; i < ncel; i++){
-        TPZCompEl* compEl = cmesh_v -> ElementVec()[i];
-        if(!compEl) continue;
-        
-        TPZInterfaceElement* interfaceEl = dynamic_cast<TPZInterfaceElement*>(compEl);
-        if(interfaceEl) DebugStop();
-    }
-
     cmesh_v -> AutoBuild();
     cmesh_v -> AdjustBoundaryElements();
     cmesh_v -> CleanUpUnconnectedNodes();
@@ -133,48 +121,40 @@ TPZCompMesh* CreateCMeshV(SimulationData* simData, TPZGeoMesh* gmesh){
     return cmesh_v;
 }
 
-TPZCompMesh* CreateCmeshP(SimulationData* simData, TPZGeoMesh* gmesh){
+TPZCompMesh* TPZMeshOperator::CreateCmeshP(SimulationData* simData, TPZGeoMesh* gmesh){
     TPZCompMesh* cmesh_p = new TPZCompMesh(gmesh);
-    cmesh_p -> SetDefaultOrder(simData->VelpOrder());
-    cmesh_p -> SetDimModel(simData->DomainVec()[0].dim);
+    cmesh_p->SetDefaultOrder(simData->TracpOrder());
+    cmesh_p->SetDimModel(simData->Dim());
     
-    cmesh_p -> SetAllCreateFunctionsContinuous();
-    cmesh_p -> ApproxSpace().CreateDisconnectedElements(true);
+    cmesh_p->SetAllCreateFunctionsContinuous();
+    cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
     
     // domain's material
     auto* mat = new TPZNullMaterial<>(simData->DomainVec()[0].matID);
-    cmesh_p -> InsertMaterialObject(mat);
+    cmesh_p->InsertMaterialObject(mat);
     
     // traction on interface element material
     auto matLambda = new TPZNullMaterial<>(4);
-    cmesh_p -> InsertMaterialObject(matLambda);
+    cmesh_p->InsertMaterialObject(matLambda);
     
     // traction on boundary material
     auto matLambdaBC_bott = new TPZNullMaterial<>(11);
-    cmesh_p -> InsertMaterialObject(matLambdaBC_bott);
+    cmesh_p->InsertMaterialObject(matLambdaBC_bott);
     
     auto matLambdaBC_top = new TPZNullMaterial<>(12);
-    cmesh_p -> InsertMaterialObject(matLambdaBC_top);
+    cmesh_p->InsertMaterialObject(matLambdaBC_top);
     
     auto matLambdaBC_left = new TPZNullMaterial<>(13);
-    cmesh_p -> InsertMaterialObject(matLambdaBC_left);
+    cmesh_p->InsertMaterialObject(matLambdaBC_left);
     
     auto matLambdaBC_right = new TPZNullMaterial<>(14);
-    cmesh_p -> InsertMaterialObject(matLambdaBC_right);
-    
-    int64_t ncel = cmesh_p->NElements();
-    for(int64_t i =0; i<ncel; i++){
-        TPZCompEl * compEl = cmesh_p->ElementVec()[i];
-        if(!compEl) continue;
-        TPZInterfaceElement * facel = dynamic_cast<TPZInterfaceElement *>(compEl);
-        if(facel)DebugStop();
-    }
+    cmesh_p->InsertMaterialObject(matLambdaBC_right);
     
     std::set<int> materialIDs;
-    materialIDs.insert(simData -> DomainVec()[0].matID);
+    materialIDs.insert(simData->DomainVec()[0].matID);
     
-    cmesh_p -> AutoBuild(materialIDs);
-    gmesh -> ResetReference();
+    cmesh_p->AutoBuild(materialIDs);
+    gmesh->ResetReference();
     
     materialIDs.clear();
     materialIDs.insert(4);
@@ -183,26 +163,26 @@ TPZCompMesh* CreateCmeshP(SimulationData* simData, TPZGeoMesh* gmesh){
     materialIDs.insert(13);
     materialIDs.insert(14);
     
-    cmesh_p -> SetAllCreateFunctionsContinuous();
-    cmesh_p -> ApproxSpace().CreateDisconnectedElements(true);
+    cmesh_p->SetAllCreateFunctionsContinuous();
+    cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
     
     cmesh_p->SetDefaultOrder(simData->TracpOrder());
-    cmesh_p->SetDimModel(simData->DomainVec()[0].dim - 1);
+    cmesh_p->SetDimModel(simData->Dim() - 1);
     cmesh_p->AutoBuild(materialIDs);
     
-    int64_t ncon = cmesh_p -> NConnects();
+    int64_t ncon = cmesh_p->NConnects();
     for(int64_t i=0; i<ncon; i++)
     {
-        TPZConnect &newnod = cmesh_p -> ConnectVec()[i];
+        TPZConnect &newnod = cmesh_p->ConnectVec()[i];
         newnod.SetLagrangeMultiplier(1);
     }
     
-    cmesh_p -> ExpandSolution();
+    cmesh_p->ExpandSolution();
     
     return cmesh_p;
 }
 
-void PrintMesh(TPZGeoMesh* gmesh, TPZCompMesh* cmesh_v, TPZCompMesh* cmesh_p){
+void TPZMeshOperator::PrintMesh(TPZGeoMesh* gmesh, TPZCompMesh* cmesh_v, TPZCompMesh* cmesh_p){
     std::ofstream VTKGeoMeshFile("GMeshtest.vtk");
     std::ofstream TextGeoMeshFile("GMeshtest.txt");
     

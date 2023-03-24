@@ -3,12 +3,14 @@
 
 #include "ProblemData.h"
 
-TPZGeoMesh* CreateGMesh(SimulationData* simData);
-void InsertInterfaceElement(TPZGeoMesh* gmesh);
-
-TPZCompMesh* CreateCMeshV(SimulationData* simData, TPZGeoMesh* gmesh);
-
-TPZCompMesh* CreateCmeshP(SimulationData* simData, TPZGeoMesh* gmesh);
-void PrintMesh(TPZGeoMesh* gmesh, TPZCompMesh* cmesh_v, TPZCompMesh* cmesh_p);
-
+class TPZMeshOperator{
+public:
+    static TPZGeoMesh* CreateGMesh(SimulationData* simData);
+    static void InsertInterfaceElement(TPZGeoMesh* gmesh);
+    
+    static TPZCompMesh* CreateCMeshV(SimulationData* simData, TPZGeoMesh* gmesh);
+    
+    static TPZCompMesh* CreateCmeshP(SimulationData* simData, TPZGeoMesh* gmesh);
+    static void PrintMesh(TPZGeoMesh* gmesh, TPZCompMesh* cmesh_v, TPZCompMesh* cmesh_p);
+};
 #endif

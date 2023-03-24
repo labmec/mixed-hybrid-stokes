@@ -14,13 +14,14 @@ int main(){
     SimulationData simData;
     simData.ReadJson(filenamejson);
     
-    TPZGeoMesh* gmesh = CreateGMesh(&simData);
-    TPZCompMesh* cmesh_v = CreateCMeshV(&simData, gmesh);
-    TPZCompMesh* cmesh_p = CreateCmeshP(&simData, gmesh);
+    TPZGeoMesh* gmesh = TPZMeshOperator::CreateGMesh(&simData);
+    TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
+    TPZCompMesh* cmesh_p = TPZMeshOperator::CreateCmeshP(&simData, gmesh);
 
     if(printmesh){
-        PrintMesh(gmesh, cmesh_v, cmesh_p);
+        TPZMeshOperator::PrintMesh(gmesh, cmesh_v, cmesh_p);
     }
-
+    
+    std::cout << "Simulation finishes without errors :) \n";
 	return 0;
 }
