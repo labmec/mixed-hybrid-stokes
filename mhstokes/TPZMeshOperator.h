@@ -12,5 +12,7 @@ public:
     
     static TPZCompMesh* CreateCmeshP(SimulationData* simData, TPZGeoMesh* gmesh);
     static void PrintMesh(TPZGeoMesh* gmesh, TPZCompMesh* cmesh_v, TPZCompMesh* cmesh_p);
+    
+    static TPZMultiphysicsCompMesh* CreateMultiPhysicsMesh(SimulationData* simData, TPZGeoMesh* gmesh);
 };
 #endif

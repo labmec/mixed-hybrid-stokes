@@ -1,6 +1,10 @@
 #ifndef SIMPLEEXAMPLE_H
 #define SIMPLEEXAMPLE_H
 
-void ExampleH1();
+class Example{
+public:
+    static void H1Conforming();
+    static void HdivConforming();
+};
 
 #endif

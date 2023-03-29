@@ -12,9 +12,11 @@
 #include <TPZGeoElement.h>
 #include <TPZInterfaceEl.h>
 #include <TPZMultiphysicsInterfaceEl.h>
+#include <TPZMultiphysicsCompMesh.h>
 #include <TPZGeoLinear.h>
 #include <TPZNullMaterial.h>
 
+#include "TPZNavierStokesMaterial.h"
 #include "TPZMeshOperator.h"
 #include "ProblemData.h"
 
@@ -88,18 +90,19 @@ void TPZMeshOperator::InsertInterfaceElement(TPZGeoMesh* gmesh){
 
 TPZCompMesh* TPZMeshOperator::CreateCMeshV(SimulationData* simData, TPZGeoMesh* gmesh){
     TPZCompMesh* cmesh_v = new TPZCompMesh(gmesh);
+    cmesh_v->SetName("Hdiv Mesh - Velocity");
     cmesh_v->SetDefaultOrder(simData->VelpOrder());
-    cmesh_v->SetDimModel(simData->Dim()); // change i in the case of more than 1 domain
-
-    // domain's material - 2D
-    auto* mat = new TPZNullMaterial<>(simData->Dim());
-    cmesh_v -> InsertMaterialObject(mat);
+    cmesh_v->SetDimModel(simData->Dim());
 
     cmesh_v -> SetAllCreateFunctionsHDiv();
+    
+    // domain's material - 2D
+    auto* mat = new TPZNullMaterial<>(simData->DomainVec()[0].matID);
+    cmesh_v -> InsertMaterialObject(mat);
 
     // boundary conditions' material
     TPZFMatrix<STATE> val1(1, 1, 0.);
-    TPZManVector<STATE> val2(2, 0.);
+    TPZManVector<STATE> val2(1, 0.);
 
     auto BCbott = mat->CreateBC(mat, -1, 0, val1, val2);
     cmesh_v->InsertMaterialObject(BCbott);
@@ -113,9 +116,7 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(SimulationData* simData, TPZGeoMesh* 
     auto BCright = mat -> CreateBC(mat, -4, 0, val1, val2);
     cmesh_v -> InsertMaterialObject(BCright);
     
-    int64_t ncel = cmesh_v -> NElements();
     cmesh_v -> AutoBuild();
-    cmesh_v -> AdjustBoundaryElements();
     cmesh_v -> CleanUpUnconnectedNodes();
     
     return cmesh_v;
@@ -123,6 +124,7 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(SimulationData* simData, TPZGeoMesh* 
 
 TPZCompMesh* TPZMeshOperator::CreateCmeshP(SimulationData* simData, TPZGeoMesh* gmesh){
     TPZCompMesh* cmesh_p = new TPZCompMesh(gmesh);
+    cmesh_p->SetName("Hn Conforming - Pressure");
     cmesh_p->SetDefaultOrder(simData->TracpOrder());
     cmesh_p->SetDimModel(simData->Dim());
     
@@ -182,9 +184,23 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshP(SimulationData* simData, TPZGeoMesh* 
     return cmesh_p;
 }
 
+//TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(SimulationData* simData, TPZGeoMesh* gmesh){
+//    TPZMultiphysicsCompMesh* cmesh_m = new TPZMultiphysicsCompMesh(gmesh);
+//    cmesh_m->SetName("MultiPhysics Mesh - Stokes Material");
+//    cmesh_m->SetDefaultOrder(simData->VelpOrder());
+//    cmesh_m->SetAllCreateFunctionsMultiphysicElem();
+//
+//    //Creating Materials
+//    //1. For domain
+//    TPZNavierStokesMaterial* material = new TPZNavierStokesMaterial(simData->DomainVec()[0].matID, simData->Dim());
+//    material->SetSimulationData(<#int *simdata#>)
+//
+//
+//}
+
 void TPZMeshOperator::PrintMesh(TPZGeoMesh* gmesh, TPZCompMesh* cmesh_v, TPZCompMesh* cmesh_p){
-    std::ofstream VTKGeoMeshFile("GMeshtest.vtk");
-    std::ofstream TextGeoMeshFile("GMeshtest.txt");
+    std::ofstream VTKGeoMeshFile("GMesh.vtk");
+    std::ofstream TextGeoMeshFile("GMesh.txt");
     
     TPZVTKGeoMesh::PrintGMeshVTK(gmesh, VTKGeoMeshFile);
     gmesh->Print(TextGeoMeshFile);
