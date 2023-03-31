@@ -10,30 +10,22 @@
 int main(){
     bool printmesh = true;
 
-//    std::string filenamejson =  "StokesData.json";
-//
-//    SimulationData simData;
-//    simData.ReadJson(filenamejson);
-//
-//    TPZGeoMesh* gmesh = TPZMeshOperator::CreateGMesh(&simData);
-//    TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
-//    TPZCompMesh* cmesh_p = TPZMeshOperator::CreateCmeshP(&simData, gmesh);
-//    
-//    TPZMultiphysicsCompMesh* cmesh_m = TPZMeshOperator::CreateMultiPhysicsMesh(&simData, gmesh);
-//
-//    if(printmesh){
-//        TPZMeshOperator::PrintMesh(gmesh, cmesh_v, cmesh_p);
-//    }
+    std::string filenamejson =  "StokesData.json";
 
-
-    bool hdiv = false;
-
-    if(hdiv){
-        Example::HdivConforming();
-    } else {
-        Example::H1Conforming();
-    }
+    ProblemData simData;
+    simData.ReadJson(filenamejson);
+    simData.Print();
     
-    std::cout << "Simulation finishes without errors :) \n";
+    TPZGeoMesh* gmesh = TPZMeshOperator::CreateGMesh(&simData);
+    TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
+    TPZCompMesh* cmesh_p = TPZMeshOperator::CreateCmeshP(&simData, gmesh);
+    
+//    TPZMultiphysicsCompMesh* cmesh_m = TPZMeshOperator::CreateMultiPhysicsMesh(&simData, gmesh);
+    
+    if(printmesh){
+        TPZMeshOperator::PrintMesh(gmesh, cmesh_v, cmesh_p);
+    }
+
+    std::cout << "\n\nSimulation finished without errors :) \n\n";
 	return 0;
 }

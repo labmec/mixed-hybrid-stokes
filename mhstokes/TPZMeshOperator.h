@@ -5,14 +5,15 @@
 
 class TPZMeshOperator{
 public:
-    static TPZGeoMesh* CreateGMesh(SimulationData* simData);
-    static void InsertInterfaceElement(TPZGeoMesh* gmesh);
+    static TPZGeoMesh* CreateGMesh(ProblemData* simData);
+    static void InsertInterfaceElement(ProblemData* simData, TPZGeoMesh* gmesh);
     
-    static TPZCompMesh* CreateCMeshV(SimulationData* simData, TPZGeoMesh* gmesh);
+    static TPZCompMesh* CreateCMeshV(ProblemData* simData, TPZGeoMesh* gmesh);
     
-    static TPZCompMesh* CreateCmeshP(SimulationData* simData, TPZGeoMesh* gmesh);
+    static TPZCompMesh* CreateCmeshP(ProblemData* simData, TPZGeoMesh* gmesh);
+    
+    static TPZMultiphysicsCompMesh* CreateMultiPhysicsMesh(ProblemData* simData, TPZGeoMesh* gmesh);
+    
     static void PrintMesh(TPZGeoMesh* gmesh, TPZCompMesh* cmesh_v, TPZCompMesh* cmesh_p);
-    
-    static TPZMultiphysicsCompMesh* CreateMultiPhysicsMesh(SimulationData* simData, TPZGeoMesh* gmesh);
 };
 #endif

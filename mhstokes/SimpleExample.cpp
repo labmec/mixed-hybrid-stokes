@@ -173,6 +173,8 @@ void Example::HdivConforming(){
 //    TPZGeoMesh *gmesh = gen3d.BuildVolumetricElements(EDomain);
 //    gmesh = gen3d.BuildBoundaryElements(EBC, EBC, EBC, EBC, EBC, EBC);
     
+//    gmesh->NodeVec()[0].SetCoord(0, 0.);
+    
     const bool isPrintGmesh = true;
     if (isPrintGmesh){
         ofstream out("geomeshHDIV.vtk");

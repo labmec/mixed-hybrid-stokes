@@ -9,52 +9,32 @@
 using namespace std;
 
 // constructor
-SimulationData::SimulationData(){    
+ProblemData::ProblemData(){
     fbcvec.clear();
     fdomain.clear();
 }
 
 // deconstructor
-SimulationData::~SimulationData(){
+ProblemData::~ProblemData(){
     
 }
 
 // readjson function. takes a json function as parameter and completes the required simulation data
-void SimulationData::ReadJson(std::string file){
+void ProblemData::ReadJson(std::string file){
     std::ifstream filejson(file);
     json input = json::parse(filejson,nullptr,true,true); // to ignore comments in json file
     
     // checking infos in the json file
     if(input.find("MeshName") == input.end()) DebugStop();
-    if(input.find("MeshX0") == input.end()) DebugStop();
-    if(input.find("MeshX1") == input.end()) DebugStop();
-    if(input.find("MeshDiv") == input.end()) DebugStop();
     if(input.find("VelpOrder") == input.end()) DebugStop();
     if(input.find("TracpOrder") == input.end()) DebugStop();
     if(input.find("Dim") == input.end()) DebugStop();
     if(input.find("Domain") == input.end()) DebugStop();
     if(input.find("Boundary") == input.end()) DebugStop();
+    if(input.find("InterfaceID") == input.end()) DebugStop();
     
     // accessing and assigning values
     fMeshName = input["MeshName"];
-    
-    //X0
-    int i = 0;
-    for(auto& coord : input["MeshX0"]){
-        fX0[i++] = coord;
-    }
-    
-    //X1
-    i = 0;
-    for(auto& coord : input["MeshX1"]){
-        fX1[i++] = coord;
-    }
-    
-    // names as follows
-    i = 0;
-    for(auto& div : input["MeshDiv"]){
-        fdiv[i++] = div;
-    }
     
     fVelpOrder = input["VelpOrder"];
     
@@ -90,46 +70,37 @@ void SimulationData::ReadJson(std::string file){
         fbcvec.push_back(bcdata);
     }
     
+    finterfaceID = input["InterfaceID"];
+    
 }
 
-void SimulationData::Print(std::ostream& out){
-    out << "A new simulation has been started: \n\n";
-    out << "Simulation Mesh Name: " << fMeshName << std::endl << std::endl;
+void ProblemData::Print(std::ostream& out){
+    out << "\nA new simulation has been started: \n\n";
+    out << "Mesh address: " << fMeshName << std::endl << std::endl;
     
-    out << "Simulation Initial Coordinates: \n\n"
-        << "    ";
-    for(auto coord : fX0){
-        out << coord << " ";
-    }
-    out << std::endl << std::endl;
+    out << "Dimension: " << fDim << std::endl << std::endl;
     
-    out << "Simulation End Coordinates: \n\n"
-        << "    ";
-    for(auto coord : fX1){
-        out << coord << " ";
-    }
-    out << std::endl << std::endl;
+    out << "Velocity pOrder: " << fVelpOrder << std::endl << std::endl;
     
-    out << "Simulation number of divisions: " << fdiv << std::endl << std::endl;
+    out << "Traction pOrder: " << fTracpOrder << std::endl << std::endl;
     
-    out << "Simulation Velocity pOrder: " << fVelpOrder << std::endl << std::endl;
+    out << "Domain: " << std::endl;
     
-    out << "Simulation Traction pOrder: " << fTracpOrder << std::endl << std::endl;
-    
-    out << "Simulation Domain: " << std::endl;
-    
-    for(auto domaindata : fdomain){
-        out << "  Domain MatID: " << domaindata.matID << std::endl;
+    for(const auto& domaindata : fdomain){
         out << "  Domain Name: " << domaindata.name << std::endl;
+        out << "  Domain MatID: " << domaindata.matID << std::endl;
         out << "  Domain Viscosity: " << domaindata.viscosity << std::endl << std::endl;
     }
     
-    out << "Simulation Boundary COnditions: " << std::endl;
+    out << "Boundary COnditions: " << std::endl;
     
-    for(auto bcdata : fbcvec){
-        out << "  BC MatID: " << bcdata.matID << std::endl;
+    for(const auto& bcdata : fbcvec){
         out << "  BC Name: " << bcdata.name << std::endl;
+        out << "  BC MatID: " << bcdata.matID << std::endl;
         out << "  BC Type: " << bcdata.type << std::endl;
         out << "  BC Value: " << bcdata.value << std::endl << std::endl;
     }
+    
+    out << "Interface Elements ID: " << finterfaceID << std::endl << std::endl;
 }
+
