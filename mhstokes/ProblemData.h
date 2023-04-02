@@ -43,6 +43,8 @@ private:
     
     int finterfaceID = -1;
     
+    TPZManVector<TPZCompMesh *, 2> fMeshVector;
+    
 public:
     ProblemData();
     
@@ -73,6 +75,8 @@ public:
     
     const int& InterfaceID() const{return finterfaceID;}
     int& InterfaceID(){return finterfaceID;}
+    
+    void SetMeshVector(TPZManVector<TPZCompMesh*> meshVector){fMeshVector = meshVector;}
 };
 
 #endif

@@ -6,9 +6,10 @@
 #include"ProblemData.h"
 #include "SimpleExample.h"
 #include "TPZMeshOperator.h"
+#include "TPZStokesMaterial.h"
 
 int main(){
-    bool printmesh = true;
+    bool printmesh = false;
 
     std::string filenamejson =  "StokesData.json";
 
@@ -19,6 +20,9 @@ int main(){
     TPZGeoMesh* gmesh = TPZMeshOperator::CreateGMesh(&simData);
     TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
     TPZCompMesh* cmesh_p = TPZMeshOperator::CreateCmeshP(&simData, gmesh);
+    
+    TPZManVector<TPZCompMesh*, 2> meshVector = {cmesh_v, cmesh_p};
+    simData.SetMeshVector(meshVector);
     
 //    TPZMultiphysicsCompMesh* cmesh_m = TPZMeshOperator::CreateMultiPhysicsMesh(&simData, gmesh);
     
