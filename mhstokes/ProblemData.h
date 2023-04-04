@@ -43,7 +43,9 @@ private:
     
     int finterfaceID = -1;
     
-    TPZManVector<TPZCompMesh *, 2> fMeshVector;
+    int flambdaID = -1;
+    
+    TPZVec<TPZCompMesh*> fMeshVectorr;
     
 public:
     ProblemData();
@@ -76,7 +78,11 @@ public:
     const int& InterfaceID() const{return finterfaceID;}
     int& InterfaceID(){return finterfaceID;}
     
-    void SetMeshVector(TPZManVector<TPZCompMesh*> meshVector){fMeshVector = meshVector;}
+    const int& LambdaID() const{return flambdaID;}
+    int& LambdaID(){return flambdaID;}
+    
+    const TPZVec<TPZCompMesh*>& MeshVector() const {return fMeshVectorr;}
+    TPZVec<TPZCompMesh*>& MeshVector() {return fMeshVectorr;}
 };
 
 #endif

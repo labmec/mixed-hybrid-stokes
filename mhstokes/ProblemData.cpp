@@ -32,6 +32,7 @@ void ProblemData::ReadJson(std::string file){
     if(input.find("Domain") == input.end()) DebugStop();
     if(input.find("Boundary") == input.end()) DebugStop();
     if(input.find("InterfaceID") == input.end()) DebugStop();
+    if(input.find("LambdaID")==input.end()) DebugStop();
     
     // accessing and assigning values
     fMeshName = input["MeshName"];
@@ -71,6 +72,7 @@ void ProblemData::ReadJson(std::string file){
     }
     
     finterfaceID = input["InterfaceID"];
+    flambdaID = input["LambdaID"];
     
 }
 
@@ -102,5 +104,7 @@ void ProblemData::Print(std::ostream& out){
     }
     
     out << "Interface Elements ID: " << finterfaceID << std::endl << std::endl;
+    
+    out << "Lambda Elements ID: " << flambdaID << std::endl << std::endl;
 }
 

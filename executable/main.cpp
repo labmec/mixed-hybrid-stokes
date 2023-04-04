@@ -9,7 +9,7 @@
 #include "TPZStokesMaterial.h"
 
 int main(){
-    bool printmesh = false;
+    bool printmesh = true;
 
     std::string filenamejson =  "StokesData.json";
 
@@ -21,13 +21,10 @@ int main(){
     TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
     TPZCompMesh* cmesh_p = TPZMeshOperator::CreateCmeshP(&simData, gmesh);
     
-    TPZManVector<TPZCompMesh*, 2> meshVector = {cmesh_v, cmesh_p};
-    simData.SetMeshVector(meshVector);
-    
-//    TPZMultiphysicsCompMesh* cmesh_m = TPZMeshOperator::CreateMultiPhysicsMesh(&simData, gmesh);
+    TPZMultiphysicsCompMesh* cmesh_m = TPZMeshOperator::CreateMultiPhysicsMesh(&simData, gmesh);
     
     if(printmesh){
-        TPZMeshOperator::PrintMesh(gmesh, cmesh_v, cmesh_p);
+        TPZMeshOperator::PrintMesh(gmesh, cmesh_v, cmesh_p, cmesh_m);
     }
 
     std::cout << "\n\nSimulation finished without errors :) \n\n";
