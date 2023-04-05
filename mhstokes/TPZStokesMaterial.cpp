@@ -16,12 +16,12 @@ TPZStokesMaterial::~TPZStokesMaterial(){
 }
 
 void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datavec, REAL weight, TPZFMatrix<STATE>& ek, TPZFMatrix<STATE>& ef){
-    
+    DebugStop();
     // YOU NEED TO IMPLEMENT THIS
 }
 
 void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc){
- 
+    DebugStop();
     // AND THIS
 }
 
@@ -108,4 +108,25 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
             DebugStop();
         }
     }
+}
+
+void TPZStokesMaterial::ContributeInterface(const TPZMaterialDataT<STATE>& data, const std::map<int, TPZMaterialDataT<STATE>>& datavecleft, const std::map<int, TPZMaterialDataT<STATE>>& datavecright, REAL weight, TPZFMatrix<STATE>& ek, TPZFMatrix<STATE>& ef){
+    DebugStop();
+}
+
+void TPZStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<STATE> &data,
+                      const std::map<int, TPZMaterialDataT<STATE>> &datavec,
+                      REAL weight,
+                      TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef,
+                                                       TPZBndCondT<STATE> &bc){
+    DebugStop();
+}
+
+void TPZStokesMaterial::FillDataRequirementsInterface(TPZMaterialDataT<STATE>& data, std::map<int, TPZMaterialDataT<STATE>>& datavec_left, std::map<int, TPZMaterialDataT<STATE>>& datavec_right){
+    int nref_left = datavec_left.size();
+    datavec_left[0].fNeedsNormal = true;
+    datavec_left[0].fNeedsSol = true;
+    datavec_right[1].fNeedsNormal = true;
+    datavec_right[1].fNeedsSol = true;
+    datavec_left[0].fNeedsDeformedDirectionsFad = true;
 }
