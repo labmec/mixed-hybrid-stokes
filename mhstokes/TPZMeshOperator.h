@@ -6,7 +6,7 @@
 class TPZMeshOperator{
 public:
     static TPZGeoMesh* CreateGMesh(ProblemData* simData);
-    static void InsertInterfaceMaterial(ProblemData* simData, TPZGeoMesh* gmesh);
+    static void InsertLambdaGEl(ProblemData* simData, TPZGeoMesh* gmesh);
     
     static TPZCompMesh* CreateCMeshV(ProblemData* simData, TPZGeoMesh* gmesh);
     
