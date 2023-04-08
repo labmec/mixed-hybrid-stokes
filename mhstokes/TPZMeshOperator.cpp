@@ -299,7 +299,7 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
 
     //Creating Materials
     //1. For domain
-    TPZStokesMaterial* material = new TPZStokesMaterial(simData->DomainVec()[0].matID,simData->Dim());
+    TPZStokesMaterial* material = new TPZStokesMaterial(simData->DomainVec()[0].matID,simData->Dim(), simData->DomainVec()[0].viscosity);
     cmesh_m->InsertMaterialObject(material);
 
     // 2. Boundary Conditions
@@ -320,10 +320,10 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
     cmesh_m->InsertMaterialObject(matLambda);
 
     // 2.2 - Material for interfaces (Inner)
-    TPZStokesMaterial *matInterfaceLeft = new TPZStokesMaterial(simData->InterfaceID(),simData->Dim());
+    TPZStokesMaterial *matInterfaceLeft = new TPZStokesMaterial(simData->InterfaceID(),simData->Dim(), simData->DomainVec()[0].viscosity);
     cmesh_m->InsertMaterialObject(matInterfaceLeft);
 
-    TPZStokesMaterial *matInterfaceRight = new TPZStokesMaterial(-simData->InterfaceID(),simData->Dim());
+    TPZStokesMaterial *matInterfaceRight = new TPZStokesMaterial(-simData->InterfaceID(),simData->Dim(), simData->DomainVec()[0].viscosity);
     cmesh_m->InsertMaterialObject(matInterfaceRight);
 
     // Creating computational elements that will manage the mesh approximation space:

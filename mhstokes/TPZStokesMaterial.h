@@ -20,12 +20,15 @@ protected:
     /// Approximation Space for Velocity
     int fSpace = 1;
     
+    /// fluid viscosity
+    double fviscosity;
+    
 public:
     /// Empty Constructor
     TPZStokesMaterial();
     
     /// Creates a material object and inserts it in the vector of material pointers of the mesh
-    TPZStokesMaterial(int matID, int dimension);
+    TPZStokesMaterial(int matID, int dimension, double viscosity);
     
     /// Destructor
     ~TPZStokesMaterial();
@@ -54,6 +57,10 @@ public:
         }
         
     } // for hdiv are 3, plus pressure, so 3 + 1 = 4 itapopo
+    
+    /** inner product of two tensors. See Gurtin (2003), p. 5. */
+    template <class TVar>
+    TVar TensorInnerProduct(TPZFMatrix<TVar> &S, TPZFMatrix<TVar> &T);
     
     // Contribute Methods being used - Multiphysics
     virtual void Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
