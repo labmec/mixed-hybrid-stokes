@@ -4,7 +4,8 @@
 #include <TPZMaterialData.h>
 #include <TPZMaterialDataT.h>
 #include <TPZMatCombinedSpaces.h>
-#include "TPZMatInterfaceCombinedSpaces.h"
+#include <TPZMatInterfaceCombinedSpaces.h>
+#include <math.h>
 
 #ifndef TPZSTOKESMATERIAL
 #define TPZSTOKESMATERIAL
@@ -22,6 +23,15 @@ protected:
     
     /// fluid viscosity
     double fviscosity;
+    
+    /// Velocity index in datavec
+    int fVindex = 0;
+    
+    /// Pressure index in datavec
+    int fPindex = 0;
+    
+    /// Big number for penalization method
+    REAL fBigNumber = pow(10,std::numeric_limits<STATE>::max_digits10*2/3);
     
 public:
     /// Empty Constructor

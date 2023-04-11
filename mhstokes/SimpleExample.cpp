@@ -163,7 +163,7 @@ void Example::HdivConforming(){
     
     // Set the 2D grid
     generator.SetElementType(elType);
-    generator.Read(gmesh);
+    generator.Read(gmesh, EDomain);
     // Defines the material ID of each corner
     generator.SetBC(gmesh, 4, EBC);
     generator.SetBC(gmesh, 5, EBC);

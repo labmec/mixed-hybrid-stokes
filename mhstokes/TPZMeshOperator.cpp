@@ -17,6 +17,7 @@
 #include <TPZNullMaterial.h>
 #include <TPZGMshReader.h>
 #include <TPZNullMaterialCS.h>
+#include <pzintel.h>
 
 #include "TPZStokesMaterial.h"
 #include "TPZMeshOperator.h"
@@ -82,9 +83,9 @@ void TPZMeshOperator::InsertBCInterfaces(TPZMultiphysicsCompMesh* cmesh_m, Probl
     
     int64_t nel = gmesh->NElements();
     
-    TPZVec<int> IDVec(simData->BCs().size(), 0);
-    for(int i = 0; i<simData->BCs().size(); i++){
-        IDVec[i] = simData->BCs()[i].matID;
+    TPZVec<int> IDVec(simData->TracBCs().size(), 0);
+    for(int i = 0; i<simData->TracBCs().size(); i++){
+        IDVec[i] = simData->TracBCs()[i].matID;
     }
     
     for(auto const& BcMatID : IDVec){
@@ -202,30 +203,51 @@ void TPZMeshOperator::InsertInterfaces(TPZMultiphysicsCompMesh* cmesh_m, Problem
 TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gmesh){
     TPZCompMesh* cmesh_v = new TPZCompMesh(gmesh);
     cmesh_v->SetName("Hdiv Mesh - Velocity");
-    cmesh_v->SetDefaultOrder(simData->VelpOrder());
+    cmesh_v->SetDefaultOrder(simData->TracpOrder());
     cmesh_v->SetDimModel(simData->Dim());
 
-    cmesh_v -> SetAllCreateFunctionsHDiv();
+    cmesh_v->SetAllCreateFunctionsHDiv();
     
     // domain's material - 2D
     auto* mat = new TPZNullMaterial<>(simData->DomainVec()[0].matID);
-    cmesh_v -> InsertMaterialObject(mat);
-
+    cmesh_v->InsertMaterialObject(mat);
+    
     // boundary conditions' material
     TPZFMatrix<STATE> val1(1, 1, 0.);
     TPZManVector<STATE> val2(1, 0.);
     
-    for(const auto& bc : simData->BCs()){
-        if(bc.type == 0 || bc.type == 1){
+    for(const auto& bc : simData->VelBCs()){
             val2[0] = bc.value;
             
             auto BCmat = mat->CreateBC(mat, bc.matID, bc.type, val1, val2);
             cmesh_v->InsertMaterialObject(BCmat);
+    }
+    
+    cmesh_v->AutoBuild();
+    cmesh_v->LoadReferences();
+    
+    // setting the approximation order for the volume elements
+    int64_t ncEl = cmesh_v->NElements();
+    for(int64_t cEl=0; cEl<ncEl; cEl++){
+        TPZCompEl* compEl = cmesh_v->Element(cEl);
+        
+        // only in those elements whose dimension equals to the simulation dim
+        if(compEl->Dimension()==simData->Dim()){
+            // dynamica casting the compEl object to use the ForceSideOrder function
+            TPZInterpolatedElement* intercEl = dynamic_cast<TPZInterpolatedElement*>(compEl);
+            
+            // checking if the dynamic cast exists
+            if(!intercEl) continue;
+            
+            // finally using the desired function
+            intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder());
         }
     }
     
-    cmesh_v -> AutoBuild();
-    cmesh_v -> CleanUpUnconnectedNodes();
+    cmesh_v->CleanUpUnconnectedNodes();
+    
+    // expanding the solution vector
+    cmesh_v->ExpandSolution();
     
     simData->MeshVector().Resize(2);
     simData->MeshVector()[0] = cmesh_v;
@@ -236,7 +258,7 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
 TPZCompMesh* TPZMeshOperator::CreateCmeshP(ProblemData* simData, TPZGeoMesh* gmesh){
     TPZCompMesh* cmesh_p = new TPZCompMesh(gmesh);
     cmesh_p->SetName("H1 - Pressure");
-    cmesh_p->SetDefaultOrder(simData->TracpOrder());
+    cmesh_p->SetDefaultOrder(simData->VelpOrder());
     cmesh_p->SetDimModel(simData->Dim());
     
     cmesh_p->SetAllCreateFunctionsContinuous();
@@ -261,13 +283,11 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshP(ProblemData* simData, TPZGeoMesh* gme
     materialIDs.insert(simData->LambdaID());
     
     // traction on boundary material
-    for(const auto& bc : simData->BCs()){
-        if(bc.type == 4 || bc.type == 3){
+    for(const auto& bc : simData->TracBCs()){
             auto matLambdaBC = new TPZNullMaterial<>(bc.matID);
             cmesh_p->InsertMaterialObject(matLambdaBC);
             
             materialIDs.insert(bc.matID);
-        }
     }
     
     cmesh_p->SetAllCreateFunctionsContinuous();
@@ -306,7 +326,14 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
     TPZFMatrix<STATE> val1(3,3,0.);
     TPZManVector<STATE> val2(3,0.);
 
-    for(const auto& bc : simData->BCs()){
+    for(const auto& bc : simData->VelBCs()){
+        val2[0] = bc.value;
+
+        TPZBndCond* matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
+        cmesh_m->InsertMaterialObject(matBC);
+    }
+    
+    for(const auto& bc : simData->TracBCs()){
         val2[0] = bc.value;
 
         TPZBndCond* matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);

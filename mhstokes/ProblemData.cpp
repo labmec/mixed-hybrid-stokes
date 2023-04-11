@@ -10,7 +10,8 @@ using namespace std;
 
 // constructor
 ProblemData::ProblemData(){
-    fbcvec.clear();
+    fbcvelvec.clear();
+    fbctracvec.clear();
     fdomain.clear();
 }
 
@@ -30,7 +31,8 @@ void ProblemData::ReadJson(std::string file){
     if(input.find("TracpOrder") == input.end()) DebugStop();
     if(input.find("Dim") == input.end()) DebugStop();
     if(input.find("Domain") == input.end()) DebugStop();
-    if(input.find("Boundary") == input.end()) DebugStop();
+    if(input.find("BoundaryVelocity") == input.end()) DebugStop();
+    if(input.find("BoundaryTraction") == input.end()) DebugStop();
     if(input.find("InterfaceID") == input.end()) DebugStop();
     if(input.find("LambdaID")==input.end()) DebugStop();
     
@@ -56,19 +58,34 @@ void ProblemData::ReadJson(std::string file){
         fdomain.push_back(domaindata);
     }
     
-    fBcData bcdata;
-    for(auto& bcjson : input["Boundary"]){
+    fBcVelData bcveldata;
+    for(auto& bcjson : input["BoundaryVelocity"]){
         if(bcjson.find("name") == bcjson.end()) DebugStop();
         if(bcjson.find("type") == bcjson.end()) DebugStop();
         if(bcjson.find("value") == bcjson.end()) DebugStop();
         if(bcjson.find("matID") == bcjson.end()) DebugStop();
 
-        bcdata.name = bcjson["name"];
-        bcdata.type = bcjson["type"];
-        bcdata.value = bcjson["value"];
-        bcdata.matID = bcjson["matID"];
+        bcveldata.name = bcjson["name"];
+        bcveldata.type = bcjson["type"];
+        bcveldata.value = bcjson["value"];
+        bcveldata.matID = bcjson["matID"];
         
-        fbcvec.push_back(bcdata);
+        fbcvelvec.push_back(bcveldata);
+    }
+    
+    fBcTracData bctracdata;
+    for(auto& bcjson : input["BoundaryTraction"]){
+        if(bcjson.find("name") == bcjson.end()) DebugStop();
+        if(bcjson.find("type") == bcjson.end()) DebugStop();
+        if(bcjson.find("value") == bcjson.end()) DebugStop();
+        if(bcjson.find("matID") == bcjson.end()) DebugStop();
+
+        bctracdata.name = bcjson["name"];
+        bctracdata.type = bcjson["type"];
+        bctracdata.value = bcjson["value"];
+        bctracdata.matID = bcjson["matID"];
+        
+        fbctracvec.push_back(bctracdata);
     }
     
     finterfaceID = input["InterfaceID"];
@@ -94,9 +111,18 @@ void ProblemData::Print(std::ostream& out){
         out << "  Domain Viscosity: " << domaindata.viscosity << std::endl << std::endl;
     }
     
-    out << "Boundary COnditions: " << std::endl;
+    out << "Velocity Boundary Conditions: " << std::endl;
     
-    for(const auto& bcdata : fbcvec){
+    for(const auto& bcdata : fbcvelvec){
+        out << "  BC Name: " << bcdata.name << std::endl;
+        out << "  BC MatID: " << bcdata.matID << std::endl;
+        out << "  BC Type: " << bcdata.type << std::endl;
+        out << "  BC Value: " << bcdata.value << std::endl << std::endl;
+    }
+    
+    out << "Traction Boundary Conditions: " << std::endl;
+    
+    for(const auto& bcdata : fbctracvec){
         out << "  BC Name: " << bcdata.name << std::endl;
         out << "  BC MatID: " << bcdata.matID << std::endl;
         out << "  BC Type: " << bcdata.type << std::endl;

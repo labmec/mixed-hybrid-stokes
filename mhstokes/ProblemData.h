@@ -31,15 +31,25 @@ private:
     
     std::vector<fDomainData> fdomain; // vector containing every domain created
     
-    // struct responsible to summarize all the data from every single boundary condition
-    struct fBcData {
+    // struct responsible to summarize all the data from every velocity boundary condition
+    struct fBcVelData {
+        std::string name = "none"; // name of the bc
+        int type = 0; // bc type (explained below)
+        double value = 0.; // bc value
+        int matID = 0; // bc material ID
+    };
+
+    // struct responsible to summarize all the data from every traction boundary condition
+    struct fBcTracData {
         std::string name = "none"; // name of the bc
         int type = 0; // bc type (explained below)
         double value = 0.; // bc value
         int matID = 0; // bc material ID
     };
     
-    std::vector<fBcData> fbcvec; // vector containg all the bcs info
+    std::vector<fBcVelData> fbcvelvec; // vector containg all the velocity bcs info
+    
+    std::vector<fBcTracData> fbctracvec; // vector containg all the traction bcs info
     
     int finterfaceID = -1;
     
@@ -72,8 +82,11 @@ public:
     const std::vector<fDomainData>& DomainVec() const {return fdomain;}
     std::vector<fDomainData>& DomainVec(){return fdomain;}
     
-    const std::vector<fBcData>& BCs() const {return fbcvec;}
-    std::vector<fBcData>& BCs(){return fbcvec;}
+    const std::vector<fBcVelData>& VelBCs() const {return fbcvelvec;}
+    std::vector<fBcVelData>& VelBCs(){return fbcvelvec;}
+    
+    const std::vector<fBcTracData>& TracBCs() const {return fbctracvec;}
+    std::vector<fBcTracData>& TracBCs(){return fbctracvec;}
     
     const int& InterfaceID() const{return finterfaceID;}
     int& InterfaceID(){return finterfaceID;}
