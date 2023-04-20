@@ -10,9 +10,9 @@
 #ifndef TPZSTOKESMATERIAL
 #define TPZSTOKESMATERIAL
 
-class TPZStokesMaterial : public TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>, TPZMatInterfaceCombinedSpaces<STATE> > {
+class TPZStokesMaterial : public TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>> {
     
-    using TBase = TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>, TPZMatInterfaceCombinedSpaces<STATE> >;
+    using TBase = TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>>;
     
 protected:
     /// material dimension
@@ -28,7 +28,7 @@ protected:
     int fVindex = 0;
     
     /// Pressure index in datavec
-    int fPindex = 0;
+    int fPindex = 1;
     
     /// Big number for penalization method
     REAL fBigNumber = pow(10,std::numeric_limits<STATE>::max_digits10*2/3);
@@ -36,7 +36,7 @@ protected:
 public:
     /// Empty Constructor
     TPZStokesMaterial();
-    
+
     /// Creates a material object and inserts it in the vector of material pointers of the mesh
     TPZStokesMaterial(int matID, int dimension, double viscosity);
     
@@ -88,63 +88,13 @@ public:
     virtual void ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) override;
     
     
-    virtual void SolutionInterface(const TPZMaterialDataT<STATE> &data,
-                                   const std::map<int, TPZMaterialDataT<STATE>> &dataleftvec,
-                                   const std::map<int, TPZMaterialDataT<STATE>> &datarightvec,
-                                   int var, TPZVec<STATE> &Solout) override {
-        DebugStop();
-    }
-    
-    /**
-     * @brief Returns the solution associated with the var index based on the finite element approximation around
-     * one interface element
+    /** Fill material data parameter with necessary requirements for the
+     * Contribute method. Here, in base class, all requirements are considered
+     * as necessary. Each derived class may optimize performance by selecting
+     * only the necessary data.
+     * @since April 10, 2007
      */
-    virtual void SolutionInterface(const TPZMaterialDataT<STATE> &data,
-                                   const std::map<int, TPZMaterialDataT<STATE>> &dataleftvec,
-                                   const std::map<int, TPZMaterialDataT<STATE>> &datarightvec,
-                                   int var, TPZVec<STATE> &Solout,
-                                   TPZCompEl *left,TPZCompEl *right) override
-    {
-        DebugStop();
-    }
-    
-    /**
-     * It computes a contribution to the stiffness matrix and load vector at one BC interface integration point.
-     * @param data[in] stores all input data
-     * @param weight[in] is the weight of the integration rule
-     * @param ek[out] is the stiffness matrix
-     * @param ef[out] is the load vector
-     * @param bc[in] is the boundary condition material
-     * */
-    virtual void ContributeBCInterface(const TPZMaterialDataT<STATE> &data,
-                          const std::map<int, TPZMaterialDataT<STATE>> &datavec,
-                          REAL weight,
-                          TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef,
-                                                                   TPZBndCondT<STATE> &bc) override;
-    
-    /**
-     * @brief Computes a contribution to the stiffness matrix and load vector at one integration point
-     * to multiphysics simulation
-     * @param [in] data
-     * @param [in] dataleft
-     * @param [in] dataright
-     * @param [in] weight
-     * @param [out] ek is the stiffness matrix
-     * @param [out] ef is the load vector
-     * */
-    virtual void ContributeInterface(const TPZMaterialDataT<STATE> &data,
-                                     const std::map<int, TPZMaterialDataT<STATE>> &dataleft,
-                                     const std::map<int, TPZMaterialDataT<STATE>> &dataright, REAL weight,
-                                     TPZFMatrix<STATE> &ek,
-                                     TPZFMatrix<STATE> &ef) override;
-    
-    /**
-     * @brief This method defines which parameters need to be initialized in order to compute the contribution
-     * of interface elements
-     */
-    virtual void FillDataRequirementsInterface(TPZMaterialDataT<STATE> &data,
-                                  std::map<int, TPZMaterialDataT<STATE>> &datavec_left,
-                                  std::map<int, TPZMaterialDataT<STATE>> &datavec_right) override;
+    void FillDataRequirements(TPZVec<TPZMaterialDataT<STATE>> &datavec) const override;
 };
 
 #endif

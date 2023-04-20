@@ -19,6 +19,7 @@
 #include <TPZNullMaterialCS.h>
 #include <pzintel.h>
 
+#include "TPZInterfaceMaterial.h"
 #include "TPZStokesMaterial.h"
 #include "TPZMeshOperator.h"
 #include "ProblemData.h"
@@ -203,7 +204,8 @@ void TPZMeshOperator::InsertInterfaces(TPZMultiphysicsCompMesh* cmesh_m, Problem
 TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gmesh){
     TPZCompMesh* cmesh_v = new TPZCompMesh(gmesh);
     cmesh_v->SetName("Hdiv Mesh - Velocity");
-    cmesh_v->SetDefaultOrder(simData->TracpOrder());
+//    cmesh_v->SetDefaultOrder(simData->TracpOrder());
+    cmesh_v->SetDefaultOrder(2);
     cmesh_v->SetDimModel(simData->Dim());
 
     cmesh_v->SetAllCreateFunctionsHDiv();
@@ -240,7 +242,7 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
             if(!intercEl) continue;
             
             // finally using the desired function
-            intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder());
+//            intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder()); 
         }
     }
     
@@ -347,10 +349,10 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
     cmesh_m->InsertMaterialObject(matLambda);
 
     // 2.2 - Material for interfaces (Inner)
-    TPZStokesMaterial *matInterfaceLeft = new TPZStokesMaterial(simData->InterfaceID(),simData->Dim(), simData->DomainVec()[0].viscosity);
+    TPZInterfaceMaterial *matInterfaceLeft = new TPZInterfaceMaterial(simData->InterfaceID(),simData->Dim());
     cmesh_m->InsertMaterialObject(matInterfaceLeft);
 
-    TPZStokesMaterial *matInterfaceRight = new TPZStokesMaterial(-simData->InterfaceID(),simData->Dim(), simData->DomainVec()[0].viscosity);
+    TPZInterfaceMaterial *matInterfaceRight = new TPZInterfaceMaterial(-simData->InterfaceID(), simData->Dim());
     cmesh_m->InsertMaterialObject(matInterfaceRight);
 
     // Creating computational elements that will manage the mesh approximation space:

@@ -38,12 +38,15 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
     TPZFNMatrix<3, REAL> NormalVec(normVecRows, normVecCols, 0.);
     
     // check if fvecshapeindex exists
+    if (datavec[fVindex].fVecShapeIndex.size() == 0) {
+        DebugStop();
+    }
     
     NormalVec = datavec[fVindex].fDeformedDirections;
     
     // Setting the phis (is this the correct variable? or should it be fDeformedDirections?)
-    // for V
-    TPZFMatrix<REAL>& phiV = datavec[fVindex].phi;
+    
+    
     
     // for P
     TPZFMatrix<REAL>& phiP = datavec[fPindex].phi;
@@ -53,9 +56,6 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
     
     // creating a vector of gradients of the H(div) vectors (why is it that way?)
     TPZManVector<TPZFNMatrix<9, REAL>, 18> GradNormVec(normVecCols);
-    for(int i=0; i<normVecRows; i++){
-        GradNormVec[i].Redim(3, 3);
-    }
     
     // what is this??
     if(datavec[fVindex].fNeedsDeformedDirectionsFad){
@@ -68,7 +68,7 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
         TPZFNMatrix<9, REAL> Grad0(3,3,0.);
         for(int s=0; s<normVecCols; s++){
             for(int i=0; i < this->Dimension(); i++){
-                for(int j=0; j < this->Dimension(); i++){
+                for(int j=0; j < this->Dimension(); j++){
                     Grad0(i, j) = datavec[fVindex].fDeformedDirectionsFad(i,s).fastAccessDx(j);
                 }
             }
@@ -86,11 +86,6 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
     TPZFNMatrix<10, STATE> dSolVec = datavec[fVindex].dsol[0];
     
     TPZManVector<STATE, 3> un = datavec[fVindex].sol[0];
-    STATE pn = datavec[fPindex].sol[0][0];
-    STATE divsol = datavec[fVindex].divsol[0][0];
-    
-    
-    // GetTimeStep ?? Is it necessary? How to do it?
     
     TPZFNMatrix<10, STATE> gradUn = dSolVec;
     
@@ -114,8 +109,11 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
             
             for(int col=0; col<3; col++){
                 GradVi(row, col) = GradNormVec[i](row, col);
-                GradVi(col, row) = GradVi(row, col);
-                
+            }
+        }
+        
+        for(int row=0; row<3; row++){
+            for(int col=0; col<3; col++){
                 // symetric gradient of the test function
                 DUi(row, col) = 0.5*(GradVi(row, col) + GradVi(col, row));
             }
@@ -132,23 +130,6 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
         
         ef(i) += weight*phiDotF;
         
-        // Stiffness Matrix A (depending term of V)
-        STATE AF = 0.; // Flux term A = mu/2(gradUi + gradUiT)(gradUj + gradUjT)
-        TPZFNMatrix<9, STATE> DUnj(3,3,0.);
-        
-        for(int row=0; row<3; row++){
-            for(int col=0; col<3; col++){
-                DUnj(row, col) = 0.5*(gradUn(row, col) + gradUn(col, row));
-            }
-        }
-        
-        AF = TensorInnerProduct(DUi, DUnj);
-        ef(i) += 2.*fviscosity*weight*(-AF);
-        
-        STATE BF = 0.; // Mixed Term B = pdiv(u)
-        BF = -pn*divUi;
-        ef(i) += weight*(-BF);
-        
         for(int j=0; j<nShapeV; j++){
             for(int row=0; row<3; row++){
                 phiVj(row,0) = NormalVec(row,j);
@@ -160,8 +141,12 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
             for(int row=0; row<3; row++){
                 for(int col=0; col<3; col++){
                     gradVj(row, col) = GradNormVec[j](row, col);
-                    gradVj(col, row) = gradVj(row, col);
-                    
+                }
+            }
+            
+            for(int row=0; row<3; row++){
+                for(int col=0; col<3; col++){
+                    // symetric gradient of the test function
                     DUj(row, col) = 0.5*(gradVj(row, col) + gradVj(col, row));
                 }
             }
@@ -179,13 +164,8 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
         }
     }
     
-    // pablo said to verify this
-    for(int i=0; i<nShapeP; i++){
-        STATE BtermF = -phiP(i,0)*divsol;
-        
-        ef(i+nShapeV) += weight*(-BtermF);
-    }
-    
+    ek.Print("ek",std::cout,EMathematicaInput);
+    ef.Print("ef",std::cout,EMathematicaInput);
 }
 
 void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc){
@@ -195,7 +175,7 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
         DebugStop();
     }
     
-    if(datavec[fVindex].fVecShapeIndex.size()==0) DebugStop();
+//    if(datavec[fVindex].fVecShapeIndex.size()==0) DebugStop();
     
     // Setting the phis
     // for V
@@ -316,7 +296,9 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
             
         case 3: // Tangential Stress
         {
-            DebugStop();        }
+//            DebugStop();
+            
+        }
             break;
             
         default:
@@ -412,76 +394,14 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
     }
 }
 
-void TPZStokesMaterial::ContributeInterface(const TPZMaterialDataT<STATE>& data, const std::map<int, TPZMaterialDataT<STATE>>& datavecleft, const std::map<int, TPZMaterialDataT<STATE>>& datavecright, REAL weight, TPZFMatrix<STATE>& ek, TPZFMatrix<STATE>& ef){
-    
-    int nRefLeft = datavecleft.size();
-    int nRefRight = datavecright.size();
-    
-    if(datavecleft.find(fVindex) == datavecleft.end()) DebugStop();
-    if(datavecright.find(fPindex) == datavecright.end()) DebugStop();
-    
-    const TPZMaterialDataT<STATE>& vDataLeft = datavecleft.find(fVindex)->second;
-    const TPZMaterialDataT<STATE>& pDataRight = datavecright.find(fPindex)->second;
-    
-    if(vDataLeft.fVecShapeIndex.size() == 0) DebugStop();
-    
-    // Setting the phis
-    // V -> Left
-    const TPZFNMatrix<9, REAL>& tan = pDataRight.axes;
-    TPZManVector<STATE, 3> un = vDataLeft.sol[0];
-    STATE sLambdan = pDataRight.sol[0][0];
-    TPZManVector<STATE, 3> Lambdan = pDataRight.sol[0];
-        
-    int nShapeV = vDataLeft.fVecShapeIndex.NElements();
-    int nShapeLambda = pDataRight.phi.Rows();
-    int nStateVariablesL = fdimension-1;
-    
-    int normVecRows = vDataLeft.fDeformedDirections.Rows();
-    int normVecCols = vDataLeft.fDeformedDirections.Cols();
-    TPZFNMatrix<3, REAL> NormalVec(normVecRows, normVecCols, 0.);
-    
-    if(vDataLeft.fNeedsDeformedDirectionsFad){
-        for(int row=0; row<normVecRows; row++){
-            for(int col=0; col<normVecCols; col++){
-                NormalVec(row, col) = vDataLeft.fDeformedDirectionsFad(row,col).val();
-            }
-        }
-        
-    } else {
-        NormalVec = vDataLeft.fDeformedDirections;
+void TPZStokesMaterial::FillDataRequirements(TPZVec<TPZMaterialDataT<STATE>> &datavec) const
+{
+    int64_t ndata = datavec.size();
+    for (int idata=0; idata < ndata ; idata++) {
+        datavec[idata].SetAllRequirements(false);
+        datavec[idata].fNeedsSol = true;
+        datavec[idata].fNeedsHSize = true;
+        datavec[idata].fNeedsNormal = true;
     }
-    
-    for(int i=0; i<nShapeV; i++){
-        TPZFNMatrix<9, STATE> phiVi(3,1,0.);
-        TPZFNMatrix<9, STATE> lambdan(3,1,0.);
-        
-        for(int row=0; row<3; row++){
-            phiVi(row,0) = NormalVec(row, i);
-        }
-        
-        STATE LambdaDotPhiV = 0.;
-        for(int f=0; f<nStateVariablesL; f++){
-            for(int row=0; row<3; row++){
-                
-            }
-        }
-    }
-    
-}
-
-void TPZStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<STATE> &data,
-                      const std::map<int, TPZMaterialDataT<STATE>> &datavec,
-                      REAL weight,
-                      TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef,
-                                                       TPZBndCondT<STATE> &bc){
-    DebugStop();
-}
-
-void TPZStokesMaterial::FillDataRequirementsInterface(TPZMaterialDataT<STATE>& data, std::map<int, TPZMaterialDataT<STATE>>& datavec_left, std::map<int, TPZMaterialDataT<STATE>>& datavec_right){
-    int nref_left = datavec_left.size();
-    datavec_left[0].fNeedsNormal = true;
-    datavec_left[0].fNeedsSol = true;
-    datavec_right[1].fNeedsNormal = true;
-    datavec_right[1].fNeedsSol = true;
-    datavec_left[0].fNeedsDeformedDirectionsFad = true;
+    datavec[0].fNeedsDeformedDirectionsFad = true;
 }
