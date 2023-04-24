@@ -31,141 +31,85 @@ TVar TPZStokesMaterial::TensorInnerProduct(TPZFMatrix<TVar> &S, TPZFMatrix<TVar>
 }
 
 void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datavec, REAL weight, TPZFMatrix<STATE>& ek, TPZFMatrix<STATE>& ef){
-    
-    int64_t normVecRows = datavec[fVindex].fDeformedDirections.Rows();
-    int64_t normVecCols = datavec[fVindex].fDeformedDirections.Cols();
-    
-    TPZFNMatrix<3, REAL> NormalVec(normVecRows, normVecCols, 0.);
-    
-    // check if fvecshapeindex exists
-    if (datavec[fVindex].fVecShapeIndex.size() == 0) {
-        DebugStop();
-    }
-    
-    NormalVec = datavec[fVindex].fDeformedDirections;
-    
-    // Setting the phis (is this the correct variable? or should it be fDeformedDirections?)
-    
-    
-    
-    // for P
-    TPZFMatrix<REAL>& phiP = datavec[fPindex].phi;
-    
+
+    int64_t Vrows = datavec[fVindex].fDeformedDirections.Rows();
+    int64_t Vcols = datavec[fVindex].fDeformedDirections.Cols();
+
+    TPZFNMatrix<3, REAL> PhiV(Vrows, Vcols, 0.);
+    TPZFMatrix<REAL>& PhiP = datavec[fPindex].phi;
+
     int64_t nShapeV = datavec[fVindex].fVecShapeIndex.NElements();
-    int64_t nShapeP = phiP.Rows();
-    
-    // creating a vector of gradients of the H(div) vectors (why is it that way?)
-    TPZManVector<TPZFNMatrix<9, REAL>, 18> GradNormVec(normVecCols);
-    
-    // what is this??
+    int64_t nShapeP = PhiP.Rows();
+
+    TPZManVector<TPZFNMatrix<9, REAL>, 18> GradV(Vcols);
+
+    TPZVec<STATE> SourceTerm(3,0.);
+
     if(datavec[fVindex].fNeedsDeformedDirectionsFad){
-        for(int e=0; e<normVecRows; e++){
-            for(int s=0; s<normVecCols; s++){
-                NormalVec(e,s) = datavec[fVindex].fDeformedDirectionsFad(e,s).val();
+        for(int row=0; row<Vrows; row++){
+            for(int col=0; col<Vcols; col++){
+                PhiV(row, col) = datavec[fVindex].fDeformedDirectionsFad(row, col).val();
             }
         }
-        
-        TPZFNMatrix<9, REAL> Grad0(3,3,0.);
-        for(int s=0; s<normVecCols; s++){
-            for(int i=0; i < this->Dimension(); i++){
-                for(int j=0; j < this->Dimension(); j++){
-                    Grad0(i, j) = datavec[fVindex].fDeformedDirectionsFad(i,s).fastAccessDx(j);
+
+        TPZFNMatrix<9, REAL> GradVFunction(3,3,0.);
+        for(int vFunction=0; vFunction<Vcols; vFunction++){
+            for(int row=0; row<this->Dimension(); row++){
+                for(int col=0; col<this->Dimension(); col++){
+                    GradVFunction(row, col) = datavec[fVindex].fDeformedDirectionsFad(row, vFunction).fastAccessDx(col);
                 }
             }
-            GradNormVec[s] = Grad0;
+            GradV[vFunction] = GradVFunction;
         }
     }
-    
-    // declaring some useful variable. What are they for?
-    TPZVec<STATE> Force(3,0.);
-    
-    TPZFMatrix<STATE> phiVi(3,1,0.);
-    TPZFMatrix<STATE> phiVj(3,1,0.);
-    
-    TPZFNMatrix<100, STATE> divphi;
-    TPZFNMatrix<10, STATE> dSolVec = datavec[fVindex].dsol[0];
-    
-    TPZManVector<STATE, 3> un = datavec[fVindex].sol[0];
-    
-    TPZFNMatrix<10, STATE> gradUn = dSolVec;
-    
+
     if(this->HasForcingFunction()){
-        TPZFMatrix<STATE> gradU;
-        TPZVec<STATE> x(3,0.);
-        
-        x = datavec[fVindex].x;
-        this->ForcingFunction()(x, Force);
+        this->ForcingFunction()(datavec[fVindex].x, SourceTerm);
     }
-    
-    // Velocity Depending term
-    // phiVi: value of the test function (maybe it isn't anymore)
-    // GradVi: gradient of the test function
-    for(int i=0; i<nShapeV; i++){
-        TPZFNMatrix<9, STATE> GradVi(3,3,0.);
+
+    for(int vFunction_i=0; vFunction_i<nShapeV; vFunction_i++){
         TPZFNMatrix<9, STATE> DUi(3,3,0.);
-        
+
+        STATE divUi = datavec[fVindex].divphi(vFunction_i, 0);
+
+        STATE phiVDotF = 0.;
+
         for(int row=0; row<3; row++){
-            phiVi(row,0) = NormalVec(row,i);
-            
+                phiVDotF += PhiV(row, vFunction_i)*SourceTerm[row];
+        }
+
+        ef(vFunction_i) += weight*phiVDotF;
+
+        for(int row=0; row<3; row++){
             for(int col=0; col<3; col++){
-                GradVi(row, col) = GradNormVec[i](row, col);
+                DUi(row, col) = 0.5*(GradV[vFunction_i](row, col) + GradV[vFunction_i](col, row));
             }
         }
-        
-        for(int row=0; row<3; row++){
-            for(int col=0; col<3; col++){
-                // symetric gradient of the test function
-                DUi(row, col) = 0.5*(GradVi(row, col) + GradVi(col, row));
-            }
-        }
-        
-        STATE divUi = datavec[fVindex].divphi(i, 0);
-        
-        // f source term
-        STATE phiDotF = 0.;
-        
-        for(int row=0; row<3; row++){
-            phiDotF += phiVi(row)*Force[row];
-        }
-        
-        ef(i) += weight*phiDotF;
-        
-        for(int j=0; j<nShapeV; j++){
-            for(int row=0; row<3; row++){
-                phiVj(row,0) = NormalVec(row,j);
-            }
-            
-            TPZFNMatrix<9, STATE> gradVj(3,3,0.);
+
+        for(int vFunction_j=0; vFunction_j<nShapeV; vFunction_j++){
             TPZFNMatrix<9, STATE> DUj(3,3,0.);
-            
+
             for(int row=0; row<3; row++){
                 for(int col=0; col<3; col++){
-                    gradVj(row, col) = GradNormVec[j](row, col);
+                    DUj(row, col) = 0.5*(GradV[vFunction_j](row, col) + GradV[vFunction_j](col, row));
                 }
             }
-            
-            for(int row=0; row<3; row++){
-                for(int col=0; col<3; col++){
-                    // symetric gradient of the test function
-                    DUj(row, col) = 0.5*(gradVj(row, col) + gradVj(col, row));
-                }
-            }
-            
-            STATE Aterm = TensorInnerProduct(DUi, DUj);
-            ek(i,j) += 2.0*weight*fviscosity*Aterm; // A - Bilinear gradU*gradV
+
+            STATE A_term = TensorInnerProduct(DUi, DUj);
+            ek(vFunction_i, vFunction_j) += 2.*fviscosity*A_term*weight;
         }
-        
-        // Pressure Depending Term
-        for(int j=0; j<nShapeP; j++){
-            STATE Bterm = -1*weight*phiP(j,0)*divUi;
-            
-            ek(i, nShapeV+j) += Bterm;
-            ek(nShapeV+j, i) += Bterm;
+
+        for(int pFunction_j=0; pFunction_j<nShapeP; pFunction_j ++){
+            STATE B_term = -weight*PhiP(pFunction_j,0)*divUi;
+
+            ek(vFunction_i, nShapeV+pFunction_j) += B_term;
+            ek(nShapeV+pFunction_j, vFunction_i) += B_term;
         }
     }
+
+    ek.Print("ek", std::cout, EMathematicaInput);
+    ef.Print("ef", std::cout, EMathematicaInput);
     
-    ek.Print("ek",std::cout,EMathematicaInput);
-    ef.Print("ef",std::cout,EMathematicaInput);
 }
 
 void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc){
