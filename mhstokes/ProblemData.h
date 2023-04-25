@@ -35,7 +35,7 @@ private:
     struct fBcVelData {
         std::string name = "none"; // name of the bc
         int type = 0; // bc type (explained below)
-        double value = 0.; // bc value
+        TPZManVector<double,3>  value = {0,0,0}; // bc value
         int matID = 0; // bc material ID
     };
 
@@ -43,7 +43,7 @@ private:
     struct fBcTracData {
         std::string name = "none"; // name of the bc
         int type = 0; // bc type (explained below)
-        double value = 0.; // bc value
+        TPZManVector<double,3> value = {0,0,0}; // bc value
         int matID = 0; // bc material ID
     };
     

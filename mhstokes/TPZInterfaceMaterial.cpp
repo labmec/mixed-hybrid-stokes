@@ -11,10 +11,79 @@ TPZInterfaceMaterial::~TPZInterfaceMaterial(){
     
 }
 
+STATE TPZInterfaceMaterial::InnerProductVec(TPZFMatrix<STATE>& S, TPZFMatrix<STATE>& T){
+#ifdef DEBUG
+    if(S.Rows() != S.Cols() || T.Cols() != T.Rows() || S.Rows() != T.Cols()) DebugStop();
+#endif
+    
+    STATE val = 0.;
+    
+    for(int j=0; j<S.Cols(); j++){
+        for(int i=0; i<S.Rows(); i++){
+            val += S(i, j)*T(i, j);
+        }
+    }
+    
+    return val;
+}
+
 void TPZInterfaceMaterial::ContributeInterface(const TPZMaterialDataT<STATE>& data, const std::map<int, TPZMaterialDataT<STATE>>& dataleft, const std::map<int, TPZMaterialDataT<STATE>>& dataright, REAL weight, TPZFMatrix<STATE>& ek, TPZFMatrix<STATE>& ef) {
     
-    DebugStop();
+    if(dataleft.find(fVindex) == dataleft.end()) DebugStop();
+    if(dataright.find(fPindex) == dataright.end()) DebugStop();
+    
+    const TPZMaterialDataT<STATE>& vDataLeft = dataleft.find(fVindex)->second;
+    const TPZMaterialDataT<STATE>& pDataRight = dataright.find(fPindex)->second;
+    
+    const TPZFNMatrix<9, REAL>& tan = pDataRight.axes;
+    
+    int64_t nShapeV = vDataLeft.fVecShapeIndex.NElements();
+    int64_t nShapeLambda = pDataRight.phi.Rows();
+    
+    int nStateVariablesL = fdimension - 1;
+    
+    int64_t VRows = vDataLeft.fDeformedDirections.Rows();
+    int64_t VCols = vDataLeft.fDeformedDirections.Cols();
+    
+    TPZFNMatrix<3, REAL> phiV(VRows, VCols, 0.);
+    
+    if(vDataLeft.fNeedsDeformedDirectionsFad){
+        for(int row=0; row<VRows; row++){
+            for(int col=0; col<VCols; col++){
+                phiV(row, col) = vDataLeft.fDeformedDirectionsFad(row, col).val();
+            }
+        }
+    } else {
+        DebugStop();
+    }
+    
+    for(int vFunction_i=0; vFunction_i<nShapeV; vFunction_i++){
+        STATE LambdaDotPhiV = 0.;
         
+        TPZFNMatrix<3, STATE> phiVi(3,1,0.);
+        for(int row=0; row<3; row++){
+            phiVi(row, 0) = phiV(row, vFunction_i);
+        }
+        
+        for(int LambdaFunction_j=0; LambdaFunction_j<nShapeLambda; LambdaFunction_j++){
+            TPZFNMatrix<3, STATE> lambda_j(3,1,0.);
+            TPZFNMatrix<3, STATE> phiLambda = pDataRight.phi;
+            
+            for(int f=0; f<nStateVariablesL; f++){
+                lambda_j.Zero();
+                for(int row=0; row<3; row++){
+                    lambda_j(row, 0) += phiLambda(LambdaFunction_j,0)*tan(f, row);
+                }
+                
+                STATE fact = fMultiplier*InnerProductVec(phiVi, lambda_j)*weight;
+                ek(vFunction_i, LambdaFunction_j*nStateVariablesL+f+nShapeV) += fact;
+                ek(LambdaFunction_j*nStateVariablesL+f+nShapeV, vFunction_i) += fact;
+            }
+        }
+    }
+    
+    ek.Print("ek=", std::cout, EMathematicaInput);
+    ef.Print("ef=", std::cout, EMathematicaInput);
 }
 
 void TPZInterfaceMaterial::ContributeBCInterface(const TPZMaterialDataT<STATE> &data, const std::map<int, TPZMaterialDataT<STATE>> &dataleft, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) {

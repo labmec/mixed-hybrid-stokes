@@ -219,7 +219,7 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
     TPZManVector<STATE> val2(1, 0.);
     
     for(const auto& bc : simData->VelBCs()){
-            val2[0] = bc.value;
+            val2 = bc.value;
             
             auto BCmat = mat->CreateBC(mat, bc.matID, bc.type, val1, val2);
             cmesh_v->InsertMaterialObject(BCmat);
@@ -326,17 +326,17 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
 
     // 2. Boundary Conditions
     TPZFMatrix<STATE> val1(3,3,0.);
-    TPZManVector<STATE> val2(3,0.);
+    TPZManVector<STATE> val2(3,1.);
 
     for(const auto& bc : simData->VelBCs()){
-        val2[0] = bc.value;
+        val2 = bc.value;
 
         TPZBndCond* matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
         cmesh_m->InsertMaterialObject(matBC);
     }
     
     for(const auto& bc : simData->TracBCs()){
-        val2[0] = bc.value;
+        val2 = bc.value;
 
         TPZBndCond* matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
         cmesh_m->InsertMaterialObject(matBC);
@@ -350,9 +350,11 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
 
     // 2.2 - Material for interfaces (Inner)
     TPZInterfaceMaterial *matInterfaceLeft = new TPZInterfaceMaterial(simData->InterfaceID(),simData->Dim());
+    matInterfaceLeft->SetMultiplier(1.);
     cmesh_m->InsertMaterialObject(matInterfaceLeft);
 
     TPZInterfaceMaterial *matInterfaceRight = new TPZInterfaceMaterial(-simData->InterfaceID(), simData->Dim());
+    matInterfaceRight->SetMultiplier(-1.);
     cmesh_m->InsertMaterialObject(matInterfaceRight);
 
     // Creating computational elements that will manage the mesh approximation space:

@@ -23,9 +23,10 @@ class TPZInterfaceMaterial : public TPZMatBase<STATE, TPZMatCombinedSpacesT<STAT
     
 protected:
     int fdimension;
-    int fVindex = 1;
-    int fPindex = 0;
+    int fVindex = 0;
+    int fPindex = 1;
     int fNStateVariables = -1;
+    STATE fMultiplier = -1;
     
     REAL fBigNumber = pow(10,std::numeric_limits<STATE>::max_digits10*2/3);
 
@@ -35,6 +36,8 @@ public:
     
     /// Destructor
     ~TPZInterfaceMaterial();
+    
+    STATE InnerProductVec(TPZFMatrix<STATE>& S, TPZFMatrix<STATE>& T);
     
     int Dimension() const override {return fdimension;}
     
@@ -81,6 +84,10 @@ public:
 
     int NStateVariables() const override
     {return fNStateVariables;}
+    
+    virtual void SetMultiplier(STATE mult){
+        fMultiplier = mult;
+    }
     
 };
 #endif
