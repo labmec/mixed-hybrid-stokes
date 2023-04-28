@@ -1,7 +1,13 @@
 #include <pzfmatrix.h>
 #include <TPZBndCondT.h>
+#include <pzaxestools.h>
+#include <pzlog.h>
 
 #include "TPZStokesMaterial.h"
+
+#ifdef PZ_LOG
+static TPZLogger logger("pz.stokesmaterial");
+#endif
 
 TPZStokesMaterial::TPZStokesMaterial(): TBase() {
     
@@ -32,6 +38,7 @@ TVar TPZStokesMaterial::TensorInnerProduct(TPZFMatrix<TVar> &S, TPZFMatrix<TVar>
 
 void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datavec, REAL weight, TPZFMatrix<STATE>& ek, TPZFMatrix<STATE>& ef){
 
+    
     int64_t Vrows = datavec[fVindex].fDeformedDirections.Rows();
     int64_t Vcols = datavec[fVindex].fDeformedDirections.Cols();
 
@@ -107,9 +114,15 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
         }
     }
 
-//    ek.Print("ek", std::cout, EMathematicaInput);
-//    ef.Print("ef", std::cout, EMathematicaInput);
-    
+#ifdef PZ_LOG
+    if(logger.isDebugEnabled()){
+        std::stringstream sout;
+        ek.Print("ek", sout, EMathematicaInput);
+        ef.Print("ef", sout, EMathematicaInput);
+        sout << std::endl << std::endl;
+        LOGPZ_DEBUG(logger, sout.str())
+    }
+#endif
 }
 
 void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc){
@@ -118,38 +131,29 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
         std::cout << "ERROR: DATAVEC SIZE IS DIFFERENT THAN 2\n\n";
         DebugStop();
     }
-
-    int64_t normVecRows = datavec[fVindex].fDeformedDirections.Rows();
-    int64_t normVecCols = datavec[fVindex].fDeformedDirections.Cols();
     
-    TPZFNMatrix<3, REAL> PhiV(normVecRows, normVecCols, 0.);
-    PhiV = datavec[fVindex].fDeformedDirections;
-    
+    TPZFNMatrix<3, REAL> PhiV = datavec[fVindex].phi;
     TPZFMatrix<REAL>& PhiP = datavec[fPindex].phi;
     
-    int64_t nShapeV = datavec[fVindex].fDeformedDirections.Cols();
+    int64_t nShapeV = PhiV.Rows();
     int64_t nShapeP = PhiP.Rows();
-    
-    if(fSpace==1){
-        nShapeV /= 2.;
-    }
-        
+            
     TPZFNMatrix<3,STATE> val1 = bc.Val1();
     TPZManVector<STATE, 3> val2 = bc.Val2();
     
     switch (bc.Type()) {
         case 0: // Normal Velocity
         {
-            TPZManVector<REAL> n = datavec[0].normal;
+//            TPZManVector<REAL> n = datavec[0].normal;
             
-            REAL v_n = n[0]*val2[0] + n[1]*val2[1] + n[2]*val2[2];
+            REAL v_n = val2[0];
             
             for(int vFuntion_i=0; vFuntion_i<nShapeV; vFuntion_i++){
                 
-                ef(vFuntion_i) += v_n*fBigNumber*PhiV(vFuntion_i, 0)*weight;
+                ef(vFuntion_i) += v_n*fBigNumber*PhiV(vFuntion_i)*weight;
                 
                 for(int vFunction_j=0; vFunction_j<nShapeV; vFunction_j++){
-                    ek(vFuntion_i, vFunction_j) += PhiV(vFuntion_i,0)*PhiV(vFunction_j,0)*fBigNumber*weight;
+                    ek(vFuntion_i, vFunction_j) += PhiV(vFuntion_i)*PhiV(vFunction_j,0)*fBigNumber*weight;
                 }
             }
         }
@@ -157,9 +161,9 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
             
         case 1: // Tangential Velocity
         {
-            TPZFNMatrix<9, REAL>& tan = datavec[fPindex].axes;
+//            TPZFNMatrix<9, REAL>& tan = datavec[fPindex].axes;
             
-            REAL v_t = val2[0]*tan[0] + val2[1]*tan[1] + val2[2]*tan[2];
+            REAL v_t = val2[0];
             
             for(int pFunction_i=0; pFunction_i<nShapeP; pFunction_i++){
                 ef(pFunction_i) += PhiP(pFunction_i)*v_t*weight;
@@ -169,9 +173,9 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
             
         case 2: // Normal Stress
         {
-            TPZManVector<REAL> n = datavec[0].normal;
+//            TPZManVector<REAL> n = datavec[0].normal;
             
-            REAL sigma_n = val2[0]*n[0] + val2[1]*n[1] + val2[2]*n[2];
+            REAL sigma_n = val2[0];
             
             for(int vFunction_i=0; vFunction_i<nShapeV; vFunction_i++){
                 ef(vFunction_i) += sigma_n*PhiV(vFunction_i)*weight;
@@ -181,9 +185,9 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
             
         case 3: // Tangential Stress
         {
-            TPZFNMatrix<9, REAL>& tan = datavec[fPindex].axes;
+//            TPZFNMatrix<9, REAL>& tan = datavec[fPindex].axes;
             
-            REAL sigma_t = val2[0]*tan[0] + val2[1]*tan[1] + val2[2]*tan[2];
+            REAL sigma_t = val2[0];
             
             for(int pFunction_i=0; pFunction_i<nShapeP; pFunction_i++){
                 ef(pFunction_i) += sigma_t*PhiP(pFunction_i)*fBigNumber*weight;
@@ -202,6 +206,9 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
         }
             break;
     }
+    
+//    ek.Print("ekBC=", std::cout, EMathematicaInput);
+//    ef.Print("efBC=", std::cout, EMathematicaInput);
 }
 
 int TPZStokesMaterial::VariableIndex(const std::string& name) const {

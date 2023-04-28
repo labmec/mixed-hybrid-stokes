@@ -1,7 +1,13 @@
 #include <pzfmatrix.h>
 #include <TPZBndCondT.h>
+#include <pzlog.h>
 
 #include "TPZInterfaceMaterial.h"
+
+#ifdef PZ_LOG
+static TPZLogger logger("pz.stokesInterface");
+#endif
+
 
 TPZInterfaceMaterial::TPZInterfaceMaterial(int matID, int dimension) : TBase(matID), fdimension(dimension) {
     
@@ -81,14 +87,23 @@ void TPZInterfaceMaterial::ContributeInterface(const TPZMaterialDataT<STATE>& da
             }
         }
     }
-    
-    ek.Print("ek=", std::cout, EMathematicaInput);
-    ef.Print("ef=", std::cout, EMathematicaInput);
+
+
+#ifdef PZ_LOG
+    if(logger.isDebugEnabled()){
+        std::stringstream sout;
+        ek.Print("ek", sout, EMathematicaInput);
+        ef.Print("ef", sout, EMathematicaInput);
+        sout << std::endl << std::endl;
+        LOGPZ_DEBUG(logger, sout.str())
+    }
+#endif
 }
 
-void TPZInterfaceMaterial::ContributeBCInterface(const TPZMaterialDataT<STATE> &data, const std::map<int, TPZMaterialDataT<STATE>> &dataleft, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) {
+void TPZInterfaceMaterial::ContributeBCInterface(const TPZMaterialDataT<STATE> &data, const std::map<int, TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) {
     
     DebugStop();
+    
 }
 
 void TPZInterfaceMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef){

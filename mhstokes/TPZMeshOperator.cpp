@@ -326,7 +326,7 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
 
     // 2. Boundary Conditions
     TPZFMatrix<STATE> val1(3,3,0.);
-    TPZManVector<STATE> val2(3,1.);
+    TPZManVector<STATE> val2(3,0.);
 
     for(const auto& bc : simData->VelBCs()){
         val2 = bc.value;

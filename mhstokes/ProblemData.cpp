@@ -68,10 +68,7 @@ void ProblemData::ReadJson(std::string file){
         bcveldata.name = bcjson["name"];
         bcveldata.type = bcjson["type"];
         bcveldata.matID = bcjson["matID"];
-        
-        for(int i=0; i<3; i++){
-            bcveldata.value[i] = bcjson["value"][i];
-        }
+        bcveldata.value[0] = bcjson["value"];
         
         fbcvelvec.push_back(bcveldata);
     }
@@ -85,7 +82,7 @@ void ProblemData::ReadJson(std::string file){
 
         bctracdata.name = bcjson["name"];
         bctracdata.type = bcjson["type"];
-//        bctracdata.value = bcjson["value"];
+        bctracdata.value[0] = bcjson["value"];
         bctracdata.matID = bcjson["matID"];
         
         fbctracvec.push_back(bctracdata);
