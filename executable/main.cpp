@@ -20,11 +20,11 @@ int main(){
     
     bool printmesh = true;
 
-    std::string filenamejson =  "StokesData.json";
+    std::string filenamejson =  "PoiseuilleFlow.json";
 
     ProblemData simData;
     simData.ReadJson(filenamejson);
-//    simData.Print();
+    simData.Print();
 
     TPZGeoMesh* gmesh = TPZMeshOperator::CreateGMesh(&simData);
     TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
@@ -49,6 +49,15 @@ int main(){
     an.Assemble();
     
     an.Solve();
+    
+    //vtk export
+    TPZVec<std::string> scalarVars(1), vectorVars(1);
+    scalarVars[0] = "Pressure";
+    vectorVars[0] = "Velocity";
+    
+    an.DefineGraphMesh(simData.Dim(),scalarVars,vectorVars,"StokesSolution.vtk");
+    constexpr int resolution{3};
+    an.PostProcess(resolution);
 
     std::cout << "\n\nSimulation finished without errors :) \n\n";
 	return 0;

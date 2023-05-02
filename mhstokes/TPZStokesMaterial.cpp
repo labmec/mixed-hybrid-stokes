@@ -206,17 +206,14 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
         }
             break;
     }
-    
-//    ek.Print("ekBC=", std::cout, EMathematicaInput);
-//    ef.Print("efBC=", std::cout, EMathematicaInput);
 }
 
 int TPZStokesMaterial::VariableIndex(const std::string& name) const {
     
-    if(!strcmp("P", name.c_str())) return 0;
     if(!strcmp("Pressure", name.c_str())) return 0;
+//    if(!strcmp("Pressure", name.c_str())) return 0;
     if(!strcmp("State", name.c_str())) return 0;
-    if(!strcmp("V", name.c_str())) return 1;
+    if(!strcmp("Velocity", name.c_str())) return 1;
     if(!strcmp("f", name.c_str())) return 2;
     
     std::cout << "\n\nVar index not implemented\n\n";
