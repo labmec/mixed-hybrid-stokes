@@ -15,7 +15,6 @@
 #include <TPZMultiphysicsCompMesh.h>
 #include <TPZGeoLinear.h>
 #include <TPZNullMaterial.h>
-#include <TPZGMshReader.h>
 #include <TPZNullMaterialCS.h>
 #include <pzintel.h>
 

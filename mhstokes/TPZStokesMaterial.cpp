@@ -211,10 +211,8 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
 int TPZStokesMaterial::VariableIndex(const std::string& name) const {
     
     if(!strcmp("Pressure", name.c_str())) return 0;
-//    if(!strcmp("Pressure", name.c_str())) return 0;
-    if(!strcmp("State", name.c_str())) return 0;
     if(!strcmp("Velocity", name.c_str())) return 1;
-    if(!strcmp("f", name.c_str())) return 2;
+    if(!strcmp("Force", name.c_str())) return 2;
     
     std::cout << "\n\nVar index not implemented\n\n";
     DebugStop();
