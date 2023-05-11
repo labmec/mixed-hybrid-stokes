@@ -8,6 +8,8 @@
 #include <pzfstrmatrix.h>
 #include <pzlog.h>
 #include <TPZSSpStructMatrix.h>
+#include <TPZGmshReader.h>
+#include <TPZVTKGeoMesh.h>
 
 #include"ProblemData.h"
 #include "SimpleExample.h"
@@ -19,10 +21,10 @@ int main(){
     TPZLogger::InitializePZLOG("Stokes.cfg");
 #endif
     
-    bool printdata = false;
-    
+    bool printdata = true;
+
     std::string filepath = "../DataInput/";
-    std::string filenamejson =  "LidDrivenFlow.json";
+    std::string filenamejson =  "PoiseuilleFlow.json";
 
     ProblemData simData;
     simData.ReadJson(filepath+filenamejson);
@@ -41,7 +43,7 @@ int main(){
     TPZLinearAnalysis an(cmesh_m, true);
     TPZSSpStructMatrix<> strmat(cmesh_m);
 
-    strmat.SetNumThreads(6);
+    strmat.SetNumThreads(0);
     an.SetStructuralMatrix(strmat);
 
     TPZStepSolver<STATE> step;
@@ -49,18 +51,23 @@ int main(){
     an.SetSolver(step);
 
     an.Assemble();
-    
+
     an.Solve();
-    
+
     //vtk export
     TPZVec<std::string> scalarVars(1), vectorVars(1);
     scalarVars[0] = "Pressure";
     vectorVars[0] = "Velocity";
-    
+
     an.DefineGraphMesh(simData.Dim(),scalarVars,vectorVars,"StokesSolution.vtk");
-    constexpr int resolution{0};
+    constexpr int resolution{2};
     an.PostProcess(resolution);
 
     std::cout << "\n\nSimulation finished without errors :) \n\n";
+    
 	return 0;
 }
+
+
+
+
