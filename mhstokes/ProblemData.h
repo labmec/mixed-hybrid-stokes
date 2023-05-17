@@ -57,6 +57,8 @@ private:
     
     TPZVec<TPZCompMesh*> fMeshVectorr;
     
+    std::string fHdivtype = "Standard";
+    
 public:
     ProblemData();
     
@@ -96,6 +98,11 @@ public:
     
     const TPZVec<TPZCompMesh*>& MeshVector() const {return fMeshVectorr;}
     TPZVec<TPZCompMesh*>& MeshVector() {return fMeshVectorr;}
+    
+    const std::string& HdivType() const {return fHdivtype;}
+    std::string& HdivType() {return fHdivtype;}
+    
+    void SetHdivType(std::string type){fHdivtype=type;}
 };
 
 #endif

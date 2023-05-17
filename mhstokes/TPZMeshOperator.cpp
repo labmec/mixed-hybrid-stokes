@@ -206,7 +206,13 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
     cmesh_v->SetDefaultOrder(simData->VelpOrder());
 
     cmesh_v->SetDimModel(simData->Dim());
-//    cmesh_v->ApproxSpace().SetHDivFamily(HDivFamily::EHDivConstant);
+    
+    if(simData->HdivType()=="Constant"){
+        cmesh_v->ApproxSpace().SetHDivFamily(HDivFamily::EHDivConstant);
+    }else if (simData->HdivType()=="Standard"){
+        cmesh_v->ApproxSpace().SetHDivFamily(HDivFamily::EHDivStandard);
+    }
+    
     cmesh_v->SetAllCreateFunctionsHDiv();    
     
     // domain's material - 2D
@@ -241,7 +247,7 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
             if(!intercEl) continue;
 
             // finally using the desired function
-            intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder());
+            intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder()+1);
         }
     }
     
@@ -259,10 +265,17 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
 TPZCompMesh* TPZMeshOperator::CreateCmeshP(ProblemData* simData, TPZGeoMesh* gmesh){
     TPZCompMesh* cmesh_p = new TPZCompMesh(gmesh);
     cmesh_p->SetName("H1 - Pressure");
-    cmesh_p->SetDefaultOrder(0);
+    
     cmesh_p->SetDimModel(simData->Dim());
     
-    cmesh_p->SetAllCreateFunctionsDiscontinuous();
+    if(simData->HdivType()=="Constant"){
+        cmesh_p->SetAllCreateFunctionsDiscontinuous();
+        cmesh_p->SetDefaultOrder(0);
+    } else if(simData->HdivType()=="Standard") {
+        cmesh_p->SetDefaultOrder(simData->VelpOrder()+1);
+        cmesh_p->SetAllCreateFunctionsContinuous();
+    }
+    
     cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
     
     // domain's material
