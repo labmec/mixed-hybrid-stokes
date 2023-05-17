@@ -24,7 +24,7 @@ int main(){
     bool printdata = true;
 
     std::string filepath = "../DataInput/";
-    std::string filenamejson =  "PoiseuilleFlow.json";
+    std::string filenamejson =  "CouetteFlow.json";
 
     ProblemData simData;
     simData.ReadJson(filepath+filenamejson);
@@ -67,7 +67,3 @@ int main(){
     
 	return 0;
 }
-
-
-
-

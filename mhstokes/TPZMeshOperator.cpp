@@ -206,7 +206,7 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
     cmesh_v->SetDefaultOrder(simData->VelpOrder());
 
     cmesh_v->SetDimModel(simData->Dim());
-    cmesh_v->ApproxSpace().SetHDivFamily(HDivFamily::EHDivConstant);
+//    cmesh_v->ApproxSpace().SetHDivFamily(HDivFamily::EHDivConstant);
     cmesh_v->SetAllCreateFunctionsHDiv();    
     
     // domain's material - 2D
@@ -227,23 +227,23 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
     cmesh_v->AutoBuild();
     cmesh_v->LoadReferences();
     
-//    // setting the approximation order for the volume elements
-//    int64_t ncEl = cmesh_v->NElements();
-//    for(int64_t cEl=0; cEl<ncEl; cEl++){
-//        TPZCompEl* compEl = cmesh_v->Element(cEl);
-//
-//        // only in those elements whose dimension equals to the simulation dim
-//        if(compEl->Dimension()==simData->Dim()){
-//            // dynamica casting the compEl object to use the ForceSideOrder function
-//            TPZInterpolatedElement* intercEl = dynamic_cast<TPZInterpolatedElement*>(compEl);
-//
-//            // checking if the dynamic cast exists
-//            if(!intercEl) continue;
-//
-//            // finally using the desired function
-////            intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder());
-//        }
-//    }
+    // setting the approximation order for the volume elements
+    int64_t ncEl = cmesh_v->NElements();
+    for(int64_t cEl=0; cEl<ncEl; cEl++){
+        TPZCompEl* compEl = cmesh_v->Element(cEl);
+
+        // only in those elements whose dimension equals to the simulation dim
+        if(compEl->Dimension()==simData->Dim()){
+            // dynamica casting the compEl object to use the ForceSideOrder function
+            TPZInterpolatedElement* intercEl = dynamic_cast<TPZInterpolatedElement*>(compEl);
+
+            // checking if the dynamic cast exists
+            if(!intercEl) continue;
+
+            // finally using the desired function
+            intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder());
+        }
+    }
     
     cmesh_v->CleanUpUnconnectedNodes();
     
@@ -291,8 +291,13 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshP(ProblemData* simData, TPZGeoMesh* gme
             materialIDs.insert(bc.matID);
     }
     
-    cmesh_p->SetAllCreateFunctionsContinuous();
-    cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
+    if(simData->TracpOrder()>0){
+        cmesh_p->SetAllCreateFunctionsContinuous();
+        cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
+    }else{
+        cmesh_p->SetAllCreateFunctionsDiscontinuous();
+        cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
+    }
     
     cmesh_p->SetDefaultOrder(simData->TracpOrder());
     cmesh_p->SetDimModel(simData->Dim() - 1);
