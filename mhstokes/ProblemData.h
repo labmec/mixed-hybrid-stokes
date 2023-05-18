@@ -57,7 +57,9 @@ private:
     
     TPZVec<TPZCompMesh*> fMeshVectorr;
     
-    std::string fHdivtype = "Standard";
+    std::string fHdivtype = "none";
+    
+    int fresolution = -1;
     
 public:
     ProblemData();
@@ -102,7 +104,10 @@ public:
     const std::string& HdivType() const {return fHdivtype;}
     std::string& HdivType() {return fHdivtype;}
     
-    void SetHdivType(std::string type){fHdivtype=type;}
+    const int& Resolution() const {return fresolution;}
+    int& Resolution() {return fresolution;}
+    
+    
 };
 
 #endif
