@@ -31,19 +31,25 @@ void ProblemData::ReadJson(std::string file){
     if(input.find("TracpOrder") == input.end()) DebugStop();
     if(input.find("Dim") == input.end()) DebugStop();
     if(input.find("Domain") == input.end()) DebugStop();
-    if(input.find("BoundaryVelocity") == input.end()) DebugStop();
-    if(input.find("BoundaryTraction") == input.end()) DebugStop();
+    if(input.find("NormalBoundary") == input.end()) DebugStop();
+    if(input.find("TangentialBoundary") == input.end()) DebugStop();
     if(input.find("InterfaceID") == input.end()) DebugStop();
     if(input.find("LambdaID")==input.end()) DebugStop();
-    
+    if(input.find("HdivType")==input.end()) DebugStop();
+    if(input.find("Resolution")==input.end()) DebugStop();
+        
     // accessing and assigning values
     fMeshName = input["MeshName"];
+    
+    fHdivtype = input["HdivType"];
     
     fVelpOrder = input["VelpOrder"];
     
     fTracpOrder = input["TracpOrder"];
     
     fDim = input["Dim"];
+    
+    fresolution = input["Resolution"];
     
     fDomainData domaindata;
     for(auto& domainjson : input["Domain"]){
@@ -59,7 +65,7 @@ void ProblemData::ReadJson(std::string file){
     }
     
     fBcVelData bcveldata;
-    for(auto& bcjson : input["BoundaryVelocity"]){
+    for(auto& bcjson : input["NormalBoundary"]){
         if(bcjson.find("name") == bcjson.end()) DebugStop();
         if(bcjson.find("type") == bcjson.end()) DebugStop();
         if(bcjson.find("value") == bcjson.end()) DebugStop();
@@ -74,7 +80,7 @@ void ProblemData::ReadJson(std::string file){
     }
     
     fBcTracData bctracdata;
-    for(auto& bcjson : input["BoundaryTraction"]){
+    for(auto& bcjson : input["TangentialBoundary"]){
         if(bcjson.find("name") == bcjson.end()) DebugStop();
         if(bcjson.find("type") == bcjson.end()) DebugStop();
         if(bcjson.find("value") == bcjson.end()) DebugStop();
@@ -97,11 +103,15 @@ void ProblemData::Print(std::ostream& out){
     out << "\nA new simulation has been started: \n\n";
     out << "Mesh address: " << fMeshName << std::endl << std::endl;
     
-    out << "Dimension: " << fDim << std::endl << std::endl;
+    out << "Hdiv Type: " << fHdivtype << std::endl << std::endl;
     
     out << "Velocity pOrder: " << fVelpOrder << std::endl << std::endl;
     
     out << "Traction pOrder: " << fTracpOrder << std::endl << std::endl;
+    
+    out << "Dimension: " << fDim << std::endl << std::endl;
+    
+    out << "Resolution: " << fresolution << std::endl << std::endl;
     
     out << "Domain: " << std::endl;
     
@@ -111,7 +121,7 @@ void ProblemData::Print(std::ostream& out){
         out << "  Domain Viscosity: " << domaindata.viscosity << std::endl << std::endl;
     }
     
-    out << "Velocity Boundary Conditions: " << std::endl;
+    out << "Normal Boundary Conditions: " << std::endl;
     
     for(const auto& bcdata : fbcvelvec){
         out << "  BC Name: " << bcdata.name << std::endl;
@@ -120,7 +130,7 @@ void ProblemData::Print(std::ostream& out){
         out << "  BC Value: " << bcdata.value << std::endl << std::endl;
     }
     
-    out << "Traction Boundary Conditions: " << std::endl;
+    out << "Tangential Boundary Conditions: " << std::endl;
     
     for(const auto& bcdata : fbctracvec){
         out << "  BC Name: " << bcdata.name << std::endl;
