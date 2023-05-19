@@ -5,14 +5,15 @@
 #include <TPZMaterialDataT.h>
 #include <TPZMatCombinedSpaces.h>
 #include <TPZMatInterfaceCombinedSpaces.h>
+#include <TPZMatErrorCombinedSpaces.h>
 #include <math.h>
 
 #ifndef TPZSTOKESMATERIAL
 #define TPZSTOKESMATERIAL
 
-class TPZStokesMaterial : public TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>> {
+class TPZStokesMaterial : public TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>, TPZMatErrorCombinedSpaces<STATE>> {
     
-    using TBase = TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>>;
+    using TBase = TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>, TPZMatErrorCombinedSpaces<STATE>>;
     
 protected:
     /// material dimension

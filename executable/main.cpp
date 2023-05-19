@@ -10,6 +10,8 @@
 #include <TPZSSpStructMatrix.h>
 #include <TPZGmshReader.h>
 #include <TPZVTKGeoMesh.h>
+#include <TPZVTKGenerator.h>
+#include <TPZSimpleTimer.h>
 
 #include"ProblemData.h"
 #include "SimpleExample.h"
@@ -24,12 +26,10 @@ int main(){
     bool printdata = true;
 
     std::string filepath = "../DataInput/";
-    std::string filenamejson =  "ConstantFlow.json";
+    std::string filename =  "LidDrivenFlow";
 
     ProblemData simData;
-    simData.ReadJson(filepath+filenamejson);
-    
-    simData.SetHdivType("Constant");
+    simData.ReadJson(filepath+filename+".json");
 
     TPZGeoMesh* gmesh = TPZMeshOperator::CreateGMesh(&simData);
     TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
@@ -57,14 +57,13 @@ int main(){
     }
 
     //vtk export
-    TPZVec<std::string> scalarVars(1), vectorVars(1);
-    scalarVars[0] = "Pressure";
-    vectorVars[0] = "Velocity";
-
-    an.DefineGraphMesh(simData.Dim(),scalarVars,vectorVars,"StokesSolution.vtk");
-    constexpr int resolution{0};
-    an.PostProcess(resolution);
-
+    {
+        TPZSimpleTimer timer("PostProcess", true);
+        
+        TPZVTKGenerator vtk(cmesh_m, {"Pressure", "Velocity", "Tension"}, filename,simData.Resolution());
+        vtk.Do();
+    }
+    
     std::cout << "\n\nSimulation finished without errors :) \n\n";
     
 	return 0;

@@ -213,6 +213,7 @@ int TPZStokesMaterial::VariableIndex(const std::string& name) const {
     if(!strcmp("Pressure", name.c_str())) return 0;
     if(!strcmp("Velocity", name.c_str())) return 1;
     if(!strcmp("Force", name.c_str())) return 2;
+    if(!strcmp("Tension", name.c_str())) return 3;
     
     std::cout << "\n\nVar index not implemented\n\n";
     DebugStop();
@@ -232,7 +233,9 @@ int TPZStokesMaterial::NSolutionVariables(int var) const{
         case 2: // external force [vector]
             aux = 3;
             break;
-            
+        case 3: // stress tensor
+            aux = 9;
+            break;
         default:
             std::cout << "\n\nVar index not implemented!!!\n\n";
             DebugStop();
@@ -244,13 +247,6 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
     
     TPZManVector<STATE, 3> v_h = datavec[fVindex].sol[0];
     TPZManVector<STATE, 3> p_h = datavec[fPindex].sol[0];
-    
-    TPZFNMatrix<9, STATE> gradU(3,1);
-    
-    TPZFMatrix<STATE>& dsol = datavec[fVindex].dsol[0];
-    TPZFNMatrix<9,STATE> dsolxy(3,3), dsolxyp(3,1);
-    
-    dsolxy = dsol;
     
     Solout.Resize(NSolutionVariables(var));
     
@@ -280,6 +276,27 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
             Solout[2] = f[2];
             break;
         }
+        case 3: {
+            
+                TPZFNMatrix<10,STATE> gradUn = datavec[fVindex].dsol[0];
+                TPZFNMatrix<9,STATE> DUn_j(3,3,0.), sigma(3,3,0.);
+            
+                for (int e=0; e<Dimension(); e++) {
+                    for (int f=0; f<Dimension(); f++) {
+                         DUn_j(e,f)= 0.5 * (gradUn(e,f) + gradUn(f,e));
+                        sigma(e,f) = 2.*fviscosity*DUn_j(e,f);
+                    }
+                    sigma(e,e) -= p_h[0];
+                }
+            
+                for (int e=0; e<3; e++) {
+                    for (int f=0; f<3; f++) {
+                        Solout[e*3+f] = sigma(e,f);
+                    }
+                }
+            }
+            
+            break;
             
         default:{
             std::cout << "\n\nVar index not implemented\n\n";
