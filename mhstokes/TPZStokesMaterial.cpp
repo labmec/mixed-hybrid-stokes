@@ -299,3 +299,46 @@ void TPZStokesMaterial::FillDataRequirements(TPZVec<TPZMaterialDataT<STATE>> &da
     }
     datavec[0].fNeedsDeformedDirectionsFad = true;
 }
+
+void TPZStokesMaterial::Errors(const TPZVec<TPZMaterialDataT<STATE>>& data, TPZVec<REAL>& errors){
+    
+    if(!HasExactSol()) DebugStop();
+    
+    TPZManVector<STATE, 4> sol_exact(3);
+    TPZFNMatrix<9> dsol_exact(3,3);
+    
+    fExactSol(data[fVindex].x, sol_exact, dsol_exact);
+    
+    errors.Resize(NEvalErrors());
+    errors.Fill(0.);
+    
+    TPZManVector<STATE> Velocity(3,0.);
+    TPZManVector<STATE> Pressure(3,0.);
+    
+    this->Solution(data, VariableIndex("Velocity"), Velocity);
+    this->Solution(data, VariableIndex("Pressure"), Pressure);
+    
+    TPZFMatrix<STATE>& dsolv = data[fVindex].dsol[0];
+    
+    dsolv.Resize(3, 3);
+    
+    STATE diffv, diffp, diffdiv;
+    
+    errors[0] = 0.;
+    for(int i=0; i<3; i++){
+        diffv = Velocity[i] - sol_exact[i];
+        errors[0] += diffv*diffv;
+    }
+    
+    STATE div_exact=0., Div=0.;
+    for(int i=0; i<3; i++){
+        div_exact += dsol_exact[i];
+        Div += dsolv(i, i);
+    }
+    
+    diffdiv = Div - div_exact;
+    errors[1] = diffdiv*diffdiv;
+    
+    diffp = Pressure[0] - sol_exact[3];
+    errors[2] = diffp*diffp;
+}

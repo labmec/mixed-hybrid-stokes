@@ -95,6 +95,10 @@ public:
      * @since April 10, 2007
      */
     void FillDataRequirements(TPZVec<TPZMaterialDataT<STATE>> &datavec) const override;
+    
+    virtual void Errors(const TPZVec<TPZMaterialDataT<STATE>>& data, TPZVec<REAL>& errors) override;
+    
+    virtual int NEvalErrors(){return 6;}
 };
 
 #endif
