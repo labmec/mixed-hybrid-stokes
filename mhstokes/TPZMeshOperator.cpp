@@ -17,6 +17,8 @@
 #include <TPZNullMaterial.h>
 #include <TPZNullMaterialCS.h>
 #include <pzintel.h>
+#include <pzelementgroup.h>
+#include <pzcondensedcompel.h>
 
 #include "TPZInterfaceMaterial.h"
 #include "TPZStokesMaterial.h"
@@ -469,17 +471,108 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
 
 }
 
-void TPZMeshOperator::PrintMesh(TPZGeoMesh* gmesh, TPZCompMesh* cmesh_v, TPZCompMesh* cmesh_p, TPZMultiphysicsCompMesh* cmesh_m){
-    std::cout << "\nPrinting geometric and computational meshes in .txt and .vtk formats...";
+void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh* cmesh_m){
+    int64_t ncompEl = cmesh_m->ElementVec().NElements();
+    int dim = cmesh_m->Reference()->Dimension();
     
-    std::ofstream VTKGeoMeshFile("GMesh.vtk");
-    std::ofstream TextGeoMeshFile("GMesh.txt");
+    std::set<int64_t> externalNode;
+    std::vector<int64_t> groupIndex;
+    TPZStack<TPZElementGroup*> elGroups;
+    int count = 0;
     
-    TPZVTKGeoMesh::PrintGMeshVTK(gmesh, VTKGeoMeshFile);
-    gmesh->Print(TextGeoMeshFile);
+    // Creating the element groups
     
-    std::ofstream VTKCMeshVFile("CMesh_V.vtk");
-    std::ofstream TextCMeshVFile("CMesh_V.txt");
+    for(int64_t el=0; el<ncompEl; el++){
+        TPZCompEl* compEl = cmesh_m->Element(el);
+        
+        if(compEl->Dimension()!=dim) continue;
+        
+        TPZMultiphysicsElement* multEl = dynamic_cast<TPZMultiphysicsElement*>(compEl);
+        int64_t numSpaces = multEl->NMeshes();
+        
+        if(numSpaces < 4) DebugStop();
+        
+        int64_t numConnectExact = numSpaces-3;
+        int nConnect = multEl->NConnects();
+        
+        for(int ic= nConnect-numConnectExact; ic<nConnect; ic++){
+            int64_t conIndex = compEl->ConnectIndex(ic);
+            externalNode.insert(conIndex);
+        }
+        
+        count++;
+        groupIndex.resize(count);
+        groupIndex[count-1] = compEl->Index();
+        
+        TPZElementGroup* groupEl = new TPZElementGroup(*cmesh_m);
+        elGroups.Push(groupEl);
+        elGroups[count-1]->AddElement(compEl);
+    }
+    
+    // Inserting interfaces and boundary conditions
+    
+    for(int64_t el=0; el<ncompEl; el++){
+        TPZCompEl* compEl = cmesh_m->Element(el);
+        
+        TPZMultiphysicsInterfaceElement* interEl = dynamic_cast<TPZMultiphysicsInterfaceElement*>(compEl);
+        
+        if(interEl){
+            TPZCompEl* leftEl = interEl->LeftElement();
+            
+            if(leftEl->Dimension()!=dim) continue;
+            
+            int64_t leftIndex = leftEl->Index();
+            for(int64_t iEl=0; iEl<groupIndex.size(); iEl++){
+                if(leftIndex==groupIndex[iEl]){
+                    elGroups[iEl]->AddElement(compEl);
+                }
+            }
+        }
+        
+        if(!compEl) continue;
+        
+        TPZGeoEl* geoEl = compEl->Reference();
+        
+        if(geoEl->Dimension()==dim-1){
+            TPZBndCond* elBC = dynamic_cast<TPZBndCond*>(compEl->Material());
+            if (!elBC) continue;
+            
+            TPZStack<TPZCompElSide> compElStack;
+            TPZGeoElSide geoElSide(geoEl, geoEl->NSides()-1);
+            
+            geoElSide.EqualLevelCompElementList(compElStack, 0, 0);
+            
+            for(auto& compElStackIndex: compElStack){
+                if(compElStackIndex.Reference().Element()->Dimension()==dim){
+                    int64_t IndexBC = compElStackIndex.Element()->Index();
+                    
+                    for(int64_t iEl=0; iEl<groupIndex.size(); iEl++){
+                        if(IndexBC==groupIndex[iEl]){
+                            elGroups[iEl]->AddElement(compEl);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    cmesh_m->ComputeNodElCon();
+    
+    for(auto it=externalNode.begin(); it != externalNode.end(); it++){
+        int64_t coIndex =* it;
+        cmesh_m->ConnectVec()[coIndex].IncrementElConnected();
+    }
+    
+    // Creating  condensed elements
+    int64_t nenvel = elGroups.NElements();
+    for(int64_t iEnv=0; iEnv<nenvel; iEnv++){
+        TPZElementGroup* elGroup = elGroups[iEnv];
+        new TPZCondensedCompEl(elGroup);
+    }
+    
+    cmesh_m->CleanUpUnconnectedNodes();
+    cmesh_m->ExpandSolution();
+}
 
 void TPZMeshOperator::PrintGeoMesh(TPZGeoMesh* gmesh, std::string File){
     std::cout << "\nPrinting geometric mesh in .txt and .vtk formats...\n";

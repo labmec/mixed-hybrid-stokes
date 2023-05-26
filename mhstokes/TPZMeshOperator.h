@@ -17,6 +17,9 @@ public:
     static TPZCompMesh* CreateCmeshMp(ProblemData* simData, TPZGeoMesh* gmesh);
     
     static TPZMultiphysicsCompMesh* CreateMultiPhysicsMesh(ProblemData* simData, TPZGeoMesh* gmesh);
+    
+    static void CondenseElements(TPZMultiphysicsCompMesh* cmesh_m);
+    
     static void InsertBCInterfaces(TPZMultiphysicsCompMesh* cmesh_m, ProblemData* simData, TPZGeoMesh* gmesh);
     
     static void InsertInterfaces(TPZMultiphysicsCompMesh* cmesh_m, ProblemData* simData, TPZGeoMesh* gmesh);

@@ -61,6 +61,8 @@ private:
     
     int fresolution = -1;
     
+    bool fCondensedElement = false;
+    
 public:
     ProblemData();
     
@@ -106,6 +108,9 @@ public:
     
     const int& Resolution() const {return fresolution;}
     int& Resolution() {return fresolution;}
+    
+    const bool& CondensedElements() const {return fCondensedElement;}
+    bool& CondensedElements() {return fCondensedElement;}
     
     
 };

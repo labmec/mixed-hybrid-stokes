@@ -26,17 +26,27 @@ int main(){
     bool printdata = true;
 
     std::string filepath = "../DataInput/";
-    std::string filename =  "LidDrivenFlow";
+    std::string filename =  "ConstantFlow";
 
     ProblemData simData;
     simData.ReadJson(filepath+filename+".json");
 
     TPZGeoMesh* gmesh = TPZMeshOperator::CreateGMesh(&simData);
+   
     TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
     TPZCompMesh* cmesh_p = TPZMeshOperator::CreateCmeshP(&simData, gmesh);
+    
+    if(simData.CondensedElements()){
+        TPZCompMesh* cmesh_Mv = TPZMeshOperator::CreateCmeshMv(&simData, gmesh);
+        TPZCompMesh* cmesh_Mp = TPZMeshOperator::CreateCmeshMv(&simData, gmesh);
+    }
 
     TPZMultiphysicsCompMesh* cmesh_m = TPZMeshOperator::CreateMultiPhysicsMesh(&simData, gmesh);
-
+    
+    if(simData.CondensedElements()){
+        TPZMeshOperator::CondenseElements(cmesh_m);
+    }
+    
     TPZLinearAnalysis an(cmesh_m, true);
     TPZSSpStructMatrix<> strmat(cmesh_m);
 
