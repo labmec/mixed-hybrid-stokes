@@ -12,10 +12,17 @@ public:
     
     static TPZCompMesh* CreateCmeshP(ProblemData* simData, TPZGeoMesh* gmesh);
     
+    static TPZCompMesh* CreateCmeshMv(ProblemData* simData, TPZGeoMesh* gmesh);
+    
+    static TPZCompMesh* CreateCmeshMp(ProblemData* simData, TPZGeoMesh* gmesh);
+    
     static TPZMultiphysicsCompMesh* CreateMultiPhysicsMesh(ProblemData* simData, TPZGeoMesh* gmesh);
     static void InsertBCInterfaces(TPZMultiphysicsCompMesh* cmesh_m, ProblemData* simData, TPZGeoMesh* gmesh);
+    
     static void InsertInterfaces(TPZMultiphysicsCompMesh* cmesh_m, ProblemData* simData, TPZGeoMesh* gmesh);
     
-    static void PrintMesh(TPZGeoMesh* gmesh, TPZCompMesh* cmesh_v, TPZCompMesh* cmesh_p, TPZMultiphysicsCompMesh* cmesh_m);
+    static void PrintGeoMesh(TPZGeoMesh* gmesh, std::string File);
+
+    static void PrintCompMesh(TPZVec<TPZCompMesh*> CMesh, TPZVec<std::string> File);
 };
 #endif

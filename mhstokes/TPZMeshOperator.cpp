@@ -256,7 +256,12 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
     // expanding the solution vector
     cmesh_v->ExpandSolution();
     
-    simData->MeshVector().Resize(2);
+    if(simData->CondensedElements()){
+        simData->MeshVector().Resize(4);
+    } else {
+        simData->MeshVector().resize(2);
+    }
+    
     simData->MeshVector()[0] = cmesh_v;
     
     return cmesh_v;
@@ -328,6 +333,72 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshP(ProblemData* simData, TPZGeoMesh* gme
     simData->MeshVector()[1] = cmesh_p;
     
     return cmesh_p;
+}
+
+TPZCompMesh* TPZMeshOperator::CreateCmeshMv(ProblemData* simData, TPZGeoMesh* gmesh){
+    TPZCompMesh* cmesh_Mv = new TPZCompMesh(gmesh);
+    
+    cmesh_Mv->SetName("Median Velocity Mesh");
+    cmesh_Mv->SetDefaultOrder(0);
+    cmesh_Mv->SetDimModel(simData->Dim());
+    
+    cmesh_Mv->SetAllCreateFunctionsDiscontinuous();
+    
+    auto material_vM = new TPZNullMaterial<>(simData->DomainVec()[0].matID);
+    cmesh_Mv->InsertMaterialObject(material_vM);
+    
+    int64_t ncel = cmesh_Mv->NElements();
+    
+    for(int64_t i = 0; i<ncel; i++){
+        TPZCompEl* compEl = cmesh_Mv->ElementVec()[i];
+        
+        if(!compEl) continue;
+        
+        TPZInterfaceElement* faceEl = dynamic_cast<TPZInterfaceElement*>(compEl);
+        
+        if(faceEl) DebugStop();
+    }
+    
+    cmesh_Mv->AutoBuild();
+    cmesh_Mv->AdjustBoundaryElements();
+    cmesh_Mv->CleanUpUnconnectedNodes();
+    
+    simData->MeshVector()[2] = cmesh_Mv;
+    
+    return cmesh_Mv;
+}
+
+TPZCompMesh* TPZMeshOperator::CreateCmeshMp(ProblemData* simData, TPZGeoMesh* gmesh){
+    TPZCompMesh* cmesh_Mp = new TPZCompMesh(gmesh);
+    
+    cmesh_Mp->SetName("Median Velocity Mesh");
+    cmesh_Mp->SetDefaultOrder(0);
+    cmesh_Mp->SetDimModel(simData->Dim());
+    
+    cmesh_Mp->SetAllCreateFunctionsDiscontinuous();
+    
+    auto material_pM = new TPZNullMaterial<>(simData->DomainVec()[0].matID);
+    cmesh_Mp->InsertMaterialObject(material_pM);
+    
+    int64_t ncel = cmesh_Mp->NElements();
+    
+    for(int64_t i = 0; i<ncel; i++){
+        TPZCompEl* compEl = cmesh_Mp->ElementVec()[i];
+        
+        if(!compEl) continue;
+        
+        TPZInterfaceElement* faceEl = dynamic_cast<TPZInterfaceElement*>(compEl);
+        
+        if(faceEl) DebugStop();
+    }
+    
+    cmesh_Mp->AutoBuild();
+    cmesh_Mp->AdjustBoundaryElements();
+    cmesh_Mp->CleanUpUnconnectedNodes();
+    
+    simData->MeshVector()[3] = cmesh_Mp;
+    
+    return cmesh_Mp;
 }
 
 TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* simData, TPZGeoMesh* gmesh){
@@ -410,18 +481,26 @@ void TPZMeshOperator::PrintMesh(TPZGeoMesh* gmesh, TPZCompMesh* cmesh_v, TPZComp
     std::ofstream VTKCMeshVFile("CMesh_V.vtk");
     std::ofstream TextCMeshVFile("CMesh_V.txt");
 
-    TPZVTKGeoMesh::PrintCMeshVTK(cmesh_v, VTKCMeshVFile);
-    cmesh_v->Print(TextCMeshVFile);
-
-    std::ofstream VTKCMeshPFile("CMesh_P.vtk");
-    std::ofstream TextCMeshPFile("CMesh_P.txt");
-
-    TPZVTKGeoMesh::PrintCMeshVTK(cmesh_p, VTKCMeshPFile);
-    cmesh_p->Print(TextCMeshPFile);
+void TPZMeshOperator::PrintGeoMesh(TPZGeoMesh* gmesh, std::string File){
+    std::cout << "\nPrinting geometric mesh in .txt and .vtk formats...\n";
     
-    std::ofstream VTKCMeshMFile("CMesh_M.vtk");
-    std::ofstream TextCMeshMFile("CMesh_M.txt");
+    std::ofstream VTKGeoMeshFile(File + ".vtk");
+    std::ofstream TextGeoMeshFile(File + ".txt");
+    
+    TPZVTKGeoMesh::PrintGMeshVTK(gmesh, VTKGeoMeshFile);
+    gmesh->Print(TextGeoMeshFile);
+}
 
-    TPZVTKGeoMesh::PrintCMeshVTK(cmesh_m, VTKCMeshMFile);
-    cmesh_m->Print(TextCMeshMFile);
+void TPZMeshOperator::PrintCompMesh(TPZVec<TPZCompMesh*> CMesh, TPZVec<std::string> File){
+    std::cout << "\nPrinting computational meshes in .txt and .vtk formats...\n";
+
+    if(CMesh.size() != File.size()) DebugStop();
+    
+    for(int i = 0; i<CMesh.size(); i++){
+        std::ofstream VTKCompMeshFile(File[i] + ".vtk");
+        std::ofstream TextCompMeshFile(File[i] + ".txt");
+        
+//        TPZVTKGeoMesh::PrintGMeshVTK(CMesh[i], VTKCompMeshFile);
+//        CMesh[i]->Print(TextCompMeshFile);
+    }
 }
