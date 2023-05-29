@@ -27,7 +27,7 @@
 
 TPZGeoMesh* TPZMeshOperator::CreateGMesh(ProblemData* simData){
     TPZGeoMesh* gmesh = new TPZGeoMesh;
-    gmesh->SetName("Geometric Mesh");
+    gmesh->SetName("GeoMesh");
    
     TPZGmshReader reader;
     
@@ -204,7 +204,7 @@ void TPZMeshOperator::InsertInterfaces(TPZMultiphysicsCompMesh* cmesh_m, Problem
 
 TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gmesh){
     TPZCompMesh* cmesh_v = new TPZCompMesh(gmesh);
-    cmesh_v->SetName("Hdiv Mesh - Velocity");
+    cmesh_v->SetName("CMesh_V");
     cmesh_v->SetDefaultOrder(simData->VelpOrder());
 
     cmesh_v->SetDimModel(simData->Dim());
@@ -271,7 +271,7 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
 
 TPZCompMesh* TPZMeshOperator::CreateCmeshP(ProblemData* simData, TPZGeoMesh* gmesh){
     TPZCompMesh* cmesh_p = new TPZCompMesh(gmesh);
-    cmesh_p->SetName("H1 - Pressure");
+    cmesh_p->SetName("CMesh_P");
     
     cmesh_p->SetDimModel(simData->Dim());
     
@@ -340,7 +340,7 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshP(ProblemData* simData, TPZGeoMesh* gme
 TPZCompMesh* TPZMeshOperator::CreateCmeshMv(ProblemData* simData, TPZGeoMesh* gmesh){
     TPZCompMesh* cmesh_Mv = new TPZCompMesh(gmesh);
     
-    cmesh_Mv->SetName("Median Velocity Mesh");
+    cmesh_Mv->SetName("CMesh_MV");
     cmesh_Mv->SetDefaultOrder(0);
     cmesh_Mv->SetDimModel(simData->Dim());
     
@@ -373,7 +373,7 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshMv(ProblemData* simData, TPZGeoMesh* gm
 TPZCompMesh* TPZMeshOperator::CreateCmeshMp(ProblemData* simData, TPZGeoMesh* gmesh){
     TPZCompMesh* cmesh_Mp = new TPZCompMesh(gmesh);
     
-    cmesh_Mp->SetName("Median Velocity Mesh");
+    cmesh_Mp->SetName("CMesh_MP");
     cmesh_Mp->SetDefaultOrder(0);
     cmesh_Mp->SetDimModel(simData->Dim());
     
@@ -405,7 +405,7 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshMp(ProblemData* simData, TPZGeoMesh* gm
 
 TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* simData, TPZGeoMesh* gmesh){
     TPZMultiphysicsCompMesh* cmesh_m = new TPZMultiphysicsCompMesh(gmesh);
-    cmesh_m->SetName("MultiPhysics Mesh - Stokes Material");
+    cmesh_m->SetName("CMesh_M");
     cmesh_m->SetDefaultOrder(simData->VelpOrder());
     cmesh_m->SetAllCreateFunctionsMultiphysicElem();
 
@@ -574,26 +574,25 @@ void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh* cmesh_m){
     cmesh_m->ExpandSolution();
 }
 
-void TPZMeshOperator::PrintGeoMesh(TPZGeoMesh* gmesh, std::string File){
+void TPZMeshOperator::PrintGeoMesh(TPZGeoMesh* gmesh){
     std::cout << "\nPrinting geometric mesh in .txt and .vtk formats...\n";
     
-    std::ofstream VTKGeoMeshFile(File + ".vtk");
-    std::ofstream TextGeoMeshFile(File + ".txt");
+    std::ofstream VTKGeoMeshFile(gmesh->Name() + ".vtk");
+    std::ofstream TextGeoMeshFile(gmesh->Name() + ".txt");
     
     TPZVTKGeoMesh::PrintGMeshVTK(gmesh, VTKGeoMeshFile);
     gmesh->Print(TextGeoMeshFile);
 }
 
-void TPZMeshOperator::PrintCompMesh(TPZVec<TPZCompMesh*> CMesh, TPZVec<std::string> File){
+void TPZMeshOperator::PrintCompMesh(TPZVec<TPZCompMesh*> CMeshVec){
     std::cout << "\nPrinting computational meshes in .txt and .vtk formats...\n";
-
-    if(CMesh.size() != File.size()) DebugStop();
     
-    for(int i = 0; i<CMesh.size(); i++){
-        std::ofstream VTKCompMeshFile(File[i] + ".vtk");
-        std::ofstream TextCompMeshFile(File[i] + ".txt");
+    for(auto& cmesh : CMeshVec){
+
+        std::ofstream VTKCompMeshFile(cmesh->Name() + ".vtk");
+        std::ofstream TextCompMeshFile(cmesh->Name() + ".txt");
         
-//        TPZVTKGeoMesh::PrintGMeshVTK(CMesh[i], VTKCompMeshFile);
-//        CMesh[i]->Print(TextCompMeshFile);
+        TPZVTKGeoMesh::PrintCMeshVTK(cmesh, VTKCompMeshFile);
+        cmesh->Print(TextCompMeshFile);
     }
 }

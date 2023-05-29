@@ -64,10 +64,8 @@ int main(){
     if(printdata){
         simData.Print();
         
-        TPZVec<std::string> File = {"CMesh_V", "CMesh_P", "CMesh_M"};
-        
-        TPZMeshOperator::PrintGeoMesh(gmesh, "GeoMesh");
-        TPZMeshOperator::PrintCompMesh(simData.MeshVector(), File);
+        TPZMeshOperator::PrintGeoMesh(gmesh);
+        TPZMeshOperator::PrintCompMesh(simData.MeshVector());
     }
 
     //vtk export

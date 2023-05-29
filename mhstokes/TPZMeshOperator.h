@@ -24,8 +24,8 @@ public:
     
     static void InsertInterfaces(TPZMultiphysicsCompMesh* cmesh_m, ProblemData* simData, TPZGeoMesh* gmesh);
     
-    static void PrintGeoMesh(TPZGeoMesh* gmesh, std::string File);
+    static void PrintGeoMesh(TPZGeoMesh* gmesh);
 
-    static void PrintCompMesh(TPZVec<TPZCompMesh*> CMesh, TPZVec<std::string> File);
+    static void PrintCompMesh(TPZVec<TPZCompMesh*> CMeshVec);
 };
 #endif
