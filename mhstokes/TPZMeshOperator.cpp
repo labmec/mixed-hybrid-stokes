@@ -19,19 +19,37 @@
 #include <pzintel.h>
 #include <pzelementgroup.h>
 #include <pzcondensedcompel.h>
+#include <filesystem>
 
 #include "TPZInterfaceMaterial.h"
 #include "TPZStokesMaterial.h"
 #include "TPZMeshOperator.h"
 #include "ProblemData.h"
 
+void TPZMeshOperator::GenerateMshFile(ProblemData* simData){
+    std::string command;
+    
+//    if(std::filesystem::exists(file)){
+//        std::cout << "\n ERROR: THERE IS NO SUCH FILE: " << simData->MeshName() << std::endl;
+//        DebugStop();
+//    }
+    
+    command = "gmsh " + simData->MeshName() + ".geo -o " + simData->MeshName() + ".msh -algo del2d -2 -order 1";
+    system(command.c_str());
+}
+
 TPZGeoMesh* TPZMeshOperator::CreateGMesh(ProblemData* simData){
+    
     TPZGeoMesh* gmesh = new TPZGeoMesh;
     gmesh->SetName("GeoMesh");
+    
+    if(simData->CreateMshFile()){
+        GenerateMshFile(simData);
+    }
    
     TPZGmshReader reader;
     
-    reader.GeometricGmshMesh(simData->MeshName(), gmesh);
+    reader.GeometricGmshMesh(simData->MeshName()+".msh", gmesh);
 
    TPZMeshOperator::InsertLambdaGEl(simData, gmesh);
 
@@ -85,9 +103,9 @@ void TPZMeshOperator::InsertBCInterfaces(TPZMultiphysicsCompMesh* cmesh_m, Probl
     
     int64_t nel = gmesh->NElements();
     
-    TPZVec<int> IDVec(simData->TracBCs().size(), 0);
-    for(int i = 0; i<simData->TracBCs().size(); i++){
-        IDVec[i] = simData->TracBCs()[i].matID;
+    TPZVec<int> IDVec(simData->TangentialBCs().size(), 0);
+    for(int i = 0; i<simData->TangentialBCs().size(); i++){
+        IDVec[i] = simData->TangentialBCs()[i].matID;
     }
     
     for(auto const& BcMatID : IDVec){
@@ -225,7 +243,7 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
     TPZFMatrix<STATE> val1(1, 1, 0.);
     TPZManVector<STATE> val2(1, 0.);
     
-    for(const auto& bc : simData->VelBCs()){
+    for(const auto& bc : simData->NormalBCs()){
             val2 = bc.value;
             
             auto BCmat = mat->CreateBC(mat, bc.matID, bc.type, val1, val2);
@@ -304,7 +322,7 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshP(ProblemData* simData, TPZGeoMesh* gme
     materialIDs.insert(simData->LambdaID());
     
     // traction on boundary material
-    for(const auto& bc : simData->TracBCs()){
+    for(const auto& bc : simData->TangentialBCs()){
             auto matLambdaBC = new TPZNullMaterial<>(bc.matID);
             cmesh_p->InsertMaterialObject(matLambdaBC);
             
@@ -365,7 +383,7 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshMv(ProblemData* simData, TPZGeoMesh* gm
     cmesh_Mv->AdjustBoundaryElements();
     cmesh_Mv->CleanUpUnconnectedNodes();
     
-    simData->MeshVector()[2] = cmesh_Mv;
+    simData->MeshVector()[3] = cmesh_Mv;
     
     return cmesh_Mv;
 }
@@ -398,14 +416,16 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshMp(ProblemData* simData, TPZGeoMesh* gm
     cmesh_Mp->AdjustBoundaryElements();
     cmesh_Mp->CleanUpUnconnectedNodes();
     
-    simData->MeshVector()[3] = cmesh_Mp;
+    simData->MeshVector()[2] = cmesh_Mp;
     
     return cmesh_Mp;
 }
 
 TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* simData, TPZGeoMesh* gmesh){
     TPZMultiphysicsCompMesh* cmesh_m = new TPZMultiphysicsCompMesh(gmesh);
+    
     cmesh_m->SetName("CMesh_M");
+    
     cmesh_m->SetDefaultOrder(simData->VelpOrder());
     cmesh_m->SetAllCreateFunctionsMultiphysicElem();
 
@@ -418,14 +438,14 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
     TPZFMatrix<STATE> val1(3,3,0.);
     TPZManVector<STATE> val2(3,0.);
 
-    for(const auto& bc : simData->VelBCs()){
+    for(const auto& bc : simData->NormalBCs()){
         val2 = bc.value;
 
         TPZBndCond* matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
         cmesh_m->InsertMaterialObject(matBC);
     }
     
-    for(const auto& bc : simData->TracBCs()){
+    for(const auto& bc : simData->TangentialBCs()){
         val2 = bc.value;
 
         TPZBndCond* matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
@@ -456,8 +476,8 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
         if(facel)DebugStop();
 
     }
-
-    TPZManVector<int,3> active_approx_spaces(simData->MeshVector().size(),1);
+    
+    TPZManVector<int,2> active_approx_spaces(simData->MeshVector().size(),1);
 
     cmesh_m->BuildMultiphysicsSpace(active_approx_spaces,simData->MeshVector());
     cmesh_m->AdjustBoundaryElements();
@@ -466,9 +486,14 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
 
     TPZMeshOperator::InsertBCInterfaces(cmesh_m, simData, gmesh);
     TPZMeshOperator::InsertInterfaces(cmesh_m, simData, gmesh);
+    
+    if(simData->CondensedElements()){
+        cmesh_m->SetName("CMesh_M_BeforeCond");
+        cmesh_m->ComputeNodElCon();
+        PrintCompMesh(cmesh_m);
+    }
 
     return cmesh_m;
-
 }
 
 void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh* cmesh_m){
@@ -492,10 +517,10 @@ void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh* cmesh_m){
         
         if(numSpaces < 4) DebugStop();
         
-        int64_t numConnectExact = numSpaces-3;
+        int64_t numConnectExt = numSpaces-3;
         int nConnect = multEl->NConnects();
         
-        for(int ic= nConnect-numConnectExact; ic<nConnect; ic++){
+        for(int ic= nConnect-numConnectExt; ic<nConnect; ic++){
             int64_t conIndex = compEl->ConnectIndex(ic);
             externalNode.insert(conIndex);
         }
@@ -530,30 +555,30 @@ void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh* cmesh_m){
         }
         
         if(!compEl) continue;
-        
-        TPZGeoEl* geoEl = compEl->Reference();
-        
-        if(geoEl->Dimension()==dim-1){
-            TPZBndCond* elBC = dynamic_cast<TPZBndCond*>(compEl->Material());
-            if (!elBC) continue;
-            
-            TPZStack<TPZCompElSide> compElStack;
-            TPZGeoElSide geoElSide(geoEl, geoEl->NSides()-1);
-            
-            geoElSide.EqualLevelCompElementList(compElStack, 0, 0);
-            
-            for(auto& compElStackIndex: compElStack){
-                if(compElStackIndex.Reference().Element()->Dimension()==dim){
-                    int64_t IndexBC = compElStackIndex.Element()->Index();
-                    
-                    for(int64_t iEl=0; iEl<groupIndex.size(); iEl++){
-                        if(IndexBC==groupIndex[iEl]){
-                            elGroups[iEl]->AddElement(compEl);
-                        }
-                    }
-                }
-            }
-        }
+//
+//        TPZGeoEl* geoEl = compEl->Reference();
+//
+//        if(geoEl->Dimension()==dim-1){
+//            TPZBndCond* elBC = dynamic_cast<TPZBndCond*>(compEl->Material());
+//            if (!elBC) continue;
+//
+//            TPZStack<TPZCompElSide> compElStack;
+//            TPZGeoElSide geoElSide(geoEl, geoEl->NSides()-1);
+//
+//            geoElSide.EqualLevelCompElementList(compElStack, 0, 0);
+//
+//            for(auto& compElStackIndex: compElStack){
+//                if(compElStackIndex.Reference().Element()->Dimension()==dim){
+//                    int64_t IndexBC = compElStackIndex.Element()->Index();
+//
+//                    for(int64_t iEl=0; iEl<groupIndex.size(); iEl++){
+//                        if(IndexBC==groupIndex[iEl]){
+//                            elGroups[iEl]->AddElement(compEl);
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
     
     cmesh_m->ComputeNodElCon();
@@ -563,12 +588,14 @@ void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh* cmesh_m){
         cmesh_m->ConnectVec()[coIndex].IncrementElConnected();
     }
     
-    // Creating  condensed elements
+//     Creating  condensed elements
     int64_t nenvel = elGroups.NElements();
     for(int64_t iEnv=0; iEnv<nenvel; iEnv++){
         TPZElementGroup* elGroup = elGroups[iEnv];
         new TPZCondensedCompEl(elGroup);
     }
+    
+    cmesh_m->SetName("CMesh_M_Condensed");
     
     cmesh_m->CleanUpUnconnectedNodes();
     cmesh_m->ExpandSolution();
@@ -584,6 +611,16 @@ void TPZMeshOperator::PrintGeoMesh(TPZGeoMesh* gmesh){
     gmesh->Print(TextGeoMeshFile);
 }
 
+void TPZMeshOperator::PrintCompMesh(TPZCompMesh* cmesh){
+    std::cout << "\nPrinting multiphysics mesh in .txt and .vtk formats...\n";
+    
+    std::ofstream VTKCompMeshFile(cmesh->Name() + ".vtk");
+    std::ofstream TextCompMeshFile(cmesh->Name() + ".txt");
+    
+    TPZVTKGeoMesh::PrintCMeshVTK(cmesh, VTKCompMeshFile);
+    cmesh->Print(TextCompMeshFile);
+}
+
 void TPZMeshOperator::PrintCompMesh(TPZVec<TPZCompMesh*> CMeshVec){
     std::cout << "\nPrinting computational meshes in .txt and .vtk formats...\n";
     
@@ -593,6 +630,7 @@ void TPZMeshOperator::PrintCompMesh(TPZVec<TPZCompMesh*> CMeshVec){
         std::ofstream TextCompMeshFile(cmesh->Name() + ".txt");
         
         TPZVTKGeoMesh::PrintCMeshVTK(cmesh, VTKCompMeshFile);
+        cmesh->ComputeNodElCon();
         cmesh->Print(TextCompMeshFile);
     }
 }

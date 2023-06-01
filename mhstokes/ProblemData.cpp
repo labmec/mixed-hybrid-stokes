@@ -10,8 +10,8 @@ using namespace std;
 
 // constructor
 ProblemData::ProblemData(){
-    fbcvelvec.clear();
-    fbctracvec.clear();
+    fbcNormalvec.clear();
+    fbcTangentialvec.clear();
     fdomain.clear();
 }
 
@@ -27,19 +27,24 @@ void ProblemData::ReadJson(std::string file){
     
     // checking infos in the json file
     if(input.find("MeshName") == input.end()) DebugStop();
+    if(input.find("CreateMsh") == input.end()) DebugStop();
+    if(input.find("HdivType")==input.end()) DebugStop();
     if(input.find("VelpOrder") == input.end()) DebugStop();
     if(input.find("TracpOrder") == input.end()) DebugStop();
     if(input.find("Dim") == input.end()) DebugStop();
+    if(input.find("Resolution")==input.end()) DebugStop();
+    if(input.find("StaticCondensation") == input.end()) DebugStop();
     if(input.find("Domain") == input.end()) DebugStop();
     if(input.find("NormalBoundary") == input.end()) DebugStop();
     if(input.find("TangentialBoundary") == input.end()) DebugStop();
     if(input.find("InterfaceID") == input.end()) DebugStop();
     if(input.find("LambdaID")==input.end()) DebugStop();
-    if(input.find("HdivType")==input.end()) DebugStop();
-    if(input.find("Resolution")==input.end()) DebugStop();
+    
         
     // accessing and assigning values
     fMeshName = input["MeshName"];
+    
+    fMshFile = input["CreateMsh"];
     
     fHdivtype = input["HdivType"];
     
@@ -50,6 +55,8 @@ void ProblemData::ReadJson(std::string file){
     fDim = input["Dim"];
     
     fresolution = input["Resolution"];
+    
+    fCondensedElement = input["StaticCondensation"];
     
     fDomainData domaindata;
     for(auto& domainjson : input["Domain"]){
@@ -64,34 +71,34 @@ void ProblemData::ReadJson(std::string file){
         fdomain.push_back(domaindata);
     }
     
-    fBcVelData bcveldata;
+    fBcNormalData bcNormaldata;
     for(auto& bcjson : input["NormalBoundary"]){
         if(bcjson.find("name") == bcjson.end()) DebugStop();
         if(bcjson.find("type") == bcjson.end()) DebugStop();
         if(bcjson.find("value") == bcjson.end()) DebugStop();
         if(bcjson.find("matID") == bcjson.end()) DebugStop();
 
-        bcveldata.name = bcjson["name"];
-        bcveldata.type = bcjson["type"];
-        bcveldata.matID = bcjson["matID"];
-        bcveldata.value[0] = bcjson["value"];
+        bcNormaldata.name = bcjson["name"];
+        bcNormaldata.type = bcjson["type"];
+        bcNormaldata.matID = bcjson["matID"];
+        bcNormaldata.value[0] = bcjson["value"];
         
-        fbcvelvec.push_back(bcveldata);
+        fbcNormalvec.push_back(bcNormaldata);
     }
     
-    fBcTracData bctracdata;
+    fBcTangentialData bcTangentialdata;
     for(auto& bcjson : input["TangentialBoundary"]){
         if(bcjson.find("name") == bcjson.end()) DebugStop();
         if(bcjson.find("type") == bcjson.end()) DebugStop();
         if(bcjson.find("value") == bcjson.end()) DebugStop();
         if(bcjson.find("matID") == bcjson.end()) DebugStop();
 
-        bctracdata.name = bcjson["name"];
-        bctracdata.type = bcjson["type"];
-        bctracdata.value[0] = bcjson["value"];
-        bctracdata.matID = bcjson["matID"];
+        bcTangentialdata.name = bcjson["name"];
+        bcTangentialdata.type = bcjson["type"];
+        bcTangentialdata.value[0] = bcjson["value"];
+        bcTangentialdata.matID = bcjson["matID"];
         
-        fbctracvec.push_back(bctracdata);
+        fbcTangentialvec.push_back(bcTangentialdata);
     }
     
     finterfaceID = input["InterfaceID"];
@@ -101,7 +108,7 @@ void ProblemData::ReadJson(std::string file){
 
 void ProblemData::Print(std::ostream& out){
     out << "\nA new simulation has been started: \n\n";
-    out << "Mesh address: " << fMeshName << std::endl << std::endl;
+    out << "Mesh Name: " << fMeshName << std::endl << std::endl;
     
     out << "Hdiv Type: " << fHdivtype << std::endl << std::endl;
     
@@ -113,6 +120,8 @@ void ProblemData::Print(std::ostream& out){
     
     out << "Resolution: " << fresolution << std::endl << std::endl;
     
+    out << "Static Condensation: " << fCondensedElement << std::endl << std::endl;
+    
     out << "Domain: " << std::endl;
     
     for(const auto& domaindata : fdomain){
@@ -123,7 +132,7 @@ void ProblemData::Print(std::ostream& out){
     
     out << "Normal Boundary Conditions: " << std::endl;
     
-    for(const auto& bcdata : fbcvelvec){
+    for(const auto& bcdata : fbcNormalvec){
         out << "  BC Name: " << bcdata.name << std::endl;
         out << "  BC MatID: " << bcdata.matID << std::endl;
         out << "  BC Type: " << bcdata.type << std::endl;
@@ -132,7 +141,7 @@ void ProblemData::Print(std::ostream& out){
     
     out << "Tangential Boundary Conditions: " << std::endl;
     
-    for(const auto& bcdata : fbctracvec){
+    for(const auto& bcdata : fbcTangentialvec){
         out << "  BC Name: " << bcdata.name << std::endl;
         out << "  BC MatID: " << bcdata.matID << std::endl;
         out << "  BC Type: " << bcdata.type << std::endl;

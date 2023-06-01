@@ -39,23 +39,23 @@ TVar TPZStokesMaterial::TensorInnerProduct(TPZFMatrix<TVar> &S, TPZFMatrix<TVar>
 void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datavec, REAL weight, TPZFMatrix<STATE>& ek, TPZFMatrix<STATE>& ef){
 
     
-    int64_t Vrows = datavec[fVindex].fDeformedDirections.Rows();
-    int64_t Vcols = datavec[fVindex].fDeformedDirections.Cols();
+    int64_t Vrows = datavec[EVindex].fDeformedDirections.Rows();
+    int64_t Vcols = datavec[EVindex].fDeformedDirections.Cols();
 
     TPZFNMatrix<3, REAL> PhiV(Vrows, Vcols, 0.);
-    TPZFMatrix<REAL>& PhiP = datavec[fPindex].phi;
+    TPZFMatrix<REAL>& PhiP = datavec[EPindex].phi;
 
-    int64_t nShapeV = datavec[fVindex].fVecShapeIndex.NElements();
+    int64_t nShapeV = datavec[EVindex].fVecShapeIndex.NElements();
     int64_t nShapeP = PhiP.Rows();
 
     TPZManVector<TPZFNMatrix<9, REAL>, 18> GradV(Vcols);
 
     TPZVec<STATE> SourceTerm(3,0.);
 
-    if(datavec[fVindex].fNeedsDeformedDirectionsFad){
+    if(datavec[EVindex].fNeedsDeformedDirectionsFad){
         for(int row=0; row<Vrows; row++){
             for(int col=0; col<Vcols; col++){
-                PhiV(row, col) = datavec[fVindex].fDeformedDirectionsFad(row, col).val();
+                PhiV(row, col) = datavec[EVindex].fDeformedDirectionsFad(row, col).val();
             }
         }
 
@@ -63,7 +63,7 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
         for(int vFunction=0; vFunction<Vcols; vFunction++){
             for(int row=0; row<this->Dimension(); row++){
                 for(int col=0; col<this->Dimension(); col++){
-                    GradVFunction(row, col) = datavec[fVindex].fDeformedDirectionsFad(row, vFunction).fastAccessDx(col);
+                    GradVFunction(row, col) = datavec[EVindex].fDeformedDirectionsFad(row, vFunction).fastAccessDx(col);
                 }
             }
             GradV[vFunction] = GradVFunction;
@@ -71,13 +71,13 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
     }
 
     if(this->HasForcingFunction()){
-        this->ForcingFunction()(datavec[fVindex].x, SourceTerm);
+        this->ForcingFunction()(datavec[EVindex].x, SourceTerm);
     }
 
     for(int vFunction_i=0; vFunction_i<nShapeV; vFunction_i++){
         TPZFNMatrix<9, STATE> DUi(3,3,0.);
 
-        STATE divUi = datavec[fVindex].divphi(vFunction_i, 0);
+        STATE divUi = datavec[EVindex].divphi(vFunction_i, 0);
 
         STATE phiVDotF = 0.;
 
@@ -113,6 +113,21 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
             ek(nShapeV+pFunction_j, vFunction_i) += B_term;
         }
     }
+    
+    if(datavec.size()>2){
+        TPZFMatrix<REAL>& phivM = datavec[EVMindex].phi;
+        TPZFMatrix<REAL>& phipM = datavec[EPMindex].phi;
+        
+        // Pressure and distributed flux
+        for(int j=0; j<nShapeP; j++){
+            ek(nShapeV+nShapeP, nShapeV+j) += PhiP(j,0)*phivM(0,0)*weight;
+            ek(nShapeV+j, nShapeV+nShapeP) += PhiP(j,0)*phivM(0,0)*weight;
+        }
+        
+        // Injection and average-pressure
+        ek(nShapeV+nShapeP+1, nShapeV+nShapeP) += phivM(0,0)*phipM(0,0)*weight;
+        ek(nShapeV+nShapeP, nShapeV+nShapeP+1) += phivM(0,0)*phipM(0,0)*weight;
+    }
 
 #ifdef PZ_LOG
     if(logger.isDebugEnabled()){
@@ -127,13 +142,8 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
 
 void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc){
     
-    if(datavec.size() != 2){
-        std::cout << "ERROR: DATAVEC SIZE IS DIFFERENT THAN 2\n\n";
-        DebugStop();
-    }
-    
-    TPZFNMatrix<3, REAL> PhiV = datavec[fVindex].phi;
-    TPZFMatrix<REAL>& PhiP = datavec[fPindex].phi;
+    TPZFNMatrix<3, REAL> PhiV = datavec[EVindex].phi;
+    TPZFMatrix<REAL>& PhiP = datavec[EPindex].phi;
     
     int64_t nShapeV = PhiV.Rows();
     int64_t nShapeP = PhiP.Rows();
@@ -161,7 +171,7 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
             
         case 1: // Tangential Velocity
         {
-//            TPZFNMatrix<9, REAL>& tan = datavec[fPindex].axes;
+//            TPZFNMatrix<9, REAL>& tan = datavec[EPindex].axes;
             
             REAL v_t = val2[0];
             
@@ -185,7 +195,7 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
             
         case 3: // Tangential Stress
         {
-//            TPZFNMatrix<9, REAL>& tan = datavec[fPindex].axes;
+//            TPZFNMatrix<9, REAL>& tan = datavec[EPindex].axes;
             
             REAL sigma_t = val2[0];
             
@@ -245,8 +255,8 @@ int TPZStokesMaterial::NSolutionVariables(int var) const{
 
 void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec, int var, TPZVec<STATE>& Solout) {
     
-    TPZManVector<STATE, 3> v_h = datavec[fVindex].sol[0];
-    TPZManVector<STATE, 3> p_h = datavec[fPindex].sol[0];
+    TPZManVector<STATE, 3> v_h = datavec[EVindex].sol[0];
+    TPZManVector<STATE, 3> p_h = datavec[EPindex].sol[0];
     
     Solout.Resize(NSolutionVariables(var));
     
@@ -268,7 +278,7 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
             TPZVec<STATE> f(3,0.);
             
             if(this->HasForcingFunction()){
-                this->ForcingFunction()(datavec[fVindex].x, f);
+                this->ForcingFunction()(datavec[EVindex].x, f);
             }
             
             Solout[0] = f[0];
@@ -278,7 +288,7 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
         }
         case 3: {
             
-                TPZFNMatrix<10,STATE> gradUn = datavec[fVindex].dsol[0];
+                TPZFNMatrix<10,STATE> gradUn = datavec[EVindex].dsol[0];
                 TPZFNMatrix<9,STATE> DUn_j(3,3,0.), sigma(3,3,0.);
             
                 for (int e=0; e<Dimension(); e++) {
@@ -324,7 +334,7 @@ void TPZStokesMaterial::Errors(const TPZVec<TPZMaterialDataT<STATE>>& data, TPZV
     TPZManVector<STATE, 4> sol_exact(3);
     TPZFNMatrix<9> dsol_exact(3,3);
     
-    fExactSol(data[fVindex].x, sol_exact, dsol_exact);
+    fExactSol(data[EVindex].x, sol_exact, dsol_exact);
     
     errors.Resize(NEvalErrors());
     errors.Fill(0.);
@@ -335,7 +345,7 @@ void TPZStokesMaterial::Errors(const TPZVec<TPZMaterialDataT<STATE>>& data, TPZV
     this->Solution(data, VariableIndex("Velocity"), Velocity);
     this->Solution(data, VariableIndex("Pressure"), Pressure);
     
-    TPZFMatrix<STATE>& dsolv = data[fVindex].dsol[0];
+    TPZFMatrix<STATE>& dsolv = data[EVindex].dsol[0];
     
     dsolv.Resize(3, 3);
     

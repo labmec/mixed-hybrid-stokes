@@ -25,11 +25,17 @@ protected:
     /// fluid viscosity
     double fviscosity;
     
-    /// Velocity index in datavec
-    int fVindex = 0;
+    enum SpaceIndex {EVindex, EPindex, EPMindex, EVMindex};
     
-    /// Pressure index in datavec
-    int fPindex = 1;
+//    /// Velocity index in datavec
+//    int fVindex = 0;
+//
+//    /// Pressure index in datavec
+//    int fPindex = 1;
+//
+//    int fPMindex = 2;
+//
+//    int fVMindex = 3;
     
     /// Big number for penalization method
     REAL fBigNumber = pow(10,std::numeric_limits<STATE>::max_digits10*2/3);

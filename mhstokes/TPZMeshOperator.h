@@ -27,5 +27,9 @@ public:
     static void PrintGeoMesh(TPZGeoMesh* gmesh);
 
     static void PrintCompMesh(TPZVec<TPZCompMesh*> CMeshVec);
+    
+    static void PrintCompMesh(TPZCompMesh* cmesh);
+    
+    static void GenerateMshFile(ProblemData* geoFile);
 };
 #endif
