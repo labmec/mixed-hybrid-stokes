@@ -19,10 +19,10 @@
 
 int main(){
 #ifdef PZ_LOG
-    TPZLogger::InitializePZLOG("Stokes.cfg");
+//    TPZLogger::InitializePZLOG("Stokes.cfg");
 #endif
   
-    bool printdata = true;
+    bool printdata = false;
 
     std::string filepath = "../DataInput/";
     std::string filename =  "LidDrivenFlow";
@@ -57,10 +57,14 @@ int main(){
     step.SetDirect(ELDLt);
     an.SetSolver(step);
 
-    an.Assemble();
-
-    an.Solve();
-
+    {
+        TPZSimpleTimer timer("Solving", true);
+        
+        an.Assemble();
+        
+        an.Solve();
+    }
+    
     if(printdata){
         simData.Print();
 
@@ -79,6 +83,6 @@ int main(){
     }
 
     std::cout << "\n\nSimulation finished without errors :) \n\n";
-        
+            
 	return 0;
 }

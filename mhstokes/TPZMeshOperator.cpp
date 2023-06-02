@@ -227,9 +227,9 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
 
     cmesh_v->SetDimModel(simData->Dim());
     
-    if(simData->HdivType()=="Constant"){
+    if(simData->HdivType()==EConstant){
         cmesh_v->ApproxSpace().SetHDivFamily(HDivFamily::EHDivConstant);
-    }else if (simData->HdivType()=="Standard"){
+    }else if (simData->HdivType()==EStandard){
         cmesh_v->ApproxSpace().SetHDivFamily(HDivFamily::EHDivStandard);
     }
     
@@ -293,10 +293,10 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshP(ProblemData* simData, TPZGeoMesh* gme
     
     cmesh_p->SetDimModel(simData->Dim());
     
-    if(simData->HdivType()=="Constant"){
+    if(simData->HdivType()==EConstant){
         cmesh_p->SetAllCreateFunctionsDiscontinuous();
         cmesh_p->SetDefaultOrder(0);
-    } else if(simData->HdivType()=="Standard") {
+    } else if(simData->HdivType()==EStandard) {
         cmesh_p->SetDefaultOrder(simData->VelpOrder()+1);
         cmesh_p->SetAllCreateFunctionsContinuous();
     }

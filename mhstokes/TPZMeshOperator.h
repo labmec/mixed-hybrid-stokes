@@ -5,6 +5,8 @@
 
 class TPZMeshOperator{
 public:
+    enum SimSpace {EStandard, EConstant};
+    
     static TPZGeoMesh* CreateGMesh(ProblemData* simData);
     static void InsertLambdaGEl(ProblemData* simData, TPZGeoMesh* gmesh);
     

@@ -18,7 +18,7 @@ private:
     
     bool fMshFile = false;
     
-    std::string fHdivtype = "none";
+    int fHdivtype = 0; // 0 -> Standard & 1 -> Constant
     
     int fVelpOrder = -1; // polynomial approximation order for velocity
     
@@ -81,8 +81,8 @@ public:
     const bool& CreateMshFile() const {return fMshFile;}
     bool& CreateMshFile() {return fMshFile;}
     
-    const std::string& HdivType() const {return fHdivtype;}
-    std::string& HdivType() {return fHdivtype;}
+    const int& HdivType() const {return fHdivtype;}
+    int& HdivType() {return fHdivtype;}
     
     const int& VelpOrder() const {return fVelpOrder;}
     int& VelpOrder(){return fVelpOrder;}
