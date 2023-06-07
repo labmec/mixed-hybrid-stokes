@@ -23,6 +23,7 @@
 
 #include "TPZInterfaceMaterial.h"
 #include "TPZStokesMaterial.h"
+#include "TPZAxisymStokesMaterial.h"
 #include "TPZMeshOperator.h"
 #include "ProblemData.h"
 
@@ -267,7 +268,7 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
             if(!intercEl) continue;
 
             // finally using the desired function
-            intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder()+1);
+            // intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder()+1);
         }
     }
     
@@ -296,8 +297,16 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshP(ProblemData* simData, TPZGeoMesh* gme
     if(simData->HdivType()==EConstant){
         cmesh_p->SetAllCreateFunctionsDiscontinuous();
         cmesh_p->SetDefaultOrder(0);
+<<<<<<< HEAD
     } else if(simData->HdivType()==EStandard) {
         cmesh_p->SetDefaultOrder(simData->VelpOrder()+1);
+||||||| parent of 9e51454 (Axisymmetric working)
+    } else if(simData->HdivType()=="Standard") {
+        cmesh_p->SetDefaultOrder(simData->VelpOrder()+1);
+=======
+    } else if(simData->HdivType()=="Standard") {
+        cmesh_p->SetDefaultOrder(simData->VelpOrder());
+>>>>>>> 9e51454 (Axisymmetric working)
         cmesh_p->SetAllCreateFunctionsContinuous();
     }
     
@@ -431,7 +440,21 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
 
     //Creating Materials
     //1. For domain
-    TPZStokesMaterial* material = new TPZStokesMaterial(simData->DomainVec()[0].matID,simData->Dim(), simData->DomainVec()[0].viscosity);
+    bool faxisymmetric = true;
+    
+    TPZStokesMaterial* material = faxisymmetric? new TPZAxisymStokesMaterial(simData->DomainVec()[0].matID,simData->Dim(), simData->DomainVec()[0].viscosity): 
+                                                 new TPZStokesMaterial(simData->DomainVec()[0].matID,simData->Dim(), simData->DomainVec()[0].viscosity);        
+    
+    ForcingFunctionType<STATE> bodyforce;
+    bodyforce = [](const TPZVec<double> &loc, TPZVec<double> &result)
+    {
+        const double& radius = loc[0];
+        result[0] = 0.0;
+        result[1] = -1.0 / (radius * radius * radius);
+        result[2] = 0.0;
+    };
+    //material->SetForcingFunction(bodyforce, simData->VelpOrder()+10);
+
     cmesh_m->InsertMaterialObject(material);
 
     // 2. Boundary Conditions
@@ -459,7 +482,7 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
     cmesh_m->InsertMaterialObject(matLambda);
 
     // 2.2 - Material for interfaces (Inner)
-    TPZInterfaceMaterial *matInterfaceLeft = new TPZInterfaceMaterial(simData->InterfaceID(),simData->Dim());
+    TPZInterfaceMaterial *matInterfaceLeft = new TPZInterfaceMaterial(simData->InterfaceID(), simData->Dim());
     matInterfaceLeft->SetMultiplier(1.);
     cmesh_m->InsertMaterialObject(matInterfaceLeft);
 
@@ -633,4 +656,14 @@ void TPZMeshOperator::PrintCompMesh(TPZVec<TPZCompMesh*> CMeshVec){
         cmesh->ComputeNodElCon();
         cmesh->Print(TextCompMeshFile);
     }
+}
+
+void TPZMeshOperator::PrintCompMesh(TPZCompMesh* cmesh){
+    std::cout << "\nPrinting computational meshe in .txt and .vtk formats...\n";
+
+    std::ofstream VTKCompMeshFile(cmesh->Name() + ".vtk");
+    std::ofstream TextCompMeshFile(cmesh->Name() + ".txt");
+
+    TPZVTKGeoMesh::PrintCMeshVTK(cmesh, VTKCompMeshFile);
+    cmesh->Print(TextCompMeshFile);
 }

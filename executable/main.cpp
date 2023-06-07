@@ -13,11 +13,12 @@
 #include <TPZVTKGenerator.h>
 #include <TPZSimpleTimer.h>
 
-#include"ProblemData.h"
+#include "ProblemData.h"
 #include "SimpleExample.h"
 #include "TPZMeshOperator.h"
 
-int main(){
+int main()
+{
 #ifdef PZ_LOG
 //    TPZLogger::InitializePZLOG("Stokes.cfg");
 #endif
@@ -28,7 +29,7 @@ int main(){
     std::string filename =  "LidDrivenFlow";
 
     ProblemData simData;
-    simData.ReadJson(filepath+filename+".json");
+    simData.ReadJson(filepath + filename + ".json");
 
     TPZGeoMesh* gmesh = TPZMeshOperator::CreateGMesh(&simData);
 
@@ -41,9 +42,10 @@ int main(){
         TPZCompMesh* cmesh_Mv = TPZMeshOperator::CreateCmeshMv(&simData, gmesh);
     }
 
-    TPZMultiphysicsCompMesh* cmesh_m = TPZMeshOperator::CreateMultiPhysicsMesh(&simData, gmesh);
-    
-    if(simData.CondensedElements()){
+    TPZMultiphysicsCompMesh *cmesh_m = TPZMeshOperator::CreateMultiPhysicsMesh(&simData, gmesh);
+
+    if (simData.CondensedElements())
+    {
         TPZMeshOperator::CondenseElements(cmesh_m);
     }
 
@@ -51,6 +53,30 @@ int main(){
     TPZSSpStructMatrix<> strmat(cmesh_m);
 
     strmat.SetNumThreads(0);
+
+    // TPZEquationFilter filter(cmesh_m->NEquations());
+    // std::set<int64_t> setremove;
+
+    // for (auto el : cmesh_m->ElementVec())
+    // {
+    //     auto matid = el->Reference()->MaterialId();
+    //     if (matid != 6)
+    //         continue;
+    //     int64_t nconnects = el->NConnects();
+    //     for (int64_t ic = 0; ic < nconnects; ic++)
+    //     {
+    //         TPZConnect &c = el->Connect(ic);
+    //         int64_t blocknumber = c.SequenceNumber();
+    //         auto firsteq = cmesh_m->Block().Position(blocknumber);
+    //         int64_t blocksize = cmesh_m->Block().Size(blocknumber);
+    //         for (int64_t eq = firsteq; eq < firsteq + blocksize; eq++)
+    //         {
+    //             setremove.insert(eq);
+    //         }
+    //     }
+    // }
+    // filter.ExcludeEquations(setremove);
+    // strmat.EquationFilter() = filter;
     an.SetStructuralMatrix(strmat);
 
     TPZStepSolver<STATE> step;
@@ -72,6 +98,9 @@ int main(){
         TPZMeshOperator::PrintGeoMesh(gmesh);
         TPZMeshOperator::PrintCompMesh(cmesh_m);
         TPZMeshOperator::PrintCompMesh(simData.MeshVector());
+        TPZMeshOperator::PrintCompMesh(cmesh_m);
+        TPZFMatrix<STATE> &Sol=an.Solution();
+        Sol.Print("Sol=", std::cout , EMathematicaInput);
     }
 
     //vtk export

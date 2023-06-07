@@ -29,10 +29,11 @@ protected:
     STATE fMultiplier = -1;
     
     REAL fBigNumber = pow(10,std::numeric_limits<STATE>::max_digits10*2/3);
+    bool faxisymmetry;
 
 public:
     /// Creates a material object
-    TPZInterfaceMaterial(int matID, int dimension);
+    TPZInterfaceMaterial(int matID, int dimension, bool isAxisymmetric = false);
     
     /// Destructor
     ~TPZInterfaceMaterial();
@@ -81,6 +82,8 @@ public:
     
     void Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
                   int var, TPZVec<STATE> &sol) override;
+
+    int GetIntegrationOrder(const TPZVec<int> &porder_left, const TPZVec<int> &porder_right) const override;
 
     int NStateVariables() const override
     {return fNStateVariables;}
