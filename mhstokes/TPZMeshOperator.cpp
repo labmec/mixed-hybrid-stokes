@@ -21,7 +21,7 @@
 #include <pzcondensedcompel.h>
 #include <filesystem>
 
-#include "TPZInterfaceMaterial.h"
+#include "TPZInterfaceAxisymStokesMaterial.h"
 #include "TPZStokesMaterial.h"
 #include "TPZAxisymStokesMaterial.h"
 #include "TPZMeshOperator.h"
@@ -254,10 +254,83 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
     cmesh_v->AutoBuild();
     cmesh_v->LoadReferences();
     
+    if (cmesh_v->Dimension() != 2) DebugStop();
+
     // setting the approximation order for the volume elements
     int64_t ncEl = cmesh_v->NElements();
-    for(int64_t cEl=0; cEl<ncEl; cEl++){
+    for(int64_t cEl=0; cEl<ncEl; cEl++)
+    {
         TPZCompEl* compEl = cmesh_v->Element(cEl);
+
+        bool faxisymmetric = true;
+        if (faxisymmetric) // Searching for connects that could have contributions at r=0
+        {
+            TPZGeoEl* geo = compEl->Reference();
+            int n_1d_sides = geo->NSides(1); //number os one dimension sides
+            int n_sides = geo->NSides();
+
+            int nCornerNodes = geo->NCornerNodes();
+            for (int64_t s = nCornerNodes; s < n_sides-1; s++) //loop over 1d sides
+            {
+                TPZGeoElSide geoside(geo, s);
+                TPZManVector<REAL, 3> center(3);
+                geoside.CenterX(center);
+                int next_side[2];
+                bool zeroradius = false;
+
+                if (abs(center[0]) <= 1.0e-9) //We condense the connect so its contribution will not be added to the system
+                {
+                    TPZConnect &con = compEl->Connect(s - nCornerNodes);
+                    con.SetCondensed(true);
+                    
+                    next_side[0] = (s+1 < n_sides-1) ? s+1 :  s % n_1d_sides + 1;
+                    next_side[1] = (s-1 >= nCornerNodes) ? s-1 : 2 * s -1;
+                    
+                    for (int64_t ns = 0; ns < 2; ns++)
+                    {
+                        TPZConnect &nextcon = compEl->Connect(next_side[ns] - nCornerNodes); //we need to remove the shape function associated to the vertex at r=0
+                        int64_t nshape = nextcon.NShape();
+
+                        int64_t local_id_0 = next_side[ns]-nCornerNodes; 
+                        int64_t local_id_1 = (next_side[ns]-nCornerNodes+1) % nCornerNodes;
+                        
+                        int64_t global_id_0 = geo->NodePtr(local_id_0)->Id();
+                        int64_t global_id_1 = geo->NodePtr(local_id_1)->Id();
+
+                        REAL r_0 = geo->NodePtr(local_id_0)->Coord(0);
+                        REAL r_1 = geo->NodePtr(local_id_1)->Coord(0);
+
+                        TPZFMatrix<double> depMatrix(nshape, nshape-1, 0.0); //Filling dependency matrix
+                        for (int64_t i = 0; i < nshape-1; i++)
+                            depMatrix(i+1, i) = 1.0;
+
+                        if (abs(r_0 ) > 1.0e-9) //in this case, node_1 is at r=0 so we permute them
+                        {
+                            int64_t temp = global_id_0;
+                            global_id_0 = global_id_1;
+                            global_id_1 = temp;
+
+                            temp = local_id_0;
+                            local_id_0 = local_id_1;
+                            local_id_1 = temp;
+
+                            depMatrix(0, 0) = 1.0;
+                            depMatrix(1, 0) = 0.0;
+                        }
+                        
+                        if (!nextcon.HasDependency())
+                        {
+                            int64_t new_con_index = cmesh_v->AllocateNewConnect(nshape-1, nextcon.NState(), nextcon.Order());
+                            nextcon.AddDependency(compEl->ConnectIndex(next_side[ns] - nCornerNodes), new_con_index, depMatrix, 0, 0, nshape, nshape-1);
+                        }
+                    }
+                    break;
+                }
+                
+                
+            }
+
+        }
 
         // only in those elements whose dimension equals to the simulation dim
         if(compEl->Dimension()==simData->Dim()){
@@ -268,7 +341,7 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
             if(!intercEl) continue;
 
             // finally using the desired function
-            // intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder()+1);
+            intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder()+1);
         }
     }
     
@@ -305,8 +378,14 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshP(ProblemData* simData, TPZGeoMesh* gme
         cmesh_p->SetDefaultOrder(simData->VelpOrder()+1);
 =======
     } else if(simData->HdivType()=="Standard") {
+<<<<<<< HEAD
         cmesh_p->SetDefaultOrder(simData->VelpOrder());
 >>>>>>> 9e51454 (Axisymmetric working)
+||||||| parent of f726cb8 (Implementing shape functions removal at r=0)
+        cmesh_p->SetDefaultOrder(simData->VelpOrder());
+=======
+        cmesh_p->SetDefaultOrder(simData->VelpOrder()+1);
+>>>>>>> f726cb8 (Implementing shape functions removal at r=0)
         cmesh_p->SetAllCreateFunctionsContinuous();
     }
     
@@ -445,15 +524,20 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
     TPZStokesMaterial* material = faxisymmetric? new TPZAxisymStokesMaterial(simData->DomainVec()[0].matID,simData->Dim(), simData->DomainVec()[0].viscosity): 
                                                  new TPZStokesMaterial(simData->DomainVec()[0].matID,simData->Dim(), simData->DomainVec()[0].viscosity);        
     
-    ForcingFunctionType<STATE> bodyforce;
-    bodyforce = [](const TPZVec<double> &loc, TPZVec<double> &result)
+    bool hasAnalyticSolution = false;
+    if (hasAnalyticSolution)
     {
-        const double& radius = loc[0];
-        result[0] = 0.0;
-        result[1] = -1.0 / (radius * radius * radius);
-        result[2] = 0.0;
-    };
-    //material->SetForcingFunction(bodyforce, simData->VelpOrder()+10);
+        TAxisymmetricStokesAnalytic* analyticSol = new TAxisymmetricStokesAnalytic();
+        analyticSol->fExactSol = TAxisymmetricStokesAnalytic::ESlidingCouetteFlow;
+        analyticSol->fL = 2.0;
+        analyticSol->fRe = 4.0;
+        analyticSol->fRi = 2.0;
+        analyticSol->fp = -1.0;
+        analyticSol->fvel = 1.0;
+        analyticSol->fviscosity = simData->DomainVec()[0].viscosity;
+        material->SetExactSol(analyticSol->ExactSolution(),0);
+        material->SetForcingFunction(analyticSol->ForceFunc(),0);
+    }
 
     cmesh_m->InsertMaterialObject(material);
 
@@ -482,11 +566,11 @@ TPZMultiphysicsCompMesh* TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData* si
     cmesh_m->InsertMaterialObject(matLambda);
 
     // 2.2 - Material for interfaces (Inner)
-    TPZInterfaceMaterial *matInterfaceLeft = new TPZInterfaceMaterial(simData->InterfaceID(), simData->Dim());
+    TPZInterfaceAxisymStokesMaterial *matInterfaceLeft = new TPZInterfaceAxisymStokesMaterial(simData->InterfaceID(), simData->Dim());
     matInterfaceLeft->SetMultiplier(1.);
     cmesh_m->InsertMaterialObject(matInterfaceLeft);
 
-    TPZInterfaceMaterial *matInterfaceRight = new TPZInterfaceMaterial(-simData->InterfaceID(), simData->Dim());
+    TPZInterfaceAxisymStokesMaterial *matInterfaceRight = new TPZInterfaceAxisymStokesMaterial(-simData->InterfaceID(), simData->Dim());
     matInterfaceRight->SetMultiplier(-1.);
     cmesh_m->InsertMaterialObject(matInterfaceRight);
 

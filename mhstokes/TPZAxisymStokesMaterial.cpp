@@ -13,7 +13,6 @@ TPZAxisymStokesMaterial::~TPZAxisymStokesMaterial() {}
 
 void TPZAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight,TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef)
 {
-#define USING_LAPACK
 #ifdef USING_LAPACK
 
     int64_t dimension = Dimension(); // problems dimension
@@ -231,7 +230,6 @@ void TPZAxisymStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>>
     case 2: // Normal Stress
     {
         REAL sigma_n = val2[0];
-        REAL radius = datavec[fVindex].x[0];
 
         for (int64_t i = 0; i < nShapeV; i++)
         {
@@ -274,6 +272,8 @@ void TPZAxisymStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& da
     TPZManVector<STATE, 3> p_h = datavec[fPindex].sol[0];
     
     REAL radius = datavec[fVindex].x[0];
+    if (abs(radius) < 1.0e-9) radius = 1.0e-6;
+    
     Solout.Resize(NSolutionVariables(var));
 
     int64_t dimension = Dimension();
@@ -354,7 +354,74 @@ int TPZAxisymStokesMaterial::IntegrationRuleOrder(const TPZVec<int>& elPMaxOrder
 
     int ffporder = HasForcingFunction()? ForcingFunctionPOrder() : 0;
 
-    const int intOrder = maxOrder < ffporder ? 10 + maxOrder + ffporder : 10 + maxOrder;
+    const int intOrder = maxOrder < ffporder ? 10 * (maxOrder + ffporder) : (10 * maxOrder);
 
     return  intOrder;
+}
+
+int TPZAxisymStokesMaterial::IntegrationRuleOrderBC(const TPZVec<int>& elPMaxOrder) const
+{
+    const int maxOrder = [&elPMaxOrder=std::as_const(elPMaxOrder)](){
+        int max = 0;
+        for (auto ord : elPMaxOrder)
+            if (ord > max) max = ord;
+        return max;
+    }();
+
+    int ffporder = HasForcingFunction()? ForcingFunctionPOrder() : 0;
+
+    const int intOrder = maxOrder < ffporder ? 10 * (maxOrder + ffporder) : (10 * maxOrder);
+
+    return  intOrder;
+}
+
+void TPZAxisymStokesMaterial::Errors(const TPZVec<TPZMaterialDataT<STATE>>& data, TPZVec<REAL>& errors){
+    
+    if(!HasExactSol()) DebugStop();
+
+    errors.Resize(NEvalErrors());
+
+    REAL radius = data[fVindex].x[0];
+    
+    TPZManVector<STATE, 4> sol_exact(4);
+    TPZFNMatrix<9,STATE> gradsol_exact(3,3);
+    
+    //Getting the exact solution for velocity, pressure and velocity gradient
+    fExactSol(data[fVindex].x, sol_exact, gradsol_exact);
+    
+    //Getting the numeric solution for velocity, pressure and velocity gradient
+    TPZManVector<STATE> v_h(3, 0.0);
+    TPZManVector<STATE> p_h(1, 0.0);
+    TPZFNMatrix<10,STATE> gradv_h = data[fVindex].dsol[0];
+    
+    this->Solution(data, VariableIndex("Velocity"), v_h);
+    this->Solution(data, VariableIndex("Pressure"), p_h);
+
+    gradv_h(2, 2) = v_h[0] / radius;
+    gradv_h *= 1.0 / radius;
+
+    gradv_h(0, 0) -= (v_h[0] / (radius * radius));
+    gradv_h(1, 0) -= (v_h[1] / (radius * radius));
+    
+    STATE diffv, diffp, diffdiv;
+
+    diffp = p_h[0] - sol_exact[3];
+    errors[0] = diffp * diffp;
+    
+    errors[1] = 0.0;
+    for(int i = 0; i < 3; i++)
+    {
+        diffv = v_h[i] - sol_exact[i];
+        errors[1] += diffv * diffv;
+    }
+    
+    STATE div_exact = 0.0, div_h = 0.0;
+    for(int i = 0; i < 3; i++)
+    {
+        div_exact += gradsol_exact(i,i);
+        div_h += gradv_h(i, i);
+    }
+    
+    diffdiv = div_h - div_exact;
+    errors[2] = diffdiv * diffdiv;
 }

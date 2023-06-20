@@ -8,10 +8,17 @@ include_directories(
 
 find_package(NeoPZ REQUIRED HINTS ${CMAKE_SOURCE_DIR}/../neopz_install/ ${CMAKE_SOURCE_DIR}/neopz_install/)
 
+option(USING_LAPACK OFF)
+if(USING_LAPACK)
+    add_compile_definitions(USING_LAPACK)
+endif()
+
 file(GLOB_RECURSE PZ_SRC
      "../neopz/*.h"
      "../neopz/*.cpp"
 )
+
+message("pzsrc = ${PZ_SRC}")
 
 add_custom_target( GlobalFiles SOURCES ${PZ_SRC})
 

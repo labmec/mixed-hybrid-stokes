@@ -34,6 +34,12 @@ public:
 
     [[nodiscard]] int IntegrationRuleOrder(const TPZVec<int> &elPMaxOrder) const override;
 
+    [[nodiscard]] int IntegrationRuleOrderBC(const TPZVec<int> &elPMaxOrder) const override;
+
+    virtual int NEvalErrors() const override {return 3;}
+
+    virtual void Errors(const TPZVec<TPZMaterialDataT<STATE>>& data, TPZVec<REAL>& errors) override;
+
 };
 
 #endif

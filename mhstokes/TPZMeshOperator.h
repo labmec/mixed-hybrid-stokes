@@ -2,6 +2,7 @@
 #define STOKESEXAMPLE_H
 
 #include "ProblemData.h"
+#include <TPZAnalyticSolution.h>
 
 class TPZMeshOperator{
 public:

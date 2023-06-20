@@ -11,7 +11,7 @@
 #ifndef TPZINTERFACEMATERIAL_H
 #define TPZINTERFACEMATERIAL_H
 
-class TPZInterfaceMaterial : public TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>, TPZMatInterfaceCombinedSpaces<STATE>>,
+class TPZInterfaceAxisymStokesMaterial : public TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>, TPZMatInterfaceCombinedSpaces<STATE>>,
     
     public TPZLagrangeMultiplierBase
     
@@ -33,10 +33,10 @@ protected:
 
 public:
     /// Creates a material object
-    TPZInterfaceMaterial(int matID, int dimension, bool isAxisymmetric = false);
+    TPZInterfaceAxisymStokesMaterial(int matID, int dimension, bool isAxisymmetric = false);
     
     /// Destructor
-    ~TPZInterfaceMaterial();
+    ~TPZInterfaceAxisymStokesMaterial();
     
     STATE InnerProductVec(TPZFMatrix<STATE>& S, TPZFMatrix<STATE>& T);
     
