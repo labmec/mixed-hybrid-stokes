@@ -2,6 +2,7 @@
 #define STOKESEXAMPLE_H
 
 #include "ProblemData.h"
+#include <TPZAnalyticSolution.h>
 
 class TPZMeshOperator{
 public:
@@ -29,9 +30,15 @@ public:
     static void PrintGeoMesh(TPZGeoMesh* gmesh);
 
     static void PrintCompMesh(TPZVec<TPZCompMesh*> CMeshVec);
+<<<<<<< HEAD
     
     static void PrintCompMesh(TPZCompMesh* cmesh);
     
     static void GenerateMshFile(ProblemData* geoFile);
+||||||| parent of 9e51454 (Axisymmetric working)
+=======
+
+    static void PrintCompMesh(TPZCompMesh* cmesh);
+>>>>>>> 9e51454 (Axisymmetric working)
 };
 #endif

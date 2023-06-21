@@ -11,7 +11,7 @@
 #ifndef TPZINTERFACEMATERIAL_H
 #define TPZINTERFACEMATERIAL_H
 
-class TPZInterfaceMaterial : public TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>, TPZMatInterfaceCombinedSpaces<STATE>>,
+class TPZInterfaceAxisymStokesMaterial : public TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>, TPZMatInterfaceCombinedSpaces<STATE>>,
     
     public TPZLagrangeMultiplierBase
     
@@ -29,13 +29,14 @@ protected:
     STATE fMultiplier = -1;
     
     REAL fBigNumber = pow(10,std::numeric_limits<STATE>::max_digits10*2/3);
+    bool faxisymmetry;
 
 public:
     /// Creates a material object
-    TPZInterfaceMaterial(int matID, int dimension);
+    TPZInterfaceAxisymStokesMaterial(int matID, int dimension, bool isAxisymmetric = false);
     
     /// Destructor
-    ~TPZInterfaceMaterial();
+    ~TPZInterfaceAxisymStokesMaterial();
     
     STATE InnerProductVec(TPZFMatrix<STATE>& S, TPZFMatrix<STATE>& T);
     
@@ -81,6 +82,8 @@ public:
     
     void Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
                   int var, TPZVec<STATE> &sol) override;
+
+    int GetIntegrationOrder(const TPZVec<int> &porder_left, const TPZVec<int> &porder_right) const override;
 
     int NStateVariables() const override
     {return fNStateVariables;}

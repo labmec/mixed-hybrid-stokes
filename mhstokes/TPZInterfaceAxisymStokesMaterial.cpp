@@ -2,22 +2,22 @@
 #include <TPZBndCondT.h>
 #include <pzlog.h>
 
-#include "TPZInterfaceMaterial.h"
+#include "TPZInterfaceAxisymStokesMaterial.h"
 
 #ifdef PZ_LOG
 static TPZLogger logger("pz.stokesInterface");
 #endif
 
 
-TPZInterfaceMaterial::TPZInterfaceMaterial(int matID, int dimension) : TBase(matID), fdimension(dimension) {
+TPZInterfaceAxisymStokesMaterial::TPZInterfaceAxisymStokesMaterial(int matID, int dimension, bool isAxisymmetric) : TBase(matID), fdimension(dimension), faxisymmetry(isAxisymmetric) {
     
 }
 
-TPZInterfaceMaterial::~TPZInterfaceMaterial(){
+TPZInterfaceAxisymStokesMaterial::~TPZInterfaceAxisymStokesMaterial(){
     
 }
 
-STATE TPZInterfaceMaterial::InnerProductVec(TPZFMatrix<STATE>& S, TPZFMatrix<STATE>& T){
+STATE TPZInterfaceAxisymStokesMaterial::InnerProductVec(TPZFMatrix<STATE>& S, TPZFMatrix<STATE>& T){
 #ifdef DEBUG
     if(S.Rows() != S.Cols() || T.Cols() != T.Rows() || S.Rows() != T.Cols()) DebugStop();
 #endif
@@ -33,7 +33,7 @@ STATE TPZInterfaceMaterial::InnerProductVec(TPZFMatrix<STATE>& S, TPZFMatrix<STA
     return val;
 }
 
-void TPZInterfaceMaterial::ContributeInterface(const TPZMaterialDataT<STATE>& data, const std::map<int, TPZMaterialDataT<STATE>>& dataleft, const std::map<int, TPZMaterialDataT<STATE>>& dataright, REAL weight, TPZFMatrix<STATE>& ek, TPZFMatrix<STATE>& ef) {
+void TPZInterfaceAxisymStokesMaterial::ContributeInterface(const TPZMaterialDataT<STATE>& data, const std::map<int, TPZMaterialDataT<STATE>>& dataleft, const std::map<int, TPZMaterialDataT<STATE>>& dataright, REAL weight, TPZFMatrix<STATE>& ek, TPZFMatrix<STATE>& ef) {
     
     if(dataleft.find(fVindex) == dataleft.end()) DebugStop();
     if(dataright.find(fPindex) == dataright.end()) DebugStop();
@@ -81,7 +81,7 @@ void TPZInterfaceMaterial::ContributeInterface(const TPZMaterialDataT<STATE>& da
                     lambda_j(row, 0) += phiLambda(LambdaFunction_j,0)*tan(f, row);
                 }
                 
-                STATE fact = fMultiplier*InnerProductVec(phiVi, lambda_j)*weight;
+                STATE fact = fMultiplier * InnerProductVec(phiVi, lambda_j) * weight;
                 ek(vFunction_i, LambdaFunction_j*nStateVariablesL+f+nShapeV) += fact;
                 ek(LambdaFunction_j*nStateVariablesL+f+nShapeV, vFunction_i) += fact;
             }
@@ -100,24 +100,24 @@ void TPZInterfaceMaterial::ContributeInterface(const TPZMaterialDataT<STATE>& da
 #endif
 }
 
-void TPZInterfaceMaterial::ContributeBCInterface(const TPZMaterialDataT<STATE> &data, const std::map<int, TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) {
+void TPZInterfaceAxisymStokesMaterial::ContributeBCInterface(const TPZMaterialDataT<STATE> &data, const std::map<int, TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) {
     
     DebugStop();
     
 }
 
-void TPZInterfaceMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef){
+void TPZInterfaceAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef){
     DebugStop();
 }
 
-void TPZInterfaceMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
+void TPZInterfaceAxisymStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
                   REAL weight, TPZFMatrix<STATE> &ek,
                   TPZFMatrix<STATE> &ef,
                   TPZBndCondT<STATE> &bc){
     DebugStop();
 }
 
-void TPZInterfaceMaterial::FillDataRequirementsInterface(TPZMaterialDataT<STATE> &data, std::map<int, TPZMaterialDataT<STATE>> &datavec_left, std::map<int, TPZMaterialDataT<STATE>> &datavec_right) {
+void TPZInterfaceAxisymStokesMaterial::FillDataRequirementsInterface(TPZMaterialDataT<STATE> &data, std::map<int, TPZMaterialDataT<STATE>> &datavec_left, std::map<int, TPZMaterialDataT<STATE>> &datavec_right) {
     
     datavec_left[0].fNeedsNormal = true;
     datavec_left[0].fNeedsSol = true;
@@ -126,7 +126,7 @@ void TPZInterfaceMaterial::FillDataRequirementsInterface(TPZMaterialDataT<STATE>
     datavec_left[0].fNeedsDeformedDirectionsFad = true;
 }
 
-void TPZInterfaceMaterial::SolutionInterface(const TPZMaterialDataT<STATE> &data,
+void TPZInterfaceAxisymStokesMaterial::SolutionInterface(const TPZMaterialDataT<STATE> &data,
                        const std::map<int, TPZMaterialDataT<STATE>> &dataleftvec,
                        const std::map<int, TPZMaterialDataT<STATE>> &datarightvec,
                        int var, TPZVec<STATE> &Solout) {
@@ -134,7 +134,7 @@ void TPZInterfaceMaterial::SolutionInterface(const TPZMaterialDataT<STATE> &data
 }
 
 
-void TPZInterfaceMaterial::SolutionInterface(const TPZMaterialDataT<STATE> &data,
+void TPZInterfaceAxisymStokesMaterial::SolutionInterface(const TPZMaterialDataT<STATE> &data,
                        const std::map<int, TPZMaterialDataT<STATE>> &dataleftvec,
                        const std::map<int, TPZMaterialDataT<STATE>> &datarightvec,
                        int var, TPZVec<STATE> &Solout,
@@ -142,7 +142,19 @@ void TPZInterfaceMaterial::SolutionInterface(const TPZMaterialDataT<STATE> &data
     DebugStop();
 }
 
-void TPZInterfaceMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec, int var, TPZVec<STATE> &sol) {
+void TPZInterfaceAxisymStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec, int var, TPZVec<STATE> &sol) {
     
     DebugStop();
+}
+
+int TPZInterfaceAxisymStokesMaterial::GetIntegrationOrder(const TPZVec<int> &porder_left, const TPZVec<int> &porder_right) const
+{
+    int maxl = 0, maxr = 0;
+    for (auto porder: porder_left) {
+        maxl = std::max(maxl,porder);
+    }
+    for (auto porder: porder_right) {
+        maxr = std::max(maxr,porder);
+    }
+    return (maxl+maxr)*10;
 }
