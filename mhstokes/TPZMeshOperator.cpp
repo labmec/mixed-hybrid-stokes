@@ -262,7 +262,7 @@ TPZCompMesh* TPZMeshOperator::CreateCMeshV(ProblemData* simData, TPZGeoMesh* gme
     {
         TPZCompEl* compEl = cmesh_v->Element(cEl);
 
-        bool faxisymmetric = true;
+        bool faxisymmetric = false;
         if (faxisymmetric) // Searching for connects that could have contributions at r=0
         {
             TPZGeoEl* geo = compEl->Reference();
@@ -370,22 +370,8 @@ TPZCompMesh* TPZMeshOperator::CreateCmeshP(ProblemData* simData, TPZGeoMesh* gme
     if(simData->HdivType()==EConstant){
         cmesh_p->SetAllCreateFunctionsDiscontinuous();
         cmesh_p->SetDefaultOrder(0);
-<<<<<<< HEAD
     } else if(simData->HdivType()==EStandard) {
         cmesh_p->SetDefaultOrder(simData->VelpOrder()+1);
-||||||| parent of 9e51454 (Axisymmetric working)
-    } else if(simData->HdivType()=="Standard") {
-        cmesh_p->SetDefaultOrder(simData->VelpOrder()+1);
-=======
-    } else if(simData->HdivType()=="Standard") {
-<<<<<<< HEAD
-        cmesh_p->SetDefaultOrder(simData->VelpOrder());
->>>>>>> 9e51454 (Axisymmetric working)
-||||||| parent of f726cb8 (Implementing shape functions removal at r=0)
-        cmesh_p->SetDefaultOrder(simData->VelpOrder());
-=======
-        cmesh_p->SetDefaultOrder(simData->VelpOrder()+1);
->>>>>>> f726cb8 (Implementing shape functions removal at r=0)
         cmesh_p->SetAllCreateFunctionsContinuous();
     }
     
@@ -740,14 +726,4 @@ void TPZMeshOperator::PrintCompMesh(TPZVec<TPZCompMesh*> CMeshVec){
         cmesh->ComputeNodElCon();
         cmesh->Print(TextCompMeshFile);
     }
-}
-
-void TPZMeshOperator::PrintCompMesh(TPZCompMesh* cmesh){
-    std::cout << "\nPrinting computational meshe in .txt and .vtk formats...\n";
-
-    std::ofstream VTKCompMeshFile(cmesh->Name() + ".vtk");
-    std::ofstream TextCompMeshFile(cmesh->Name() + ".txt");
-
-    TPZVTKGeoMesh::PrintCMeshVTK(cmesh, VTKCompMeshFile);
-    cmesh->Print(TextCompMeshFile);
 }

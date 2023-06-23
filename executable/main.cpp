@@ -21,25 +21,13 @@
 int main()
 {
 #ifdef PZ_LOG
-//    TPZLogger::InitializePZLOG("Stokes.cfg");
+    TPZLogger::InitializePZLOG("Stokes.cfg");
 #endif
   
     bool printdata = false;
 
-<<<<<<< HEAD
-    std::string filepath = "../DataInput/";
-    std::string filename =  "LidDrivenFlow";
-||||||| parent of f726cb8 (Implementing shape functions removal at r=0)
-    bool printdata = true;
-
     std::string filepath = "DataInput/";
-    std::string filename = "AxisymmetricRadialFlow";
-=======
-    bool printdata = true;
-
-    std::string filepath = "DataInput/";
-    std::string filename = "AxisymmetricHagenPoiseuilleFlow";
->>>>>>> f726cb8 (Implementing shape functions removal at r=0)
+    std::string filename =  "AxisymmetricHagenPoiseuilleFlow";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
@@ -103,16 +91,6 @@ int main()
         
         an.Solve();
     }
-<<<<<<< HEAD
-    
-    if(printdata){
-||||||| parent of f726cb8 (Implementing shape functions removal at r=0)
-
-    an.Solve();
-
-    if (printdata)
-    {
-=======
 
     an.Solve();
 
@@ -120,7 +98,6 @@ int main()
 
     if (printdata)
     {
->>>>>>> f726cb8 (Implementing shape functions removal at r=0)
         simData.Print();
 
         cmesh_m->ComputeNodElCon();
@@ -132,26 +109,12 @@ int main()
         Sol.Print("Sol=", std::cout , EMathematicaInput);
     }
 
-<<<<<<< HEAD
-    //vtk export
-    {
-        TPZSimpleTimer timer("PostProcess", true);
-
-        TPZVTKGenerator vtk(cmesh_m, {"Pressure", "Velocity", "Tension"}, filename,simData.Resolution());
-        vtk.Do();
-    }
-||||||| parent of f726cb8 (Implementing shape functions removal at r=0)
-    // vtk export
-    TPZVTKGenerator vtk(cmesh_m, {"Pressure", "Velocity", "Tension"}, filename, simData.Resolution());
-    vtk.Do();
-=======
     TPZManVector<REAL,10> Errors(3);
     //an.PostProcessError(Errors, false);
 
     // vtk export
     TPZVTKGenerator vtk(cmesh_m, {"Pressure", "Velocity", "Tension"}, filename, simData.Resolution());
     vtk.Do();
->>>>>>> f726cb8 (Implementing shape functions removal at r=0)
 
     std::cout << "\n\nSimulation finished without errors :) \n\n";
             
