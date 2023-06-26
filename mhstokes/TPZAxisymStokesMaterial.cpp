@@ -16,31 +16,31 @@ void TPZAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
 #ifdef USING_LAPACK
 
     int64_t dimension = Dimension(); // problems dimension
-    REAL radius = datavec[fVindex].x[0]; // radial distance to the axisymmetric z axis
+    REAL radius = datavec[EVindex].x[0]; // radial distance to the axisymmetric z axis
 
-    int64_t nShapeV = datavec[fVindex].fVecShapeIndex.NElements(); // number of velocity Hdiv shape functions
+    int64_t nShapeV = datavec[EVindex].fVecShapeIndex.NElements(); // number of velocity Hdiv shape functions
     TPZFNMatrix<150, REAL> PhiV(dimension, nShapeV, 0.0);
-    TPZFNMatrix<20, REAL>& divPhiV = datavec[fVindex].divphi;
+    TPZFNMatrix<20, REAL>& divPhiV = datavec[EVindex].divphi;
 
-    TPZFMatrix<REAL>& PhiP = datavec[fPindex].phi;
+    TPZFMatrix<REAL>& PhiP = datavec[EPindex].phi;
     int64_t nShapeP = PhiP.Rows(); // number of pressure H1 shape functions
 
     //dimension * (dimension + 1) / 2;
     TPZFNMatrix<150, REAL> StrainRate(3, nShapeV, 0.0); //Using voight notation
     TPZFNMatrix<150, REAL> StrainRateAxisymmetric(1, nShapeV, 0.0);
     
-    if (datavec[fVindex].fNeedsDeformedDirectionsFad)
+    if (datavec[EVindex].fNeedsDeformedDirectionsFad)
     {
         for (int64_t j = 0; j < nShapeV; j++)
         {
             for (int64_t k = 0; k < 2; k++)
             {
-                PhiV(k, j) = datavec[fVindex].fDeformedDirectionsFad(k, j).val();
+                PhiV(k, j) = datavec[EVindex].fDeformedDirectionsFad(k, j).val();
             }
 
-            StrainRate(0,j) = (datavec[fVindex].fDeformedDirectionsFad(0, j).fastAccessDx(0) - (PhiV(0,j) / radius)) / radius;
-            StrainRate(1,j) = datavec[fVindex].fDeformedDirectionsFad(1, j).fastAccessDx(1) / radius;
-            StrainRate(2,j) = 0.5 * (datavec[fVindex].fDeformedDirectionsFad(0, j).fastAccessDx(1) + datavec[fVindex].fDeformedDirectionsFad(1, j).fastAccessDx(0) - (PhiV(1,j) / radius)) / radius;
+            StrainRate(0,j) = (datavec[EVindex].fDeformedDirectionsFad(0, j).fastAccessDx(0) - (PhiV(0,j) / radius)) / radius;
+            StrainRate(1,j) = datavec[EVindex].fDeformedDirectionsFad(1, j).fastAccessDx(1) / radius;
+            StrainRate(2,j) = 0.5 * (datavec[EVindex].fDeformedDirectionsFad(0, j).fastAccessDx(1) + datavec[EVindex].fDeformedDirectionsFad(1, j).fastAccessDx(0) - (PhiV(1,j) / radius)) / radius;
             StrainRateAxisymmetric(0,j) = PhiV(0,j) / (radius * radius);
         }
     }
@@ -54,7 +54,7 @@ void TPZAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
     TPZVec<REAL> sourceAux(3);
     if (this->HasForcingFunction())
     {
-        this->ForcingFunction()(datavec[fVindex].x, sourceAux);
+        this->ForcingFunction()(datavec[EVindex].x, sourceAux);
         for (int64_t i = 0; i < dimension; i++)
         {
             SourceTerm(i,0) = sourceAux[i] * fviscosity;
@@ -91,23 +91,23 @@ void TPZAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
     
 #else
 
-    int64_t Vrows = datavec[fVindex].fDeformedDirections.Rows();
-    int64_t Vcols = datavec[fVindex].fDeformedDirections.Cols();
+    int64_t Vrows = datavec[EVindex].fDeformedDirections.Rows();
+    int64_t Vcols = datavec[EVindex].fDeformedDirections.Cols();
 
     TPZFNMatrix<200, REAL> PhiV(Vrows, Vcols, 0.);
-    TPZFMatrix<REAL>& PhiP = datavec[fPindex].phi;
+    TPZFMatrix<REAL>& PhiP = datavec[EPindex].phi;
 
-    int64_t nShapeV = datavec[fVindex].fVecShapeIndex.NElements();
+    int64_t nShapeV = datavec[EVindex].fVecShapeIndex.NElements();
     int64_t nShapeP = PhiP.Rows();
 
     TPZManVector<TPZFNMatrix<9, REAL>, 18> GradV(Vcols);
 
     TPZVec<STATE> SourceTerm(3,0.);
 
-    if(datavec[fVindex].fNeedsDeformedDirectionsFad){
+    if(datavec[EVindex].fNeedsDeformedDirectionsFad){
         for(int row=0; row<Vrows; row++){
             for(int col=0; col<Vcols; col++){
-                PhiV(row, col) = datavec[fVindex].fDeformedDirectionsFad(row, col).val();
+                PhiV(row, col) = datavec[EVindex].fDeformedDirectionsFad(row, col).val();
             }
         }
 
@@ -115,7 +115,7 @@ void TPZAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
         for(int vFunction=0; vFunction<Vcols; vFunction++){
             for(int row=0; row<this->Dimension(); row++){
                 for(int col=0; col<this->Dimension(); col++){
-                    GradVFunction(row, col) = datavec[fVindex].fDeformedDirectionsFad(row, vFunction).fastAccessDx(col);
+                    GradVFunction(row, col) = datavec[EVindex].fDeformedDirectionsFad(row, vFunction).fastAccessDx(col);
                 }
             }
             GradV[vFunction] = GradVFunction;
@@ -123,13 +123,13 @@ void TPZAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
     }
 
     if(this->HasForcingFunction()){
-        this->ForcingFunction()(datavec[fVindex].x, SourceTerm);
+        this->ForcingFunction()(datavec[EVindex].x, SourceTerm);
     }
 
     for(int vFunction_i=0; vFunction_i<nShapeV; vFunction_i++){
         TPZFNMatrix<9, STATE> DUi(3,3,0.);
 
-        STATE divUi = datavec[fVindex].divphi(vFunction_i, 0);
+        STATE divUi = datavec[EVindex].divphi(vFunction_i, 0);
 
         STATE phiVDotF = 0.;
 
@@ -185,8 +185,8 @@ void TPZAxisymStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>>
         DebugStop();
     }
     
-    TPZFNMatrix<150, REAL> PhiV = datavec[fVindex].phi;
-    TPZFMatrix<REAL>& PhiP = datavec[fPindex].phi;
+    TPZFNMatrix<150, REAL> PhiV = datavec[EVindex].phi;
+    TPZFMatrix<REAL>& PhiP = datavec[EPindex].phi;
     
     int64_t nShapeV = PhiV.Rows();
     int64_t nShapeP = PhiP.Rows();
@@ -199,7 +199,7 @@ void TPZAxisymStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>>
     case 0: // Normal Velocity
     {
         REAL v_n = val2[0];
-        REAL radius = datavec[fVindex].x[0];
+        REAL radius = datavec[EVindex].x[0];
         REAL factor = fBigNumber * weight;
 
         for (int64_t j = 0; j < nShapeV; j++)
@@ -217,7 +217,7 @@ void TPZAxisymStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>>
     case 1: // Tangential Velocity
     {
         REAL v_t = val2[0];
-        REAL radius = datavec[fPindex].x[0];
+        REAL radius = datavec[EPindex].x[0];
         REAL factor = weight * radius;
 
         for (int64_t i = 0; i < nShapeP; i++)
@@ -242,7 +242,7 @@ void TPZAxisymStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>>
     case 3: // Tangential Stress
     {
         REAL sigma_t = val2[0];
-        REAL radius = datavec[fPindex].x[0];
+        REAL radius = datavec[EPindex].x[0];
         REAL factor = fBigNumber * weight * radius;
 
         for (int64_t j = 0; j < nShapeP; j++)
@@ -268,10 +268,10 @@ void TPZAxisymStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>>
 
 void TPZAxisymStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec, int var, TPZVec<STATE>& Solout) {
     
-    TPZManVector<STATE, 3> v_h = datavec[fVindex].sol[0];
-    TPZManVector<STATE, 3> p_h = datavec[fPindex].sol[0];
+    TPZManVector<STATE, 3> v_h = datavec[EVindex].sol[0];
+    TPZManVector<STATE, 3> p_h = datavec[EPindex].sol[0];
     
-    REAL radius = datavec[fVindex].x[0];
+    REAL radius = datavec[EVindex].x[0];
     if (abs(radius) < 1.0e-9) radius = 1.0e-6;
     
     Solout.Resize(NSolutionVariables(var));
@@ -296,7 +296,7 @@ void TPZAxisymStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& da
             TPZVec<STATE> f(3,0.);
             
             if(this->HasForcingFunction()){
-                this->ForcingFunction()(datavec[fVindex].x, f);
+                this->ForcingFunction()(datavec[EVindex].x, f);
             }
             
             Solout[0] = f[0];
@@ -306,7 +306,7 @@ void TPZAxisymStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& da
         }
         case 3: {
             
-                TPZFNMatrix<10,STATE> gradU = datavec[fVindex].dsol[0];
+                TPZFNMatrix<10,STATE> gradU = datavec[EVindex].dsol[0];
                 gradU(2,2) = v_h[0] / radius;
                 gradU *= 1.0/radius;
 
@@ -381,18 +381,18 @@ void TPZAxisymStokesMaterial::Errors(const TPZVec<TPZMaterialDataT<STATE>>& data
 
     errors.Resize(NEvalErrors());
 
-    REAL radius = data[fVindex].x[0];
+    REAL radius = data[EVindex].x[0];
     
     TPZManVector<STATE, 4> sol_exact(4);
     TPZFNMatrix<9,STATE> gradsol_exact(3,3);
     
     //Getting the exact solution for velocity, pressure and velocity gradient
-    fExactSol(data[fVindex].x, sol_exact, gradsol_exact);
+    fExactSol(data[EVindex].x, sol_exact, gradsol_exact);
     
     //Getting the numeric solution for velocity, pressure and velocity gradient
     TPZManVector<STATE> v_h(3, 0.0);
     TPZManVector<STATE> p_h(1, 0.0);
-    TPZFNMatrix<10,STATE> gradv_h = data[fVindex].dsol[0];
+    TPZFNMatrix<10,STATE> gradv_h = data[EVindex].dsol[0];
     
     this->Solution(data, VariableIndex("Velocity"), v_h);
     this->Solution(data, VariableIndex("Pressure"), p_h);
