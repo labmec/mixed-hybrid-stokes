@@ -67,15 +67,7 @@ void TPZAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
     //Flux Matrix A contribution
     TPZFNMatrix<150, REAL> matrixC;
     VoightCorrection.Multiply(StrainRate, matrixC);
-    #ifdef PZ_LOG
-    if(logger.isDebugEnabled()){
-        std::stringstream sout;
-        StrainRate.Print("StrainRate", sout, EMathematicaInput);
-        matrixC.Print("matrixC", sout, EMathematicaInput);
-        sout << std::endl << std::endl;
-        LOGPZ_DEBUG(logger, sout.str())
-    }
-    #endif
+   
     factor = 2.0 * fviscosity * weight * radius;
     ek.AddContribution(0, 0, StrainRate, true, matrixC, false, factor);
 
