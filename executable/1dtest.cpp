@@ -17,7 +17,6 @@
 #include "SimpleExample.h"
 #include "TPZMeshOperator.h"
 #include <pzskylstrmatrix.h>
-#include <pzfstrmatrix.h>
 
 int main()
 {
@@ -28,7 +27,7 @@ int main()
     bool printdata = true;
 
     std::string filepath = "DataInput/";
-    std::string filename = "AxisymmetricHagenPoiseuilleFlow";
+    std::string filename = "Test1d";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
@@ -56,34 +55,10 @@ int main()
     }
 
     TPZLinearAnalysis an(cmesh_m, false);
-    // TPZSSpStructMatrix<> strmat(cmesh_m);
-    TPZFStructMatrix<> strmat(cmesh_m);
+    TPZSSpStructMatrix<> strmat(cmesh_m);
 
     strmat.SetNumThreads(0);
 
-    // TPZEquationFilter filter(cmesh_m->NEquations());
-    // std::set<int64_t> setremove;
-
-    // for (auto el : cmesh_m->ElementVec())
-    // {
-    //     auto matid = el->Reference()->MaterialId();
-    //     if (matid != 6)
-    //         continue;
-    //     int64_t nconnects = el->NConnects();
-    //     for (int64_t ic = 0; ic < nconnects; ic++)
-    //     {
-    //         TPZConnect &c = el->Connect(ic);
-    //         int64_t blocknumber = c.SequenceNumber();
-    //         auto firsteq = cmesh_m->Block().Position(blocknumber);
-    //         int64_t blocksize = cmesh_m->Block().Size(blocknumber);
-    //         for (int64_t eq = firsteq; eq < firsteq + blocksize; eq++)
-    //         {
-    //             setremove.insert(eq);
-    //         }
-    //     }
-    // }
-    // filter.ExcludeEquations(setremove);
-    // strmat.EquationFilter() = filter;
     an.SetStructuralMatrix(strmat);
 
     TPZStepSolver<STATE> step;
@@ -99,8 +74,6 @@ int main()
     }
 
     an.Solve();
-
-    
 
     if (printdata)
     {
@@ -124,4 +97,5 @@ int main()
     std::cout << "\n\nSimulation finished without errors :) \n\n";
             
 	return 0;
+            
 }

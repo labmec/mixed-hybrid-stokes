@@ -1,6 +1,6 @@
 #include "TPZStokesMaterial.h"
 
-#ifndef TPZAXISYNSTOKESMATERIAL
+#ifndef TPZAXISYMSTOKESMATERIAL
 #define TPZAXISYMSTOKESMATERIAL
 
 class TPZAxisymStokesMaterial : public TPZStokesMaterial {
