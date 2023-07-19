@@ -8,8 +8,8 @@
 #include <TPZLagrangeMultiplier.h>
 #include <math.h>
 
-#ifndef TPZINTERFACE1DSTOKESMATERIAL_H
-#define TPZINTERFACE1DSTOKESMATERIAL_H
+#ifndef TPZINTERFACE1DFLUXMATERIAL_H
+#define TPZINTERFACE1DFLUXMATERIAL_H
 
 class TPZInterface1dFlux : public TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>, TPZMatInterfaceCombinedSpaces<STATE>>,
                                      public TPZLagrangeMultiplierBase

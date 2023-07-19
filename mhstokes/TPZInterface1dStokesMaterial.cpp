@@ -37,6 +37,7 @@ void TPZInterface1dStokesMaterial::ContributeInterface(const TPZMaterialDataT<ST
             }
 
             TPZFNMatrix<3, REAL> phiLambda = pDataRight.phi;
+
             int64_t nShapeLambda = pDataRight.phi.Rows(); // number of pressure H1 shape functions
 
             REAL alpha = fradius / (4.0 * fviscosity);

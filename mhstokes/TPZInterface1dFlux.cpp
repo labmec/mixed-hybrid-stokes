@@ -33,22 +33,17 @@ void TPZInterface1dFlux::ContributeInterface(const TPZMaterialDataT<STATE>& data
             
             for (int64_t i = 0; i < nShapeV; i++)
             {
-                phiV(i,0) = vDataLeft.fDeformedDirections(1,i); //only the y component
+                phiV(i,0) = vDataLeft.fDeformedDirections(0,i); //only the x component
             }
 
-            TPZFNMatrix<3, REAL> phiLambda = pDataRight.phi;
-            int64_t nShapeLambda = pDataRight.phi.Rows(); // number of pressure H1 shape functions
+            TPZFNMatrix<3, REAL> phiP = pDataRight.phi;
+            int64_t nShapePressure = pDataRight.phi.Rows(); // number of pressure H1 shape functions
 
-            REAL alpha = fradius / (4.0 * fviscosity);
+            REAL factor = fMultiplier * weight;
 
-            REAL factor = fMultiplier * 2.0 * weight / fradius;
+            ek.AddContribution(0, nShapeV, phiV, false, phiP, true, factor);
 
-            ek.AddContribution(0, nShapeV, phiV, false, phiLambda, true, factor);
-
-            ek.AddContribution(nShapeV, 0, phiLambda, false, phiV, true, factor);
-
-            factor *= alpha;
-            ek.AddContribution(nShapeV, nShapeV, phiLambda, false, phiLambda, true, factor);
+            ek.AddContribution(nShapeV, 0, phiP, false, phiV, true, factor);
             break;
         }
         case TPZShapeData::MShapeFunctionType::EScalarShape: //H1
@@ -57,18 +52,13 @@ void TPZInterface1dFlux::ContributeInterface(const TPZMaterialDataT<STATE>& data
             int64_t nShapeLambda = pDataRight.phi.Rows();
             
             TPZFNMatrix<3, REAL> phiV = vDataLeft.phi;
-            TPZFNMatrix<3, REAL> phiLambda = pDataRight.phi;
+            TPZFNMatrix<3, REAL> phiP = pDataRight.phi;
 
-            REAL alpha = fradius / (4.0 * fviscosity);
+            REAL factor = fMultiplier * weight;
 
-            REAL factor = fMultiplier * 2.0 * weight / fradius;
+            ek.AddContribution(0, nShapeV, phiV, false, phiP, true, factor);
 
-            ek.AddContribution(0, nShapeV, phiV, false, phiLambda, true, factor);
-
-            ek.AddContribution(nShapeV, 0, phiLambda, false, phiV, true, factor);
-
-            factor *= alpha;
-            ek.AddContribution(nShapeV, nShapeV, phiLambda, false, phiLambda, true, factor);
+            ek.AddContribution(nShapeV, 0, phiP, false, phiV, true, factor);
             break;
         }
     }

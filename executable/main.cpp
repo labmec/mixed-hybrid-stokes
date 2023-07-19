@@ -25,22 +25,23 @@ int main()
     TPZLogger::InitializePZLOG("Stokes.cfg");
 #endif
   
-    bool printdata = true;
+    bool printdata = false;
 
     std::string filepath = "DataInput/";
-    std::string filename = "AxisymmetricHagenPoiseuilleFlow";
+    std::string filename = "AxisymmetricObstructedAxialFlow";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
 
     TPZGeoMesh* gmesh = TPZMeshOperator::CreateGMesh(&simData);
-    TPZMeshOperator::PrintGeoMesh(gmesh);
 
     TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
-    TPZMeshOperator::PrintCompMesh(cmesh_v);
+    // TPZMeshOperator::PrintCompMesh(cmesh_v);
+    TPZMeshOperator::CheckSideOrientOfCompEl(&simData, gmesh);
 
     TPZCompMesh* cmesh_p = TPZMeshOperator::CreateCmeshP(&simData, gmesh);
-    TPZMeshOperator::PrintCompMesh(cmesh_p);
+    // TPZMeshOperator::PrintCompMesh(cmesh_p);
+
 
     if(simData.CondensedElements()){
         TPZCompMesh* cmesh_Mp = TPZMeshOperator::CreateCmeshMp(&simData, gmesh);
@@ -48,15 +49,16 @@ int main()
     }
 
     TPZMultiphysicsCompMesh *cmesh_m = TPZMeshOperator::CreateMultiPhysicsMesh(&simData, gmesh);
-    TPZMeshOperator::PrintCompMesh(cmesh_m);
+    // TPZMeshOperator::PrintCompMesh(cmesh_m);
+    // TPZMeshOperator::PrintGeoMesh(gmesh);
 
     if (simData.CondensedElements())
     {
         TPZMeshOperator::CondenseElements(cmesh_m);
     }
 
-    TPZLinearAnalysis an(cmesh_m, false);
-    // TPZSSpStructMatrix<> strmat(cmesh_m);
+    TPZLinearAnalysis an(cmesh_m, true);
+    //TPZSSpStructMatrix<> strmat(cmesh_m);
     TPZFStructMatrix<> strmat(cmesh_m);
 
     strmat.SetNumThreads(0);

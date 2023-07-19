@@ -96,6 +96,21 @@ void TPZ1dStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
 
     switch (bc.Type())
     {
+    case 0: // Normal Velocity
+    {
+        REAL v_n = val2[0];
+
+        for (int64_t j = 0; j < nShapeV; j++)
+        {
+            ef(j) += v_n * fBigNumber;
+
+            for (int64_t i = 0; i < nShapeV; i++)
+            {
+                ek(i, j) += fBigNumber;
+            }
+        }
+    }
+    break;
     case 2: // Normal Stress
     {
         REAL sigma_n = val2[0];

@@ -43,5 +43,7 @@ public:
     static void PrintCompMesh(TPZCompMesh* cmesh);
     
     static void GenerateMshFile(ProblemData* geoFile);
+
+    static void CheckSideOrientOfCompEl(ProblemData* simData, TPZGeoMesh* gmesh);
 };
 #endif
