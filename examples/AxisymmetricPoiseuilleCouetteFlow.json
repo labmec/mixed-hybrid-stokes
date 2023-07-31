@@ -1,5 +1,5 @@
 {	
-	"MeshName": "Meshes/AxisymmetricPoiseuilleCouetteFlow",
+	"MeshName": "../examples/Meshes/AxisymmetricPoiseuilleCouetteFlow",
 
 	"CreateMsh": false,
 

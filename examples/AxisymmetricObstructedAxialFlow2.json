@@ -1,5 +1,5 @@
 {	
-	"MeshName": "Meshes/AxisymmetricObstructedAxialFlow2",
+	"MeshName": "../examples/Meshes/AxisymmetricObstructedAxialFlow2",
     
     "CreateMsh": false,
 
