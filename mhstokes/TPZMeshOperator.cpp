@@ -470,14 +470,7 @@ TPZCompMesh *TPZMeshOperator::CreateCMeshV(ProblemData *simData, TPZGeoMesh *gme
 
         cmesh_v->SetDimModel(1);
 
-        if (simData->HdivType() == EConstant)
-        {
-            cmesh_v->ApproxSpace().SetHDivFamily(HDivFamily::EHDivConstant);
-        }
-        else if (simData->HdivType() == EStandard)
-        {
-            cmesh_v->ApproxSpace().SetHDivFamily(HDivFamily::EHDivStandard);
-        }
+        cmesh_v->ApproxSpace().SetHDivFamily(HDivFamily::EHDivStandard);
 
         cmesh_v->SetAllCreateFunctionsHDiv();
 
@@ -595,17 +588,8 @@ TPZCompMesh *TPZMeshOperator::CreateCmeshP(ProblemData *simData, TPZGeoMesh *gme
     {
         cmesh_p->SetDimModel(1);
 
-        if (simData->HdivType() == EConstant)
-        {
-            cmesh_p->SetAllCreateFunctionsDiscontinuous();
-            cmesh_p->SetDefaultOrder(0);
-        }
-        else if (simData->HdivType() == EStandard)
-        {
-            cmesh_p->SetDefaultOrder(simData->VelpOrder());
-            cmesh_p->SetAllCreateFunctionsContinuous();
-        }
-
+        cmesh_p->SetDefaultOrder(simData->VelpOrder());
+        cmesh_p->SetAllCreateFunctionsContinuous();
         cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
 
         // axisymmetry domain's material
@@ -861,7 +845,6 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
     {
         cmesh_m->SetName("CMesh_M_BeforeCond");
         cmesh_m->ComputeNodElCon();
-        PrintCompMesh(cmesh_m);
     }
 
     return cmesh_m;

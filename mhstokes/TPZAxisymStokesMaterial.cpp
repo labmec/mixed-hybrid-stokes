@@ -79,6 +79,23 @@ void TPZAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
     //Divergence Matrix BT contribution
     ek.AddContribution(nShapeV, 0, PhiP, false, divPhiV, true, factor);
 
+    if(datavec.size()>2)
+    {
+        TPZFMatrix<REAL>& phivM = datavec[EVMindex].phi;
+        TPZFMatrix<REAL>& phipM = datavec[EPMindex].phi;
+        
+        // Pressure and distributed flux
+        for(int j=0; j<nShapeP; j++)
+        {
+            ek(nShapeV+nShapeP, nShapeV+j) += PhiP(j,0)*phivM(0,0)*weight;
+            ek(nShapeV+j, nShapeV+nShapeP) += PhiP(j,0)*phivM(0,0)*weight;
+        }
+        
+        // Injection and average-pressure
+        ek(nShapeV+nShapeP+1, nShapeV+nShapeP) += phivM(0,0)*phipM(0,0)*weight;
+        ek(nShapeV+nShapeP, nShapeV+nShapeP+1) += phivM(0,0)*phipM(0,0)*weight;
+    }
+
 #ifdef PZ_LOG
     if(logger.isDebugEnabled()){
         std::stringstream sout;
@@ -92,11 +109,6 @@ void TPZAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
 
 void TPZAxisymStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc)
 {
-    if(datavec.size() != 2){
-        std::cout << "ERROR: DATAVEC SIZE IS DIFFERENT THAN 2\n\n";
-        DebugStop();
-    }
-    
     TPZFNMatrix<150, REAL> PhiV = datavec[EVindex].phi;
     TPZFMatrix<REAL>& PhiP = datavec[EPindex].phi;
     

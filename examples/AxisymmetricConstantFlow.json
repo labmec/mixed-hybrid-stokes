@@ -3,19 +3,19 @@
     
     "CreateMsh": false,
 
-	"HdivType": 0,
+	"HdivType": 1,
 
     "isAxisymmetric": 1,
 
-	"VelpOrder": 2, // approximation order for velocity
+	"VelpOrder": 1, // approximation order for velocity
 
-	"TracpOrder": 1, // approximation order for traction
+	"TracpOrder": 0, // approximation order for traction
 
 	"Dim": 2,
 
 	"Resolution": 4,
 
-    "StaticCondensation": false,
+    "StaticCondensation": true,
 
 	"Domain": [ // domain data
 		{
