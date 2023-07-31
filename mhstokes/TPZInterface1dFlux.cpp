@@ -15,8 +15,6 @@ TPZInterface1dFlux::~TPZInterface1dFlux() {}
 
 void TPZInterface1dFlux::ContributeInterface(const TPZMaterialDataT<STATE>& data, const std::map<int, TPZMaterialDataT<STATE>>& dataleft, const std::map<int, TPZMaterialDataT<STATE>>& dataright, REAL weight, TPZFMatrix<STATE>& ek, TPZFMatrix<STATE>& ef)
 {
-#ifdef USING_LAPACK
-
     if(dataleft.find(fVindex) == dataleft.end()) DebugStop();
     if(dataright.find(fPindex) == dataright.end()) DebugStop();
     
@@ -62,10 +60,6 @@ void TPZInterface1dFlux::ContributeInterface(const TPZMaterialDataT<STATE>& data
             break;
         }
     }
-
-#else
-    DebugStop();
-#endif
 
 #ifdef PZ_LOG
     if(logger.isDebugEnabled()){

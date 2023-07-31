@@ -41,53 +41,37 @@ void TPZInterfaceAxisymStokesMaterial::ContributeInterface(const TPZMaterialData
     const TPZMaterialDataT<STATE>& vDataLeft = dataleft.find(fVindex)->second;
     const TPZMaterialDataT<STATE>& pDataRight = dataright.find(fPindex)->second;
     
-    const TPZFNMatrix<9, REAL>& tan = pDataRight.axes;
+    const TPZFNMatrix<9, REAL>& axes = pDataRight.axes;
     
-    int64_t nShapeV = vDataLeft.fVecShapeIndex.NElements();
+    int64_t nShapeV = vDataLeft.fVecShapeIndex.NElements(); // number of lambda Hdiv velocity shape functions
     int64_t nShapeLambda = pDataRight.phi.Rows();
     
-    int nStateVariablesL = fdimension - 1;
+    TPZFNMatrix<100, REAL> PhiV(3, nShapeV, 0.0);
+
+    TPZFNMatrix<100, REAL> PhiLambda(3, nShapeLambda, 0.0);
     
-    int64_t VRows = vDataLeft.fDeformedDirections.Rows();
-    int64_t VCols = vDataLeft.fDeformedDirections.Cols();
-    
-    TPZFNMatrix<3, REAL> phiV(VRows, VCols, 0.);
-    
-    if(vDataLeft.fNeedsDeformedDirectionsFad){
-        for(int row=0; row<VRows; row++){
-            for(int col=0; col<VCols; col++){
-                phiV(row, col) = vDataLeft.fDeformedDirectionsFad(row, col).val();
-            }
-        }
-    } else {
-        DebugStop();
-    }
-    
-    for(int vFunction_i=0; vFunction_i<nShapeV; vFunction_i++){
-        STATE LambdaDotPhiV = 0.;
-        
-        TPZFNMatrix<3, STATE> phiVi(3,1,0.);
-        for(int row=0; row<3; row++){
-            phiVi(row, 0) = phiV(row, vFunction_i);
-        }
-        
-        for(int LambdaFunction_j=0; LambdaFunction_j<nShapeLambda; LambdaFunction_j++){
-            TPZFNMatrix<3, STATE> lambda_j(3,1,0.);
-            TPZFNMatrix<3, STATE> phiLambda = pDataRight.phi;
-            
-            for(int f=0; f<nStateVariablesL; f++){
-                lambda_j.Zero();
-                for(int row=0; row<3; row++){
-                    lambda_j(row, 0) += phiLambda(LambdaFunction_j,0)*tan(f, row);
-                }
-                
-                STATE fact = fMultiplier * InnerProductVec(phiVi, lambda_j) * weight;
-                ek(vFunction_i, LambdaFunction_j*nStateVariablesL+f+nShapeV) += fact;
-                ek(LambdaFunction_j*nStateVariablesL+f+nShapeV, vFunction_i) += fact;
+    if (vDataLeft.fNeedsDeformedDirectionsFad)
+    {
+        for (int64_t j = 0; j < nShapeV; j++)
+        {
+            for (int64_t k = 0; k < 3; k++)
+            {
+                PhiV(k, j) = vDataLeft.fDeformedDirectionsFad(k, j).val();
             }
         }
     }
 
+    for (int64_t j = 0; j < nShapeLambda; j++)
+    {
+        for (int64_t k = 0; k < 3; k++)
+        {
+            PhiLambda(k, j) = pDataRight.phi(j, 0) * axes(0, k); // lambda shape function at tangential direction
+        }
+    }
+
+    REAL factor = fMultiplier * weight;
+    ek.AddContribution(0, nShapeV, PhiV, true, PhiLambda, false, factor);
+    ek.AddContribution(nShapeV, 0, PhiLambda, true, PhiV, false, factor);
 
 #ifdef PZ_LOG
     if(logger.isDebugEnabled()){

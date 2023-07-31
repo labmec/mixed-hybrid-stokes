@@ -27,7 +27,7 @@ int main()
   
     bool printdata = false;
 
-    std::string filepath = "DataInput/";
+    std::string filepath = "../examples/";
     std::string filename = "AxisymmetricObstructedAxialFlow";
 
     ProblemData simData;
@@ -37,11 +37,9 @@ int main()
 
     TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
     // TPZMeshOperator::PrintCompMesh(cmesh_v);
-    TPZMeshOperator::CheckSideOrientOfCompEl(&simData, gmesh);
 
     TPZCompMesh* cmesh_p = TPZMeshOperator::CreateCmeshP(&simData, gmesh);
     // TPZMeshOperator::PrintCompMesh(cmesh_p);
-
 
     if(simData.CondensedElements()){
         TPZCompMesh* cmesh_Mp = TPZMeshOperator::CreateCmeshMp(&simData, gmesh);
@@ -49,7 +47,7 @@ int main()
     }
 
     TPZMultiphysicsCompMesh *cmesh_m = TPZMeshOperator::CreateMultiPhysicsMesh(&simData, gmesh);
-    // TPZMeshOperator::PrintCompMesh(cmesh_m);
+    //TPZMeshOperator::PrintCompMesh(cmesh_m);
     // TPZMeshOperator::PrintGeoMesh(gmesh);
 
     if (simData.CondensedElements())
@@ -58,8 +56,8 @@ int main()
     }
 
     TPZLinearAnalysis an(cmesh_m, true);
-    //TPZSSpStructMatrix<> strmat(cmesh_m);
-    TPZFStructMatrix<> strmat(cmesh_m);
+    TPZSSpStructMatrix<> strmat(cmesh_m);
+    //TPZFStructMatrix<> strmat(cmesh_m);
 
     strmat.SetNumThreads(0);
 

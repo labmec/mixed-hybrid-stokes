@@ -15,8 +15,6 @@ TPZInterface1dStokesMaterial::~TPZInterface1dStokesMaterial() {}
 
 void TPZInterface1dStokesMaterial::ContributeInterface(const TPZMaterialDataT<STATE>& data, const std::map<int, TPZMaterialDataT<STATE>>& dataleft, const std::map<int, TPZMaterialDataT<STATE>>& dataright, REAL weight, TPZFMatrix<STATE>& ek, TPZFMatrix<STATE>& ef)
 {
-#ifdef USING_LAPACK
-
     if(dataleft.find(fVindex) == dataleft.end()) DebugStop();
     if(dataright.find(fPindex) == dataright.end()) DebugStop();
     
@@ -73,10 +71,6 @@ void TPZInterface1dStokesMaterial::ContributeInterface(const TPZMaterialDataT<ST
             break;
         }
     }
-
-#else
-    DebugStop();
-#endif
 
 #ifdef PZ_LOG
     if(logger.isDebugEnabled()){

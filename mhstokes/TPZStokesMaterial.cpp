@@ -38,88 +38,77 @@ TVar TPZStokesMaterial::TensorInnerProduct(TPZFMatrix<TVar> &S, TPZFMatrix<TVar>
 
 void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datavec, REAL weight, TPZFMatrix<STATE>& ek, TPZFMatrix<STATE>& ef){
 
-    
-    int64_t Vrows = datavec[EVindex].fDeformedDirections.Rows();
-    int64_t Vcols = datavec[EVindex].fDeformedDirections.Cols();
+    int64_t dimension = Dimension(); // problems dimension
 
-    TPZFNMatrix<3, REAL> PhiV(Vrows, Vcols, 0.);
+    int64_t nShapeV = datavec[EVindex].fVecShapeIndex.NElements(); // number of velocity Hdiv shape functions
+    TPZFNMatrix<150, REAL> PhiV(dimension, nShapeV, 0.0);
+    TPZFNMatrix<20, REAL>& divPhiV = datavec[EVindex].divphi;
+
     TPZFMatrix<REAL>& PhiP = datavec[EPindex].phi;
+    int64_t nShapeP = PhiP.Rows(); // number of pressure H1 shape functions
 
-    int64_t nShapeV = datavec[EVindex].fVecShapeIndex.NElements();
-    int64_t nShapeP = PhiP.Rows();
-
-    TPZManVector<TPZFNMatrix<9, REAL>, 18> GradV(Vcols);
-
-    TPZVec<STATE> SourceTerm(3,0.);
-
-    if(datavec[EVindex].fNeedsDeformedDirectionsFad){
-        for(int row=0; row<Vrows; row++){
-            for(int col=0; col<Vcols; col++){
-                PhiV(row, col) = datavec[EVindex].fDeformedDirectionsFad(row, col).val();
-            }
-        }
-
-        TPZFNMatrix<9, REAL> GradVFunction(3,3,0.);
-        for(int vFunction=0; vFunction<Vcols; vFunction++){
-            for(int row=0; row<this->Dimension(); row++){
-                for(int col=0; col<this->Dimension(); col++){
-                    GradVFunction(row, col) = datavec[EVindex].fDeformedDirectionsFad(row, vFunction).fastAccessDx(col);
+    const int nterms = dimension * (dimension + 1) / 2;
+    TPZFNMatrix<150, REAL> StrainRate(nterms, nShapeV, 0.0); //Using voight notation
+    
+    if (datavec[EVindex].fNeedsDeformedDirectionsFad)
+    {
+        for (int64_t j = 0; j < nShapeV; j++)
+        {
+            int cont = dimension-1;
+            for (int64_t i = 0; i < dimension; i++)
+            {
+                PhiV(i, j) = datavec[EVindex].fDeformedDirectionsFad(i, j).val();
+                StrainRate(i,j) = datavec[EVindex].fDeformedDirectionsFad(i, j).fastAccessDx(i);
+                for (int64_t k = i+1; k < dimension && k != i; k++)
+                {
+                    StrainRate(++cont,j) = 0.5*(datavec[EVindex].fDeformedDirectionsFad(i, j).fastAccessDx(k) + datavec[EVindex].fDeformedDirectionsFad(k, j).fastAccessDx(i));
                 }
             }
-            GradV[vFunction] = GradVFunction;
         }
     }
 
-    if(this->HasForcingFunction()){
-        this->ForcingFunction()(datavec[EVindex].x, SourceTerm);
-    }
-
-    for(int vFunction_i=0; vFunction_i<nShapeV; vFunction_i++){
-        TPZFNMatrix<9, STATE> DUi(3,3,0.);
-
-        STATE divUi = datavec[EVindex].divphi(vFunction_i, 0);
-
-        STATE phiVDotF = 0.;
-
-        for(int row=0; row<3; row++){
-                phiVDotF += PhiV(row, vFunction_i)*SourceTerm[row];
-        }
-
-        ef(vFunction_i) += weight*phiVDotF;
-
-        for(int row=0; row<3; row++){
-            for(int col=0; col<3; col++){
-                DUi(row, col) = 0.5*(GradV[vFunction_i](row, col) + GradV[vFunction_i](col, row));
-            }
-        }
-
-        for(int vFunction_j=0; vFunction_j<nShapeV; vFunction_j++){
-            TPZFNMatrix<9, STATE> DUj(3,3,0.);
-
-            for(int row=0; row<3; row++){
-                for(int col=0; col<3; col++){
-                    DUj(row, col) = 0.5*(GradV[vFunction_j](row, col) + GradV[vFunction_j](col, row));
-                }
-            }
-
-            STATE A_term = TensorInnerProduct(DUi, DUj);
-            ek(vFunction_i, vFunction_j) += 2.*fviscosity*A_term*weight;
-        }
-
-        for(int pFunction_j=0; pFunction_j<nShapeP; pFunction_j ++){
-            STATE B_term = -PhiP(pFunction_j,0)*divUi*weight;
-
-            ek(vFunction_i, nShapeV+pFunction_j) += B_term;
-            ek(nShapeV+pFunction_j, vFunction_i) += B_term;
-        }
+    TPZFNMatrix<9, REAL> VoightCorrection(nterms, nterms, 0.0); //This is to multiply by 2 the off diagonal part of strain rate tensor to account for its symmetry
+    for (int64_t i = 0; i < nterms; i++)
+    {
+        VoightCorrection(i,i) = i<dimension ? 1.0 : 2.0;
     }
     
-    if(datavec.size()>2){
+    TPZFNMatrix<3,REAL> SourceTerm(dimension, 1.0, 0.0);
+    TPZVec<REAL> sourceAux(3);
+    if (this->HasForcingFunction())
+    {
+        this->ForcingFunction()(datavec[EVindex].x, sourceAux);
+        for (int64_t i = 0; i < dimension; i++)
+        {
+            SourceTerm(i,0) = sourceAux[i] * fviscosity;
+        }
+    }
+
+    //Body Forces contribution
+    ef.AddContribution(0, 0, PhiV, true, SourceTerm, false, weight);
+
+    //Flux Matrix A contribution
+    TPZFNMatrix<150, REAL> matrixC;
+    VoightCorrection.Multiply(StrainRate, matrixC);
+   
+    REAL factor = 2.0 * fviscosity * weight;
+    ek.AddContribution(0, 0, StrainRate, true, matrixC, false, factor);
+
+    //Divergence Matrix B contribution
+    factor = -1.0 * weight;
+    ek.AddContribution(0, nShapeV, divPhiV, false, PhiP, true, factor);
+
+    //Divergence Matrix BT contribution
+    ek.AddContribution(nShapeV, 0, PhiP, false, divPhiV, true, factor);
+    
+    if(datavec.size()>2)
+    {
         TPZFMatrix<REAL>& phivM = datavec[EVMindex].phi;
         TPZFMatrix<REAL>& phipM = datavec[EPMindex].phi;
         
         // Pressure and distributed flux
-        for(int j=0; j<nShapeP; j++){
+        for(int j=0; j<nShapeP; j++)
+        {
             ek(nShapeV+nShapeP, nShapeV+j) += PhiP(j,0)*phivM(0,0)*weight;
             ek(nShapeV+j, nShapeV+nShapeP) += PhiP(j,0)*phivM(0,0)*weight;
         }
