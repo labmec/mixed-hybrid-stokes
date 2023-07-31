@@ -13,8 +13,6 @@ TPZAxisymStokesMaterial::~TPZAxisymStokesMaterial() {}
 
 void TPZAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight,TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef)
 {
-#ifdef USING_LAPACK
-
     int64_t dimension = Dimension(); // problems dimension
     REAL radius = datavec[EVindex].x[0]; // radial distance to the axisymmetric z axis
 
@@ -80,84 +78,6 @@ void TPZAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
 
     //Divergence Matrix BT contribution
     ek.AddContribution(nShapeV, 0, PhiP, false, divPhiV, true, factor);
-    
-#else
-
-    int64_t Vrows = datavec[EVindex].fDeformedDirections.Rows();
-    int64_t Vcols = datavec[EVindex].fDeformedDirections.Cols();
-
-    TPZFNMatrix<200, REAL> PhiV(Vrows, Vcols, 0.);
-    TPZFMatrix<REAL>& PhiP = datavec[EPindex].phi;
-
-    int64_t nShapeV = datavec[EVindex].fVecShapeIndex.NElements();
-    int64_t nShapeP = PhiP.Rows();
-
-    TPZManVector<TPZFNMatrix<9, REAL>, 18> GradV(Vcols);
-
-    TPZVec<STATE> SourceTerm(3,0.);
-
-    if(datavec[EVindex].fNeedsDeformedDirectionsFad){
-        for(int row=0; row<Vrows; row++){
-            for(int col=0; col<Vcols; col++){
-                PhiV(row, col) = datavec[EVindex].fDeformedDirectionsFad(row, col).val();
-            }
-        }
-
-        TPZFNMatrix<9, REAL> GradVFunction(3,3,0.);
-        for(int vFunction=0; vFunction<Vcols; vFunction++){
-            for(int row=0; row<this->Dimension(); row++){
-                for(int col=0; col<this->Dimension(); col++){
-                    GradVFunction(row, col) = datavec[EVindex].fDeformedDirectionsFad(row, vFunction).fastAccessDx(col);
-                }
-            }
-            GradV[vFunction] = GradVFunction;
-        }
-    }
-
-    if(this->HasForcingFunction()){
-        this->ForcingFunction()(datavec[EVindex].x, SourceTerm);
-    }
-
-    for(int vFunction_i=0; vFunction_i<nShapeV; vFunction_i++){
-        TPZFNMatrix<9, STATE> DUi(3,3,0.);
-
-        STATE divUi = datavec[EVindex].divphi(vFunction_i, 0);
-
-        STATE phiVDotF = 0.;
-
-        for(int row=0; row<3; row++){
-                phiVDotF += PhiV(row, vFunction_i)*SourceTerm[row];
-        }
-
-        ef(vFunction_i) += weight*phiVDotF;
-
-        for(int row=0; row<3; row++){
-            for(int col=0; col<3; col++){
-                DUi(row, col) = 0.5*(GradV[vFunction_i](row, col) + GradV[vFunction_i](col, row));
-            }
-        }
-
-        for(int vFunction_j=0; vFunction_j<nShapeV; vFunction_j++){
-            TPZFNMatrix<9, STATE> DUj(3,3,0.);
-
-            for(int row=0; row<3; row++){
-                for(int col=0; col<3; col++){
-                    DUj(row, col) = 0.5*(GradV[vFunction_j](row, col) + GradV[vFunction_j](col, row));
-                }
-            }
-
-            STATE A_term = TensorInnerProduct(DUi, DUj);
-            ek(vFunction_i, vFunction_j) += 2.*fviscosity*A_term*weight;
-        }
-
-        for(int pFunction_j=0; pFunction_j<nShapeP; pFunction_j ++){
-            STATE B_term = -PhiP(pFunction_j,0)*divUi*weight;
-
-            ek(vFunction_i, nShapeV+pFunction_j) += B_term;
-            ek(nShapeV+pFunction_j, vFunction_i) += B_term;
-        }
-    }
-#endif
 
 #ifdef PZ_LOG
     if(logger.isDebugEnabled()){

@@ -23,6 +23,7 @@
 
 #include "TPZInterfaceAxisymStokesMaterial.h"
 #include "TPZInterface1dStokesMaterial.h"
+#include "TPZInterface1dFlux.h"
 #include "TPZStokesMaterial.h"
 #include "TPZAxisymStokesMaterial.h"
 #include "TPZ1dStokesMaterial.h"
@@ -61,12 +62,9 @@ TPZGeoMesh *TPZMeshOperator::CreateGMesh(ProblemData *simData)
 
     gmesh->BuildConnectivity();
 
-    return gmesh;
-}
+    //Check if 
 
-TPZGeoMesh *TPZMeshOperator::Insert1dElement(ProblemData *simData, TPZGeoMesh * gmesh)
-{
-    return nullptr;
+    return gmesh;
 }
 
 void TPZMeshOperator::InsertLambdaGEl(ProblemData *simData, TPZGeoMesh *gmesh)
@@ -82,6 +80,8 @@ void TPZMeshOperator::InsertLambdaGEl(ProblemData *simData, TPZGeoMesh *gmesh)
         if (!geoEl)
             continue;
         if (geoEl->HasSubElement())
+            continue;
+        if (geoEl->Dimension() != gmesh->Dimension())
             continue;
 
         int nside = geoEl->NSides();
@@ -119,6 +119,18 @@ void TPZMeshOperator::InsertLambdaGEl(ProblemData *simData, TPZGeoMesh *gmesh)
             }
         }
         
+        
+    }
+
+    for (int64_t el = 0; el < nEl; el++)
+    {
+        TPZGeoEl *geoEl = gmesh->Element(el);
+
+        if (!geoEl)
+            continue;
+        if (geoEl->HasSubElement())
+            continue;
+
         int matID = geoEl->MaterialId();
 
         if (simData->Axisymmetric() && simData->AxisymmetryDomainVec().size() != 0) //in this case, r=0 belongs to the domain
@@ -128,6 +140,7 @@ void TPZMeshOperator::InsertLambdaGEl(ProblemData *simData, TPZGeoMesh *gmesh)
                     TPZGeoElBC gbc(geoEl, 2, simData->AxiLambdaID());
             }
     }
+
 }
 
 void TPZMeshOperator::InsertBCInterfaces(TPZMultiphysicsCompMesh *cmesh_m, ProblemData *simData, TPZGeoMesh *gmesh)
@@ -207,44 +220,100 @@ void TPZMeshOperator::InsertBCInterfaces(TPZMultiphysicsCompMesh *cmesh_m, Probl
         int meshDim = gmesh->Dimension();
         int matID = gel->MaterialId();
 
-        if (matID != simData->AxiLambdaID())
-            continue;
-
-        int nsides = gel->NSides();
-        TPZGeoElSide gelSide(gel, nsides - 1);
-        TPZCompElSide celSide = gelSide.Reference();
-
-        TPZStack<TPZGeoElSide> neighbourSet;
-        gelSide.AllNeighbours(neighbourSet);
-
-        int64_t nneighs = neighbourSet.size();
-
-        TPZManVector<int64_t, 1> LeftElIndex(1, 0), RightElIndex(1, 0);
-        LeftElIndex[0] = 0;
-        RightElIndex[0] = 1;
-
-        for (int stack_i = 0; stack_i < nneighs; stack_i++)
+        if (matID == simData->AxiLambdaID()) 
         {
-            TPZGeoElSide neigh = neighbourSet[stack_i];
-            int neighMatID = neigh.Element()->MaterialId();
-            TPZCompElSide celNeigh = neigh.Reference();
+            int nsides = gel->NSides();
+            TPZGeoElSide gelSide(gel, nsides - 1);
+            TPZCompElSide celSide = gelSide.Reference();
 
-            int64_t neighIndex = neigh.Element()->Index();
+            TPZStack<TPZGeoElSide> neighbourSet;
+            gelSide.AllNeighbours(neighbourSet);
 
-            if (neighMatID != simData->AxisymmetryDomainVec()[0].matID)
-                continue;
+            int64_t nneighs = neighbourSet.size();
 
-            if (neigh.Element()->HasSubElement())
+            TPZManVector<int64_t, 1> LeftElIndex(1, 0), RightElIndex(1, 0);
+            LeftElIndex[0] = 0;
+            RightElIndex[0] = 1;
+
+            for (int stack_i = 0; stack_i < nneighs; stack_i++)
             {
-                // Check if it is working in the case with refined meshes
-                DebugStop();
+                TPZGeoElSide neigh = neighbourSet[stack_i];
+                int neighMatID = neigh.Element()->MaterialId();
+                TPZCompElSide celNeigh = neigh.Reference();
+
+                int64_t neighIndex = neigh.Element()->Index();
+
+                if (neighMatID == simData->AxisymmetryDomainVec()[0].matID) //Creating an interface element between the 1d lambda and 1d stokes element
+                {
+                    if (neigh.Element()->HasSubElement())
+                    {
+                        // Check if it is working in the case with refined meshes
+                        DebugStop();
+                    }
+                    else
+                    {
+                        TPZGeoElBC gbc(gelSide, simData->AxiInterfaceID());
+
+                        TPZMultiphysicsInterfaceElement *interElem = new TPZMultiphysicsInterfaceElement(*cmesh_m, gbc.CreatedElement(), celNeigh, celSide);
+                        interElem->SetLeftRightElementIndices(LeftElIndex, RightElIndex);
+                    }
+                }
+                else if (neighMatID == simData->DomainVec()[0].matID) //Creating an interface element between the 1d lambda and 2d stokes element
+                {
+                    if (neigh.Element()->HasSubElement())
+                    {
+                        // Check if it is working in the case with refined meshes
+                        DebugStop();
+                    }
+                    else
+                    {
+                        TPZGeoElBC gbc(gelSide, simData->InterfaceID());
+
+                        TPZMultiphysicsInterfaceElement *interElem = new TPZMultiphysicsInterfaceElement(*cmesh_m, gbc.CreatedElement(), celNeigh, celSide);
+                        interElem->SetLeftRightElementIndices(LeftElIndex, RightElIndex);
+                    }
+                }
             }
-            else
-            {
-                TPZGeoElBC gbc(gelSide, simData->AxiInterfaceID());
+        }
 
-                TPZMultiphysicsInterfaceElement *interElem = new TPZMultiphysicsInterfaceElement(*cmesh_m, gbc.CreatedElement(), celNeigh, celSide);
-                interElem->SetLeftRightElementIndices(LeftElIndex, RightElIndex);
+        else if (matID == simData->AxisymmetryDomainVec()[0].matID) //Creating an interface element between 1d stokes element and 2d stokes element for normal flux computation
+        {
+            int nsides = gel->NSides();
+            TPZGeoElSide gelSide(gel, nsides - 1);
+            TPZCompElSide celSide = gelSide.Reference();
+
+            TPZStack<TPZGeoElSide> neighbourSet;
+            gelSide.AllNeighbours(neighbourSet);
+
+            int64_t nneighs = neighbourSet.size();
+
+            TPZManVector<int64_t, 1> LeftElIndex(1, 0), RightElIndex(1, 0);
+            LeftElIndex[0] = 0;
+            RightElIndex[0] = 1;
+
+            for (int stack_i = 0; stack_i < nneighs; stack_i++)
+            {
+                TPZGeoElSide neigh = neighbourSet[stack_i];
+                int neighMatID = neigh.Element()->MaterialId();
+                TPZCompElSide celNeigh = neigh.Reference();
+
+                int64_t neighIndex = neigh.Element()->Index();
+
+                if (neighMatID != simData->DomainVec()[0].matID)
+                    continue;
+
+                if (neigh.Element()->HasSubElement())
+                {
+                    // Check if it is working in the case with refined meshes
+                    DebugStop();
+                }
+                else
+                {
+                    TPZGeoElBC gbc(gelSide, simData->FluxInterfaceID());
+
+                    TPZMultiphysicsInterfaceElement *interElem = new TPZMultiphysicsInterfaceElement(*cmesh_m, gbc.CreatedElement(), celNeigh, celSide);
+                    interElem->SetLeftRightElementIndices(LeftElIndex, RightElIndex);
+                }
             }
         }
     }
@@ -442,12 +511,9 @@ TPZCompMesh *TPZMeshOperator::CreateCMeshV(ProblemData *simData, TPZGeoMesh *gme
 
     simData->MeshVector()[0] = cmesh_v;
 
-    return cmesh_v;
-}
+    CheckSideOrientOfCompEl(simData, gmesh);
 
-void TPZMeshOperator::CreateCMeshV1d(ProblemData *simData, TPZCompMesh *cmesh_v)
-{
-    
+    return cmesh_v;
 }
 
 TPZCompMesh *TPZMeshOperator::CreateCmeshP(ProblemData *simData, TPZGeoMesh *gmesh)
@@ -581,82 +647,6 @@ TPZCompMesh *TPZMeshOperator::CreateCmeshP(ProblemData *simData, TPZGeoMesh *gme
             TPZConnect &newnod = cmesh_p->ConnectVec()[i];
             newnod.SetLagrangeMultiplier(1);
         }
-    }
-
-    cmesh_p->ExpandSolution();
-
-    simData->MeshVector()[1] = cmesh_p;
-
-    return cmesh_p;
-}
-
-TPZCompMesh *TPZMeshOperator::CreateCmeshP1d(ProblemData *simData, TPZGeoMesh *gmesh)
-{
-    TPZCompMesh *cmesh_p = new TPZCompMesh(gmesh);
-    cmesh_p->SetName("CMesh_P");
-
-    cmesh_p->SetDimModel(1);
-
-    if (simData->HdivType() == TPZMeshOperator::EConstant)
-    {
-        cmesh_p->SetAllCreateFunctionsDiscontinuous();
-        cmesh_p->SetDefaultOrder(0);
-    }
-    else if (simData->HdivType() == TPZMeshOperator::EStandard)
-    {
-        cmesh_p->SetDefaultOrder(simData->VelpOrder()-1);
-        cmesh_p->SetAllCreateFunctionsContinuous();
-    }
-
-    cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
-
-    // domain's material
-    auto *mat = new TPZNullMaterial<>(simData->DomainVec()[0].matID);
-    cmesh_p->InsertMaterialObject(mat);
-
-    std::set<int> materialIDs;
-    materialIDs.insert(simData->DomainVec()[0].matID);
-
-    cmesh_p->AutoBuild(materialIDs);
-    gmesh->ResetReference();
-
-    materialIDs.clear();
-
-    // matlambda traction material
-    auto matLambda = new TPZNullMaterial<>(simData->LambdaID());
-    cmesh_p->InsertMaterialObject(matLambda);
-
-    materialIDs.insert(simData->LambdaID());
-
-    // traction on boundary material
-    for (const auto &bc : simData->TangentialBCs())
-    {
-        auto matLambdaBC = new TPZNullMaterial<>(bc.matID);
-        cmesh_p->InsertMaterialObject(matLambdaBC);
-
-        materialIDs.insert(bc.matID);
-    }
-
-    if (simData->TracpOrder() > 0)
-    {
-        cmesh_p->SetAllCreateFunctionsContinuous();
-        cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
-    }
-    else
-    {
-        cmesh_p->SetAllCreateFunctionsDiscontinuous();
-        cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
-    }
-
-    cmesh_p->SetDefaultOrder(simData->TracpOrder());
-    cmesh_p->SetDimModel(1);
-    cmesh_p->AutoBuild(materialIDs);
-
-    int64_t ncon = cmesh_p->NConnects();
-    for (int64_t i = 0; i < ncon; i++)
-    {
-        TPZConnect &newnod = cmesh_p->ConnectVec()[i];
-        newnod.SetLagrangeMultiplier(1);
     }
 
     cmesh_p->ExpandSolution();
@@ -838,6 +828,11 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
         TPZInterface1dStokesMaterial* mat1dInterface = new TPZInterface1dStokesMaterial(simData->AxiInterfaceID(), simData->AxisymmetryDomainVec()[0].viscosity, simData->AxisymmetryDomainVec()[0].radius);
         mat1dInterface->SetMultiplier(1.0);
         cmesh_m->InsertMaterialObject(mat1dInterface);
+
+        // 9. - Material for 1d flux interface
+        TPZInterface1dFlux* mat1dFluxInterface = new TPZInterface1dFlux(simData->FluxInterfaceID(), simData->AxisymmetryDomainVec()[0].viscosity, simData->AxisymmetryDomainVec()[0].radius);
+        mat1dFluxInterface->SetMultiplier(1.0);
+        cmesh_m->InsertMaterialObject(mat1dFluxInterface);
     }
 
     // Creating computational elements that will manage the mesh approximation space: Aparentemente não faz nada????????
@@ -870,83 +865,6 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
     }
 
     return cmesh_m;
-}
-
-TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh1d(ProblemData *simData, TPZGeoMesh *gmesh)
-{
-    // TPZMultiphysicsCompMesh *cmesh_m = new TPZMultiphysicsCompMesh(gmesh);
-
-    // cmesh_m->SetName("CMesh_M");
-
-    // cmesh_m->SetDefaultOrder(simData->VelpOrder());
-    // cmesh_m->SetAllCreateFunctionsMultiphysicElem();
-
-    // // Creating Materials
-    // // 1. For domain
-    // bool faxisymmetric = true;
-
-    // TPZ1dStokesMaterial *material = new TPZ1dStokesMaterial(simData->DomainVec()[0].matID);
-
-    // cmesh_m->InsertMaterialObject(material);
-
-    // // 2. Boundary Conditions
-    // TPZFMatrix<STATE> val1(3, 3, 0.);
-    // TPZManVector<STATE> val2(3, 0.);
-
-    // for (const auto &bc : simData->NormalBCs())
-    // {
-    //     val2 = bc.value;
-
-    //     TPZBndCond *matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
-    //     cmesh_m->InsertMaterialObject(matBC);
-    // }
-
-    // for (const auto &bc : simData->TangentialBCs())
-    // {
-    //     val2 = bc.value;
-
-    //     TPZBndCond *matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
-    //     cmesh_m->InsertMaterialObject(matBC);
-    // }
-
-    // //     2.1 - Material for 1D tangential traction
-    // TPZNullMaterialCS<> *matLambda = new TPZNullMaterialCS<>(simData->LambdaID());
-    // matLambda->SetDimension(simData->Dim());
-    // matLambda->SetNStateVariables(1);
-    // cmesh_m->InsertMaterialObject(matLambda);
-
-    // // 2.2 - Material for interfaces (Inner)
-    // TPZInterface1dStokesMaterial *matInterfaceLeft = new TPZInterface1dStokesMaterial(simData->InterfaceID(), simData->DomainVec()[0].viscosity, 0.01);  
-    // matInterfaceLeft->SetMultiplier(1.);
-    // cmesh_m->InsertMaterialObject(matInterfaceLeft);
-
-    // TPZInterface1dStokesMaterial *matInterfaceRight = new TPZInterface1dStokesMaterial(-simData->InterfaceID(), simData->DomainVec()[0].viscosity, 0.01);  
-    // matInterfaceRight->SetMultiplier(-1.);
-    // cmesh_m->InsertMaterialObject(matInterfaceRight);
-
-    // // Creating computational elements that will manage the mesh approximation space:
-    // int64_t ncel = cmesh_m->NElements();
-    // for (int i = 0; i < ncel; i++)
-    // {
-    //     TPZCompEl *compEl = cmesh_m->ElementVec()[i];
-    //     if (!compEl)
-    //         continue;
-    //     TPZInterfaceElement *facel = dynamic_cast<TPZInterfaceElement *>(compEl);
-    //     if (facel)
-    //         DebugStop();
-    // }
-
-    // TPZManVector<int, 2> active_approx_spaces(simData->MeshVector().size(), 1);
-
-    // cmesh_m->BuildMultiphysicsSpace(active_approx_spaces, simData->MeshVector());
-    // cmesh_m->AdjustBoundaryElements();
-    // cmesh_m->CleanUpUnconnectedNodes();
-    // cmesh_m->LoadReferences();
-
-    // TPZMeshOperator::InsertBCInterfaces(cmesh_m, simData, gmesh);
-    // TPZMeshOperator::InsertInterfaces(cmesh_m, simData, gmesh);
-
-    // return cmesh_m;
 }
 
 void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh *cmesh_m)
@@ -1102,5 +1020,75 @@ void TPZMeshOperator::PrintCompMesh(TPZVec<TPZCompMesh *> CMeshVec)
         TPZVTKGeoMesh::PrintCMeshVTK(cmesh, VTKCompMeshFile);
         cmesh->ComputeNodElCon();
         cmesh->Print(TextCompMeshFile);
+    }
+}
+
+void TPZMeshOperator::CheckSideOrientOfCompEl(ProblemData* simData, TPZGeoMesh* gmesh)
+{
+    if (simData->AxisymmetryDomainVec().size() != 0)
+    {
+        std::set<int> bcIds;
+        for(auto& bc : simData->AxisymmetryBCs())
+            bcIds.insert(bc.matID);
+
+        int matid1d = simData->AxisymmetryDomainVec()[0].matID;
+
+        for(TPZGeoEl* gel : gmesh->ElementVec())
+        {
+            const int gelmatid = gel->MaterialId();
+
+            if (gelmatid != matid1d) //Check only 1d elements
+                continue;
+
+            int nside = gel->NSides(0); //Check only the vertices
+            
+            TPZInterpolatedElement* intel = dynamic_cast<TPZInterpolatedElement*>(gel->Reference());
+            if (!intel) DebugStop();
+
+            for (int is = 0; is < nside; is++)
+            {
+                const int sideorientgel = intel->GetSideOrient(is);
+                TPZGeoElSide gelside(gel,is);
+                //TPZGeoElSide neig = gelside.HasNeighbour(matid1d);
+                TPZGeoElSide neig = gelside.Neighbour();
+
+                for (; neig != gelside; neig++)
+                {
+                    int neigmatid = neig.Element()->MaterialId();
+
+                    if (neigmatid == matid1d) //vertex is has an 1d element as neighbour
+                    {
+                        TPZInterpolatedElement* intelneig = dynamic_cast<TPZInterpolatedElement*>(neig.Element()->Reference());
+                        const int sideorientneig = intelneig->GetSideOrient(neig.Side());
+
+                        if (sideorientgel * sideorientneig != -1)
+                        {
+                            intelneig->SetSideOrient(neig.Side(), -sideorientgel);
+                        }
+                    }
+                    else if (bcIds.find(neigmatid) != bcIds.end()) //vertex is has a bc as neighbour
+                    {
+                        intel->SetSideOrient(is, 1);
+                    }
+                }
+                
+                // if (neig && (gelside != neig))
+                // {
+                //     TPZInterpolatedElement* intelneig = dynamic_cast<TPZInterpolatedElement*>(neig.Element()->Reference());
+                //     const int sideorientneig = intelneig->GetSideOrient(neig.Side());
+
+                //     if (sideorientgel * sideorientneig != -1)
+                //     {
+                //         intelneig->SetSideOrient(neig.Side(), -sideorientgel);
+                //     }
+                // }
+
+                // neig = gelside.HasNeighbour(bcIds);
+                // if (neig)
+                // {
+                //     intel->SetSideOrient(is, 1);
+                // }
+            }
+        }
     }
 }

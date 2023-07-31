@@ -18,8 +18,6 @@ file(GLOB_RECURSE PZ_SRC
      "../neopz/*.cpp"
 )
 
-message("pzsrc = ${PZ_SRC}")
-
 add_custom_target( GlobalFiles SOURCES ${PZ_SRC})
 
 add_subdirectory(mhstokes)

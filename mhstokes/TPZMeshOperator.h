@@ -9,8 +9,6 @@ public:
     enum SimSpace {EStandard, EConstant};
     
     static TPZGeoMesh* CreateGMesh(ProblemData* simData);
-
-    static TPZGeoMesh* Insert1dElement(ProblemData* simData, TPZGeoMesh * gmesh);
     
     static void InsertLambdaGEl(ProblemData* simData, TPZGeoMesh* gmesh);
     
@@ -21,14 +19,8 @@ public:
     static TPZCompMesh* CreateCmeshMv(ProblemData* simData, TPZGeoMesh* gmesh);
     
     static TPZCompMesh* CreateCmeshMp(ProblemData* simData, TPZGeoMesh* gmesh);
-
-    static void CreateCMeshV1d(ProblemData *simData, TPZCompMesh *cmesh_v);
-    
-    static TPZCompMesh* CreateCmeshP1d(ProblemData* simData, TPZGeoMesh* gmesh);
-    
+        
     static TPZMultiphysicsCompMesh* CreateMultiPhysicsMesh(ProblemData* simData, TPZGeoMesh* gmesh);
-
-    static TPZMultiphysicsCompMesh* CreateMultiPhysicsMesh1d(ProblemData* simData, TPZGeoMesh* gmesh);
     
     static void CondenseElements(TPZMultiphysicsCompMesh* cmesh_m);
     
@@ -43,5 +35,7 @@ public:
     static void PrintCompMesh(TPZCompMesh* cmesh);
     
     static void GenerateMshFile(ProblemData* geoFile);
+
+    static void CheckSideOrientOfCompEl(ProblemData* simData, TPZGeoMesh* gmesh);
 };
 #endif

@@ -1,0 +1,93 @@
+{	
+	"MeshName": "../examples/Meshes/AxisymmetricObstructedAxialFlow2",
+    
+    "CreateMsh": false,
+
+	"HdivType": 0,
+
+    "isAxisymmetric": 1,
+
+	"VelpOrder": 2, // approximation order for velocity
+
+	"TracpOrder": 1, // approximation order for traction
+
+	"Dim": 2,
+
+	"Resolution": 4,
+
+    "StaticCondensation": false,
+
+	"Domain": [ // domain data
+		{
+			"name": "Stokes_Domain",
+			"matID": 1,
+			"viscosity": 1
+		}
+	],
+
+	"NormalBoundary":[
+		{
+			"name": "InFlow", // name of boundary condition
+			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": -10,
+			"matID": 2
+		},
+		{
+			"name": "OutFlow", // name of boundary condition
+			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 0,
+			"matID": 3
+		},
+		{
+			"name": "NoNormalFlow", // name of boundary condition
+			"type": 0, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 0,
+			"matID": 4
+		}
+	],
+
+	"TangentialBoundary": [
+		{
+			"name": "NoSlipWall", // name of boundary condition
+			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 0,
+			"matID": 5
+		}
+	],
+    
+   "AxisymmetryDomain": [
+        {
+            "name": "Infinitesimal_Tube",
+            "matID": 6,            
+            "viscosity": 1.0,            
+            "radius": 0.001 //radius of an axisymmetric tube at r=0 to compute mean velocity and tangential stress. The 2D domain must start at this value.
+        }
+    ],
+
+    "AxisymmetryBoundary": [
+        {
+			"name": "InflowTube", // name of boundary condition
+			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": -10,
+			"matID": 7
+		},
+        {
+			"name": "OutflowTube", // name of boundary condition
+			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 0,
+			"matID": 8
+		}
+    ],
+
+	"LambdaID": 10,
+	"InterfaceID" : 20,
+    "AxiLambdaID" : 30,
+    "AxiInterfaceID" : 40,
+    "FluxInterfaceID" : 50
+}
+
+
+
+
+
+
