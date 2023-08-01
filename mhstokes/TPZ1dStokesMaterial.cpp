@@ -79,12 +79,6 @@ DebugStop();
 
 void TPZ1dStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc)
 {
-    if(datavec.size() != 2){
-        std::cout << "ERROR: DATAVEC SIZE IS DIFFERENT THAN 2\n\n";
-        DebugStop();
-    }
-    
-
     TPZFNMatrix<150, REAL> PhiV = datavec[EVindex].phi;
     TPZFMatrix<REAL>& PhiP = datavec[EPindex].phi;
     

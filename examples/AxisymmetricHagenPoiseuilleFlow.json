@@ -3,7 +3,7 @@
     
     "CreateMsh": false,
 
-	"HdivType": 0,
+	"HdivType": 1,
 
     "isAxisymmetric": 1,
 
@@ -15,7 +15,7 @@
 
 	"Resolution": 4,
 
-    "StaticCondensation": false,
+    "StaticCondensation": true,
 
 	"Domain": [ // domain data
 		{

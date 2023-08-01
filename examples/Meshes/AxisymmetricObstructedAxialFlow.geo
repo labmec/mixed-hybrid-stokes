@@ -1,5 +1,5 @@
-elr = 4;
-elz = 4;
+elr = 20;
+elz = 20;
 ndivr = elr + 1;
 ndivz = elz + 1;
 ndivo = 0.5*elr + 1;
