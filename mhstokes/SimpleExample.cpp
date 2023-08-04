@@ -206,7 +206,7 @@ void Example::HdivConforming(){
     
     // Create analysis
     const int nThreads = threadnum;
-    TPZLinearAnalysis an(cmesh,true);
+    TPZLinearAnalysis an(cmesh);
 
     TPZSSpStructMatrix<STATE,TPZStructMatrixOR<STATE>> matsp(cmesh);
 

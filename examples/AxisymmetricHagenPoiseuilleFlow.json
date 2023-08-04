@@ -7,9 +7,9 @@
 
     "isAxisymmetric": 1,
 
-	"VelpOrder": 3, // approximation order for velocity
+	"VelpOrder": 2, // approximation order for velocity
 
-	"TracpOrder": 2, // approximation order for traction
+	"TracpOrder": 1, // approximation order for traction
 
 	"Dim": 2,
 

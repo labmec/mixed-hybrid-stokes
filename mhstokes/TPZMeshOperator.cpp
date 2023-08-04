@@ -494,6 +494,23 @@ TPZCompMesh *TPZMeshOperator::CreateCMeshV(ProblemData *simData, TPZGeoMesh *gme
         }
 
         cmesh_v->AutoBuild(materialIDs);
+        std::cout << cmesh_v->NElements() << std::endl;
+        
+        for (int64_t el = 0; el < cmesh_v->NElements(); el++)
+        {
+            auto cel = cmesh_v->Element(el);
+            auto gel = cel->Reference();
+            if (gel->Dimension() == 1 && cel->NConnects() == 3)
+            {
+                
+                int64_t ncon = cel->NConnects();
+                for (int64_t i = 0; i < ncon; i++)
+                {
+                    TPZConnect &newnod = cel->Connect(i);
+                    newnod.SetLagrangeMultiplier(3);
+                }
+            }
+        }
     }
 
     // expanding the solution vector
@@ -600,36 +617,52 @@ TPZCompMesh *TPZMeshOperator::CreateCmeshP(ProblemData *simData, TPZGeoMesh *gme
         materialIDs.insert(simData->AxisymmetryDomainVec()[0].matID);
 
         cmesh_p->AutoBuild(materialIDs);
-        gmesh->ResetReference();
-
-        materialIDs.clear();
-        //if (simData->DomainVec().size() == 0) //if a 2D domain was not specified, we need to create the lambda material
-        {
-            // matlambda traction material
-            auto matLambda = new TPZNullMaterial<>(simData->AxiLambdaID());
-            cmesh_p->InsertMaterialObject(matLambda);
-            materialIDs.insert(simData->AxiLambdaID());
-            if (simData->TracpOrder() > 0)
-            {
-                cmesh_p->SetAllCreateFunctionsContinuous();
-                cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
-            }
-            else
-            {
-                cmesh_p->SetAllCreateFunctionsDiscontinuous();
-                cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
-            }
-
-            cmesh_p->SetDefaultOrder(simData->TracpOrder());
-            cmesh_p->SetDimModel(1);
-            cmesh_p->AutoBuild(materialIDs);
-        }
 
         int64_t ncon = cmesh_p->NConnects();
         for (int64_t i = 0; i < ncon; i++)
         {
             TPZConnect &newnod = cmesh_p->ConnectVec()[i];
-            newnod.SetLagrangeMultiplier(1);
+            unsigned char lagrange = newnod.LagrangeMultiplier();
+            unsigned char zero = '\000';
+            if (lagrange == zero)
+            {
+                newnod.SetLagrangeMultiplier(2);
+            }
+        }
+
+        gmesh->ResetReference();
+
+        materialIDs.clear();
+
+        // matlambda traction material
+        auto matLambda = new TPZNullMaterial<>(simData->AxiLambdaID());
+        cmesh_p->InsertMaterialObject(matLambda);
+        materialIDs.insert(simData->AxiLambdaID());
+        if (simData->TracpOrder() > 0)
+        {
+            cmesh_p->SetAllCreateFunctionsContinuous();
+            cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
+        }
+        else
+        {
+            cmesh_p->SetAllCreateFunctionsDiscontinuous();
+            cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
+        }
+
+        cmesh_p->SetDefaultOrder(simData->TracpOrder());
+        cmesh_p->SetDimModel(1);
+        cmesh_p->AutoBuild(materialIDs);
+
+        ncon = cmesh_p->NConnects();
+        for (int64_t i = 0; i < ncon; i++)
+        {
+            TPZConnect &newnod = cmesh_p->ConnectVec()[i];
+            unsigned char lagrange = newnod.LagrangeMultiplier();
+            unsigned char zero = '\000';
+            if (lagrange == zero)
+            {
+                newnod.SetLagrangeMultiplier(1);
+            }
         }
     }
 
@@ -959,7 +992,7 @@ void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh *cmesh_m)
     for (int64_t iEnv = 0; iEnv < nenvel; iEnv++)
     {
         TPZElementGroup *elGroup = elGroups[iEnv];
-        new TPZCondensedCompEl(elGroup);
+        new TPZCondensedCompElT<STATE>(elGroup);
     }
 
     cmesh_m->SetName("CMesh_M_Condensed");

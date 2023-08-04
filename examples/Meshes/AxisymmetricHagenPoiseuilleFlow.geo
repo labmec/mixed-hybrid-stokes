@@ -1,5 +1,5 @@
-elr = 10;
-elz = 10;
+elr = 2;
+elz = 2;
 ndivr = elr + 1;
 ndivz = elz + 1;
 

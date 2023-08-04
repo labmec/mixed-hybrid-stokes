@@ -28,7 +28,7 @@ int main()
     bool printdata = false;
 
     std::string filepath = "../examples/";
-    std::string filename = "AxisymmetricObstructedAxialFlow";
+    std::string filename = "AxisymmetricHagenPoiseuilleFlow";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
@@ -36,8 +36,12 @@ int main()
     TPZGeoMesh* gmesh = TPZMeshOperator::CreateGMesh(&simData);
 
     TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
+    std::ofstream meshv("cmesh_v.txt");
+    cmesh_v->Print(meshv);
 
     TPZCompMesh* cmesh_p = TPZMeshOperator::CreateCmeshP(&simData, gmesh);
+    std::ofstream meshp("cmesh_p.txt");
+    cmesh_p->Print(meshp);
 
     if(simData.CondensedElements()){
         TPZCompMesh* cmesh_Mp = TPZMeshOperator::CreateCmeshMp(&simData, gmesh);
@@ -51,9 +55,13 @@ int main()
         TPZMeshOperator::CondenseElements(cmesh_m);
     }
 
-    TPZLinearAnalysis an(cmesh_m, true);
-    //TPZSSpStructMatrix<> strmat(cmesh_m);
-    TPZFStructMatrix<> strmat(cmesh_m);
+    cmesh_m->SaddlePermute();
+    TPZLinearAnalysis an(cmesh_m,RenumType::ENone);
+
+    std::ofstream meshm("cmesh_m.txt");
+    cmesh_m->Print(meshm);
+    TPZSSpStructMatrix<> strmat(cmesh_m);
+    //TPZFStructMatrix<> strmat(cmesh_m);
     //TPZSkylineStructMatrix<> strmat(cmesh_m);
 
     strmat.SetNumThreads(0);
