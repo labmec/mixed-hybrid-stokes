@@ -283,21 +283,21 @@ int TPZAxisymStokesMaterial::IntegrationRuleOrder(const TPZVec<int>& elPMaxOrder
     return  intOrder;
 }
 
-int TPZAxisymStokesMaterial::IntegrationRuleOrderBC(const TPZVec<int>& elPMaxOrder) const
-{
-    const int maxOrder = [&elPMaxOrder=std::as_const(elPMaxOrder)](){
-        int max = 0;
-        for (auto ord : elPMaxOrder)
-            if (ord > max) max = ord;
-        return max;
-    }();
+// int TPZAxisymStokesMaterial::IntegrationRuleOrderBC(const TPZVec<int>& elPMaxOrder) const
+// {
+//     const int maxOrder = [&elPMaxOrder=std::as_const(elPMaxOrder)](){
+//         int max = 0;
+//         for (auto ord : elPMaxOrder)
+//             if (ord > max) max = ord;
+//         return max;
+//     }();
 
-    int ffporder = HasForcingFunction()? ForcingFunctionPOrder() : 0;
+//     int ffporder = HasForcingFunction()? ForcingFunctionPOrder() : 0;
 
-    const int intOrder = maxOrder < ffporder ? 10 * (maxOrder + ffporder) : (10 * maxOrder);
+//     const int intOrder = maxOrder < ffporder ? 10 * (maxOrder + ffporder) : (10 * maxOrder);
 
-    return  intOrder;
-}
+//     return  intOrder;
+// }
 
 void TPZAxisymStokesMaterial::Errors(const TPZVec<TPZMaterialDataT<STATE>>& data, TPZVec<REAL>& errors){
     

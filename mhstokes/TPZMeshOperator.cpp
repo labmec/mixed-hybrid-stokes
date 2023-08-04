@@ -763,20 +763,20 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
     {
         TPZStokesMaterial *material = simData->Axisymmetric() ? new TPZAxisymStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity) : new TPZStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity);
 
-        bool hasAnalyticSolution = false;
-        if (hasAnalyticSolution)
-        {
-            TAxisymmetricStokesAnalytic *analyticSol = new TAxisymmetricStokesAnalytic();
-            analyticSol->fExactSol = TAxisymmetricStokesAnalytic::EAxialFlow;
-            analyticSol->fL = 2.0;
-            analyticSol->fRe = 4.0;
-            analyticSol->fRi = 2.0;
-            analyticSol->fp = -1.0;
-            //analyticSol->fvel = 1.0;
-            analyticSol->fviscosity = simData->DomainVec()[0].viscosity;
-            material->SetExactSol(analyticSol->ExactSolution(), 0);
-            material->SetForcingFunction(analyticSol->ForceFunc(), 0);
-        }
+        // bool hasAnalyticSolution = false;
+        // if (hasAnalyticSolution)
+        // {
+        //     TAxisymmetricStokesAnalytic *analyticSol = new TAxisymmetricStokesAnalytic();
+        //     analyticSol->fExactSol = TAxisymmetricStokesAnalytic::EAxialFlow;
+        //     analyticSol->fL = 2.0;
+        //     analyticSol->fRe = 4.0;
+        //     analyticSol->fRi = 2.0;
+        //     analyticSol->fp = -1.0;
+        //     //analyticSol->fvel = 1.0;
+        //     analyticSol->fviscosity = simData->DomainVec()[0].viscosity;
+        //     material->SetExactSol(analyticSol->ExactSolution(), 0);
+        //     material->SetForcingFunction(analyticSol->ForceFunc(), 0);
+        // }
 
         cmesh_m->InsertMaterialObject(material);
 
