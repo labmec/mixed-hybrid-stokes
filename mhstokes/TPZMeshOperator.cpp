@@ -27,6 +27,7 @@
 #include "TPZStokesMaterial.h"
 #include "TPZAxisymStokesMaterial.h"
 #include "TPZ1dStokesMaterial.h"
+#include "TPZMixedLinearElasticMaterial.h"
 #include "TPZMeshOperator.h"
 #include "ProblemData.h"
 
@@ -416,7 +417,6 @@ TPZCompMesh *TPZMeshOperator::CreateCMeshV(ProblemData *simData, TPZGeoMesh *gme
         else if (simData->HdivType() == EStandard)
         {
             cmesh_v->ApproxSpace().SetHDivFamily(HDivFamily::EHDivStandard);
-            
         }
 
         cmesh_v->SetAllCreateFunctionsHDiv();
@@ -461,6 +461,8 @@ TPZCompMesh *TPZMeshOperator::CreateCMeshV(ProblemData *simData, TPZGeoMesh *gme
                 intercEl->ForceSideOrder(compEl->Reference()->NSides() - 1, simData->VelpOrder() + 1);
             }
         }
+
+        int numEq2d = cmesh_v->NEquations();
         gmesh->ResetReference();
     }
 
@@ -761,22 +763,24 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
     // 1. For domain
     if (simData->DomainVec().size() != 0)
     {
-        TPZStokesMaterial *material = simData->Axisymmetric() ? new TPZAxisymStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity) : new TPZStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity);
+        //TPZStokesMaterial *material = simData->Axisymmetric() ? new TPZAxisymStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity) : new TPZStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity);
 
-        // bool hasAnalyticSolution = false;
-        // if (hasAnalyticSolution)
-        // {
-        //     TAxisymmetricStokesAnalytic *analyticSol = new TAxisymmetricStokesAnalytic();
-        //     analyticSol->fExactSol = TAxisymmetricStokesAnalytic::EAxialFlow;
-        //     analyticSol->fL = 2.0;
-        //     analyticSol->fRe = 4.0;
-        //     analyticSol->fRi = 2.0;
-        //     analyticSol->fp = -1.0;
-        //     //analyticSol->fvel = 1.0;
-        //     analyticSol->fviscosity = simData->DomainVec()[0].viscosity;
-        //     material->SetExactSol(analyticSol->ExactSolution(), 0);
-        //     material->SetForcingFunction(analyticSol->ForceFunc(), 0);
-        // }
+        TPZMixedLinearElasticMaterial* material = new TPZMixedLinearElasticMaterial(simData->DomainVec()[0].matID, simData->Dim(), 1.0, 0.0);
+
+        bool hasAnalyticSolution = false;
+        if (hasAnalyticSolution)
+        {
+            TAxisymmetricStokesAnalytic *analyticSol = new TAxisymmetricStokesAnalytic();
+            analyticSol->fExactSol = TAxisymmetricStokesAnalytic::ESlidingCouetteFlow;
+            analyticSol->fL = 2.0;
+            analyticSol->fRe = 2.0;
+            analyticSol->fRi = 1.0;
+            analyticSol->fp = -1.0;
+            analyticSol->fvel = 1.0;
+            analyticSol->fviscosity = simData->DomainVec()[0].viscosity;
+            material->SetExactSol(analyticSol->ExactSolution(), 0);
+            material->SetForcingFunction(analyticSol->ForceFunc(), 0);
+        }
 
         cmesh_m->InsertMaterialObject(material);
 
@@ -878,12 +882,13 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
     {
         cmesh_m->SetName("CMesh_M_BeforeCond");
         cmesh_m->ComputeNodElCon();
+        PrintCompMesh(cmesh_m);
     }
 
     return cmesh_m;
 }
 
-void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh *cmesh_m)
+void TPZMeshOperator::CondenseElements(ProblemData *simData, TPZMultiphysicsCompMesh *cmesh_m)
 {
     int64_t ncompEl = cmesh_m->ElementVec().NElements();
     int dim = cmesh_m->Reference()->Dimension();
@@ -893,8 +898,13 @@ void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh *cmesh_m)
     TPZStack<TPZElementGroup *> elGroups;
     int count = 0;
 
-    // Creating the element groups
+    int domain1d_matid = simData->AxisymmetryDomainVec()[0].matID;
+    int lambda1d_matid = simData->AxiLambdaID();
+    int bc1d_matid[2] = {simData->AxisymmetryBCs()[0].matID, simData->AxisymmetryBCs()[1].matID};
 
+    auto cmesh_v = cmesh_m->MeshVector()[0];
+
+    // Creating the element groups for the domain
     for (int64_t el = 0; el < ncompEl; el++)
     {
         TPZCompEl *compEl = cmesh_m->Element(el);
@@ -926,6 +936,43 @@ void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh *cmesh_m)
         elGroups[count - 1]->AddElement(compEl);
     }
 
+    //Creating element group for axisymmetric tube
+    // if (simData->Axisymmetric() && simData->AxisymmetryDomainVec().size() != 0)
+    // {
+    //     for (int64_t el = 0; el < ncompEl; el++)
+    //     {
+    //         TPZCompEl *compEl = cmesh_m->Element(el);
+
+    //         if (!compEl) continue;
+
+    //         TPZGeoEl* gel = compEl->Reference();
+    //         int matid = gel->MaterialId();
+            
+
+    //         if (matid == domain1d_matid || matid == lambda1d_matid || matid == bc1d_matid[0] || matid == bc1d_matid[1])
+    //         {
+    //             TPZMultiphysicsElement *multEl = dynamic_cast<TPZMultiphysicsElement *>(compEl);
+    //             int64_t numSpaces = multEl->NMeshes();
+
+    //             int nConnect = multEl->NConnects();
+
+    //             if (matid == bc1d_matid[1]) //Not condensing 1 pressure dof
+    //             {
+    //                 int64_t conIndex = compEl->ConnectIndex(0);
+    //                 externalNode.insert(conIndex);
+    //             }
+
+    //             count++;
+    //             groupIndex.resize(count);
+    //             groupIndex[count - 1] = compEl->Index();
+
+    //             TPZElementGroup *groupEl = new TPZElementGroup(*cmesh_m);
+    //             elGroups.Push(groupEl);
+    //             elGroups[count - 1]->AddElement(compEl);
+    //         }
+    //     }
+    // }
+
     // Inserting interfaces and boundary conditions
 
     for (int64_t el = 0; el < ncompEl; el++)
@@ -937,6 +984,8 @@ void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh *cmesh_m)
         if (interEl)
         {
             TPZCompEl *leftEl = interEl->LeftElement();
+            TPZGeoEl *leftGel = leftEl->Reference();
+            int left_matid = leftGel->MaterialId();
 
             if (leftEl->Dimension() != dim)
                 continue;

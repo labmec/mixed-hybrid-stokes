@@ -102,45 +102,45 @@ Physical Point("InflowTube", 7) = {1};
 Physical Point("OutflowTube", 8) = {4};
 //+
 
-Transfinite Surface {1} = {1, 2, 13, 5};
+//Transfinite Surface {1} = {1, 2, 13, 5};
 //+
-Transfinite Surface {2} = {3, 4, 5, 14};
+//Transfinite Surface {2} = {3, 4, 5, 14};
 //+
-Transfinite Curve {1} = ndivr Using Progression 1;
+Transfinite Curve {1} = 5 Using Progression 1;
 //+
-Transfinite Curve {2} = ndivz Using Progression 1;
+Transfinite Curve {2} = 51 Using Progression 0.909;
 //+
-Transfinite Curve {3} = ndivz Using Progression 1;
+Transfinite Curve {3} = 51 Using Progression 1.1;
 //+
-Transfinite Curve {4} = ndivr Using Progression 1;
+Transfinite Curve {4} = 5 Using Progression 1;
 //+
-Transfinite Curve {5} = ndivz Using Progression 1;
+Transfinite Curve {5} = 51 Using Progression 0.909;
 //+
-Transfinite Curve {6} = ndivz Using Progression 1;
+Transfinite Curve {6} = 51 Using Progression 1.1;
 //+
-Transfinite Curve {7} = ndivo Using Progression 1;
+Transfinite Curve {7} = 21 Using Progression 1;
 //+
-Transfinite Curve {8} = ndivo Using Progression 1;
+Transfinite Curve {8} = 21 Using Progression 1;
 //+
-Transfinite Curve {9} = ndivo Using Progression 1;
+Transfinite Curve {9} = 21 Using Progression 1;
 //+
-Transfinite Curve {10} = ndivo Using Progression 1;
+Transfinite Curve {10} = 21 Using Progression 1;
 //+
-Transfinite Curve {11} = ndivo Using Progression 1;
+Transfinite Curve {11} = 21 Using Progression 1;
 //+
-Transfinite Curve {12} = ndivo Using Progression 1;
+Transfinite Curve {12} = 21 Using Progression 1;
 //+
-Transfinite Curve {13} = ndivo Using Progression 1;
+Transfinite Curve {13} = 21 Using Progression 1;
 //+
-Transfinite Curve {14} = ndivo/2+1 Using Progression 1;
+Transfinite Curve {14} = 11 Using Progression 1;
 //+
-Transfinite Curve {15} = ndivo Using Progression 1;
+Transfinite Curve {15} = 21 Using Progression 1;
 //+
-Transfinite Curve {16} = ndivo Using Progression 1;
+Transfinite Curve {16} = 21 Using Progression 1;
 //+
-Transfinite Curve {17} = ndivo Using Progression 1;
+Transfinite Curve {17} = 21 Using Progression 1;
 //+
-Transfinite Curve {18} = ndivo Using Progression 1;
+Transfinite Curve {18} = 21 Using Progression 1;
 //+
 
 Recombine Surface {1};

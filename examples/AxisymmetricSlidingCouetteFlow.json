@@ -1,9 +1,9 @@
 {	
-	"MeshName": "../examples/Meshes/AxisymmetricPoiseuilleCouetteFlow",
+	"MeshName": "../examples/Meshes/AxisymmetricSlidingCouetteFlow",
 
 	"CreateMsh": false,
 
-	"HdivType": 0,
+	"HdivType": 1,
 
     "isAxisymmetric": 1,
 
@@ -15,7 +15,7 @@
 
 	"Resolution": 4,
 
-    "StaticCondensation": false,
+    "StaticCondensation": true,
 
 	"Domain": [ // domain data
 		{
@@ -27,22 +27,16 @@
 
 	"NormalBoundary":[
 		{
-			"name": "UnitMNormStress", // name of boundary condition
-			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
-			"value": -1,
-			"matID": 2
-		},
-		{
-			"name": "UnitPNormStress", // name of boundary condition
+			"name": "UnitNormalStress", // name of boundary condition
 			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
 			"value": 1,
-			"matID": 3
+			"matID": 2
 		},
 		{
 			"name": "NoNormalVelocity", // name of boundary condition
 			"type": 0, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
 			"value": 0,
-			"matID": 4
+			"matID": 3
 		}
 	],
 
@@ -51,13 +45,13 @@
 			"name": "NoTanVelocity", // name of boundary condition
 			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
 			"value": 0,
-			"matID": 5
+			"matID": 4
 		},
         {
 			"name": "TanVelocity", // name of boundary condition
 			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
 			"value": -1,
-			"matID": 6
+			"matID": 5
 		}
 	],
 

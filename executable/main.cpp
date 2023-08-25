@@ -18,6 +18,8 @@
 #include "TPZMeshOperator.h"
 #include <pzskylstrmatrix.h>
 #include <pzfstrmatrix.h>
+#include <pzstrmatrixot.h>
+#include <TPZSpStructMatrix.h>
 
 int main()
 {
@@ -27,8 +29,8 @@ int main()
   
     bool printdata = false;
 
-    std::string filepath = "../examples/";
-    std::string filename = "AxisymmetricHagenPoiseuilleFlow";
+    std::string filepath = "../examples/Elasticity/";
+    std::string filename = "UniformTension";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
@@ -36,12 +38,8 @@ int main()
     TPZGeoMesh* gmesh = TPZMeshOperator::CreateGMesh(&simData);
 
     TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
-    std::ofstream meshv("cmesh_v.txt");
-    cmesh_v->Print(meshv);
 
     TPZCompMesh* cmesh_p = TPZMeshOperator::CreateCmeshP(&simData, gmesh);
-    std::ofstream meshp("cmesh_p.txt");
-    cmesh_p->Print(meshp);
 
     if(simData.CondensedElements()){
         TPZCompMesh* cmesh_Mp = TPZMeshOperator::CreateCmeshMp(&simData, gmesh);
@@ -52,17 +50,17 @@ int main()
 
     if (simData.CondensedElements())
     {
-        TPZMeshOperator::CondenseElements(cmesh_m);
+        TPZMeshOperator::CondenseElements(&simData, cmesh_m);
     }
+    TPZMeshOperator::PrintCompMesh(cmesh_m);
+    //cmesh_m->SaddlePermute();
 
-    cmesh_m->SaddlePermute();
-    TPZLinearAnalysis an(cmesh_m,RenumType::ENone);
-
-    std::ofstream meshm("cmesh_m.txt");
-    cmesh_m->Print(meshm);
+    TPZLinearAnalysis an(cmesh_m);
+    
+    //TPZSSpStructMatrix<STATE, TPZStructMatrixOT<STATE>> strmat(cmesh_m);
     TPZSSpStructMatrix<> strmat(cmesh_m);
     //TPZFStructMatrix<> strmat(cmesh_m);
-    //TPZSkylineStructMatrix<> strmat(cmesh_m);
+    // TPZSkylineStructMatrix<> strmat(cmesh_m);
 
     strmat.SetNumThreads(0);
 
@@ -95,17 +93,13 @@ int main()
     step.SetDirect(ELDLt);
     an.SetSolver(step);
 
-    {
-        TPZSimpleTimer timer("Solving", true);
-        
-        an.Assemble();
-        
-        an.Solve();
-    }
+    std::cout << "Starting assemble...\n";
+    an.Assemble();
+    std::cout << "Finished assemble...\n";
 
+    std::cout << "Starting solver...\n";
     an.Solve();
-
-    
+    std::cout << "Finished solver...\n";
 
     if (printdata)
     {
@@ -122,10 +116,10 @@ int main()
     //an.PostProcessError(Errors, false);
 
     // vtk export
-    TPZVTKGenerator vtk(cmesh_m, {"Pressure", "Velocity", "Tension"}, filename, simData.Resolution());
+    TPZVTKGenerator vtk(cmesh_m, {"Pressure", "Displacement", "Stress"}, filename, simData.Resolution());
     vtk.Do();
 
     std::cout << "\n\nSimulation finished without errors :) \n\n";
-            
+       
 	return 0;
 }

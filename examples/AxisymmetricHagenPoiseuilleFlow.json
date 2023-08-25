@@ -3,13 +3,13 @@
     
     "CreateMsh": false,
 
-	"HdivType": 1,
+	"HdivType": 0,
 
     "isAxisymmetric": 1,
 
-	"VelpOrder": 2, // approximation order for velocity
+	"VelpOrder": 1, // approximation order for velocity
 
-	"TracpOrder": 1, // approximation order for traction
+	"TracpOrder": 0, // approximation order for traction
 
 	"Dim": 2,
 
