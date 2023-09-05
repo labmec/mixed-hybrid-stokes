@@ -1,5 +1,5 @@
 {	
-	"MeshName": "../examples/Elasticity/Mesh/UniformTension",
+	"MeshName": "../examples/Elasticity/Mesh/NotLockingBeam",
 
 	"CreateMsh": false,
 
@@ -7,15 +7,15 @@
 
     "isAxisymmetric": 0,
 
-	"VelpOrder": 1, // approximation order for velocity
+	"VelpOrder": 3, // approximation order for velocity
 
-	"TracpOrder": 0, // approximation order for traction
+	"TracpOrder": 2, // approximation order for traction
 
 	"Dim": 2,
 
 	"Resolution": 4,
 
-    "StaticCondensation": false,
+    "StaticCondensation": true,
 
 	"Domain": [ // domain data
 		{
@@ -26,32 +26,38 @@
 	],
 
 	"NormalBoundary":[
-		{
-			"name": "UnitNormalStress", // name of boundary condition
-			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
-			"value": 1.0,
-			"matID": 2
-		},
         {
 			"name": "ZeroNormalVelocity", // name of boundary condition
 			"type": 0, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
 			"value": 0.0,
-			"matID": 3
+			"matID": 2
 		},
         {
 			"name": "ZeroNormalStress", // name of boundary condition
 			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
 			"value": 0.0,
-			"matID": 4
+			"matID": 3
 		}
 	],
 
 	"TangentialBoundary": [
         {
+			"name": "ZeroTangentialVelocity", // name of boundary condition
+			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 0.0,
+			"matID": 4
+		},
+        {
 			"name": "ZeroTangentialStress", // name of boundary condition
 			"type": 3, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
 			"value": 0.0,
 			"matID": 5
+		},
+        {
+			"name": "TangentialStress", // name of boundary condition
+			"type": 3, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 1.0,
+			"matID": 6
 		}
 	],
 

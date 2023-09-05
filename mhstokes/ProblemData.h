@@ -31,7 +31,7 @@ class ProblemData
     struct BcData {
         std::string name = "none"; // name of the bc
         int type = 0; // bc type (explained below)
-        TPZManVector<double,1>  value = {0}; // bc value
+        TPZManVector<double,2>  value = {0.0, 0.0}; // bc value
         int matID = 0; // bc material ID
     };
 

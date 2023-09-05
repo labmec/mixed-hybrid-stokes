@@ -104,7 +104,8 @@ void ProblemData::ReadJson(std::string file){
 
         bcTangentialdata.name = bcjson["name"];
         bcTangentialdata.type = bcjson["type"];
-        bcTangentialdata.value[0] = bcjson["value"];
+        for (int i = 0; i < fDim-1; i++)
+            bcTangentialdata.value[i] = bcjson["value"][i];
         bcTangentialdata.matID = bcjson["matID"];
         
         fBcTangentialVec.push_back(bcTangentialdata);

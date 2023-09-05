@@ -63,8 +63,6 @@ TPZGeoMesh *TPZMeshOperator::CreateGMesh(ProblemData *simData)
 
     gmesh->BuildConnectivity();
 
-    //Check if 
-
     return gmesh;
 }
 
@@ -450,7 +448,7 @@ TPZCompMesh *TPZMeshOperator::CreateCMeshV(ProblemData *simData, TPZGeoMesh *gme
             // only in those elements whose dimension equals to the simulation dim
             if (compEl->Dimension() == simData->Dim())
             {
-                // dynamica casting the compEl object to use the ForceSideOrder function
+                // dynamic casting the compEl object to use the ForceSideOrder function
                 TPZInterpolatedElement *intercEl = dynamic_cast<TPZInterpolatedElement *>(compEl);
 
                 // checking if the dynamic cast exists
@@ -535,7 +533,7 @@ TPZCompMesh *TPZMeshOperator::CreateCmeshP(ProblemData *simData, TPZGeoMesh *gme
 
     std::set<int> materialIDs;
 
-    if (simData->DomainVec().size() != 0) //if true, there is a 2D domain
+    if (simData->DomainVec().size() != 0) //if true, there is a 2D/3D domain
     {
         cmesh_p->SetDimModel(simData->Dim());
 
@@ -565,6 +563,7 @@ TPZCompMesh *TPZMeshOperator::CreateCmeshP(ProblemData *simData, TPZGeoMesh *gme
 
         // matlambda traction material
         auto matLambda = new TPZNullMaterial<>(simData->LambdaID());
+        matLambda->SetNStateVariables(simData->Dim() - 1); //In 3D, lambda has 2 state variables (one at each tangential direction)
         cmesh_p->InsertMaterialObject(matLambda);
 
         materialIDs.insert(simData->LambdaID());
@@ -573,6 +572,7 @@ TPZCompMesh *TPZMeshOperator::CreateCmeshP(ProblemData *simData, TPZGeoMesh *gme
         for (const auto &bc : simData->TangentialBCs())
         {
             auto matLambdaBC = new TPZNullMaterial<>(bc.matID);
+            matLambdaBC->SetNStateVariables(simData->Dim() - 1);
             cmesh_p->InsertMaterialObject(matLambdaBC);
 
             materialIDs.insert(bc.matID);
@@ -765,21 +765,48 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
     {
         //TPZStokesMaterial *material = simData->Axisymmetric() ? new TPZAxisymStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity) : new TPZStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity);
 
-        TPZMixedLinearElasticMaterial* material = new TPZMixedLinearElasticMaterial(simData->DomainVec()[0].matID, simData->Dim(), 1.0, 0.0);
+        TPZMixedLinearElasticMaterial* material = new TPZMixedLinearElasticMaterial(simData->DomainVec()[0].matID, simData->Dim(), 1.0, 0.0, AnalysisType::EGeneral);
 
         bool hasAnalyticSolution = false;
-        if (hasAnalyticSolution)
+        if (hasAnalyticSolution && dynamic_cast<TPZStokesMaterial*>(material))
         {
             TAxisymmetricStokesAnalytic *analyticSol = new TAxisymmetricStokesAnalytic();
             analyticSol->fExactSol = TAxisymmetricStokesAnalytic::ESlidingCouetteFlow;
             analyticSol->fL = 2.0;
             analyticSol->fRe = 2.0;
             analyticSol->fRi = 1.0;
-            analyticSol->fp = -1.0;
+            analyticSol->fp = -1.0; 
             analyticSol->fvel = 1.0;
             analyticSol->fviscosity = simData->DomainVec()[0].viscosity;
             material->SetExactSol(analyticSol->ExactSolution(), 0);
             material->SetForcingFunction(analyticSol->ForceFunc(), 0);
+        }
+        else if (hasAnalyticSolution && dynamic_cast<TPZMixedLinearElasticMaterial*>(material))
+        {
+            if (simData->Dim() == 2)
+            {
+                TElasticity2DAnalytic *analyticSol = new TElasticity2DAnalytic();
+                analyticSol->fProblemType = TElasticity2DAnalytic::EDefState::ELoadedBeam;
+                analyticSol->gE = 200000.0;
+                analyticSol->gPoisson = 0.0;
+                analyticSol->fPlaneStress = 1;
+                material->SetExactSol(analyticSol->ExactSolution(), 3);
+                material->SetForcingFunction(analyticSol->ForceFunc(), 3);
+            }
+            else if (simData->Dim() == 3)
+            {
+                TElasticity3DAnalytic *analyticSol = new TElasticity3DAnalytic();
+                analyticSol->fProblemType = TElasticity3DAnalytic::EDefState::EStretchx;
+                analyticSol->fE = 1.0;
+                analyticSol->fPoisson = 0.0;
+                material->SetExactSol(analyticSol->ExactSolution(), 3);
+                material->SetForcingFunction(analyticSol->ForceFunc(), 3);
+            }
+            else
+            {
+                std::cout << "Dimension wrong!" << std::endl;
+                DebugStop();
+            }
         }
 
         cmesh_m->InsertMaterialObject(material);
@@ -793,6 +820,9 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
             val2 = bc.value;
 
             TPZBndCond *matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
+            auto matBC2 = dynamic_cast<TPZBndCondT<STATE>*>(matBC);
+            if (material->HasExactSol())
+                matBC2->SetForcingFunctionBC(material->ExactSol(),5);
             cmesh_m->InsertMaterialObject(matBC);
         }
 
@@ -801,6 +831,9 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
             val2 = bc.value;
 
             TPZBndCond *matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
+            auto matBC2 = dynamic_cast<TPZBndCondT<STATE>*>(matBC);
+            if (material->HasExactSol())
+                matBC2->SetForcingFunctionBC(material->ExactSol(),5);
             cmesh_m->InsertMaterialObject(matBC);
         }
 
@@ -808,15 +841,15 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
         TPZNullMaterialCS<> *matLambda = new TPZNullMaterialCS<>(simData->LambdaID());
         double dim = simData->Axisymmetric()? 1 : simData->Dim()-1;
         matLambda->SetDimension(dim);
-        matLambda->SetNStateVariables(1);
+        matLambda->SetNStateVariables(dim);
         cmesh_m->InsertMaterialObject(matLambda);
 
         // 4 - Material for interfaces (Inner)
-        TPZInterfaceAxisymStokesMaterial *matInterfaceLeft = new TPZInterfaceAxisymStokesMaterial(simData->InterfaceID(), simData->Dim());
+        TPZInterfaceAxisymStokesMaterial *matInterfaceLeft = new TPZInterfaceAxisymStokesMaterial(simData->InterfaceID(), simData->Dim()-1);
         matInterfaceLeft->SetMultiplier(1.);
         cmesh_m->InsertMaterialObject(matInterfaceLeft);
 
-        TPZInterfaceAxisymStokesMaterial *matInterfaceRight = new TPZInterfaceAxisymStokesMaterial(-simData->InterfaceID(), simData->Dim());
+        TPZInterfaceAxisymStokesMaterial *matInterfaceRight = new TPZInterfaceAxisymStokesMaterial(-simData->InterfaceID(), simData->Dim()-1);
         matInterfaceRight->SetMultiplier(-1.);
         cmesh_m->InsertMaterialObject(matInterfaceRight);
     }

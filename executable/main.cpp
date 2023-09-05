@@ -27,10 +27,10 @@ int main()
     TPZLogger::InitializePZLOG("Stokes.cfg");
 #endif
   
-    bool printdata = false;
+    bool printdata = true;
 
     std::string filepath = "../examples/Elasticity/";
-    std::string filename = "UniformTension";
+    std::string filename = "UniformTension3D";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
@@ -55,7 +55,7 @@ int main()
     TPZMeshOperator::PrintCompMesh(cmesh_m);
     //cmesh_m->SaddlePermute();
 
-    TPZLinearAnalysis an(cmesh_m);
+    TPZLinearAnalysis an(cmesh_m, RenumType::ENone);
     
     //TPZSSpStructMatrix<STATE, TPZStructMatrixOT<STATE>> strmat(cmesh_m);
     TPZSSpStructMatrix<> strmat(cmesh_m);
@@ -116,7 +116,8 @@ int main()
     //an.PostProcessError(Errors, false);
 
     // vtk export
-    TPZVTKGenerator vtk(cmesh_m, {"Pressure", "Displacement", "Stress"}, filename, simData.Resolution());
+    TPZVTKGenerator vtk(cmesh_m, {"Pressure", "Displacement", "Stress", "Strain"}, filename, simData.Resolution());
+    vtk.SetNThreads(0);
     vtk.Do();
 
     std::cout << "\n\nSimulation finished without errors :) \n\n";

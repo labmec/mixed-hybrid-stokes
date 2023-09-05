@@ -1,9 +1,9 @@
 {	
-	"MeshName": "../examples/Elasticity/Mesh/UniformTension",
+	"MeshName": "../examples/Elasticity/Mesh/UniformTension3D",
 
 	"CreateMsh": false,
 
-	"HdivType": 0,
+	"HdivType": 1,
 
     "isAxisymmetric": 0,
 
@@ -11,9 +11,9 @@
 
 	"TracpOrder": 0, // approximation order for traction
 
-	"Dim": 2,
+	"Dim": 3,
 
-	"Resolution": 4,
+	"Resolution": 1,
 
     "StaticCondensation": false,
 
@@ -33,14 +33,14 @@
 			"matID": 2
 		},
         {
-			"name": "ZeroNormalVelocity", // name of boundary condition
-			"type": 0, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"name": "ZeroNormalStress", // name of boundary condition
+			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
 			"value": 0.0,
 			"matID": 3
 		},
         {
-			"name": "ZeroNormalStress", // name of boundary condition
-			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"name": "ZeroNormalDisplacement", // name of boundary condition
+			"type": 0, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
 			"value": 0.0,
 			"matID": 4
 		}
@@ -50,7 +50,7 @@
         {
 			"name": "ZeroTangentialStress", // name of boundary condition
 			"type": 3, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
-			"value": 0.0,
+			"value": [0.0, 1.0], //For 3D, we have two tangential components
 			"matID": 5
 		}
 	],

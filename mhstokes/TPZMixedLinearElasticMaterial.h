@@ -34,6 +34,18 @@ protected:
     /// Poisson coeficient
     REAL fpoisson;
 
+    /// Lame first constant
+    REAL flambda;
+
+    /// Lame second constant
+    REAL fmu;
+
+    /// Bulk modulus
+    REAL fbulk;
+
+    /// Thickness in case of a plane analysis
+    REAL fthickness;
+
     AnalysisType fAnalysisType;
     
     enum SpaceIndex {EUindex, EPindex, EPMindex, EVMindex};
@@ -46,7 +58,7 @@ public:
     TPZMixedLinearElasticMaterial();
 
     /// Creates a material object and inserts it in the vector of material pointers of the mesh
-    TPZMixedLinearElasticMaterial(int matID, int dimension, REAL young_modulus, REAL poisson, AnalysisType analysisType = AnalysisType::EGeneral);
+    TPZMixedLinearElasticMaterial(int matID, int dimension, REAL young_modulus, REAL poisson, AnalysisType analysisType = AnalysisType::EGeneral, REAL thickness = 1.0);
     
     /// Destructor
     ~TPZMixedLinearElasticMaterial();
@@ -89,10 +101,22 @@ public:
      * @since April 10, 2007
      */
     void FillDataRequirements(TPZVec<TPZMaterialDataT<STATE>> &datavec) const override;
+
+    void FillBoundaryConditionDataRequirements(int type, TPZVec<TPZMaterialDataT<STATE>> &datavec) const override;
     
     virtual void Errors(const TPZVec<TPZMaterialDataT<STATE>>& data, TPZVec<REAL>& errors) override;
     
     virtual int NEvalErrors(){return 6;}
+
+    virtual void DeviatoricElasticityTensor(TPZFNMatrix<36,REAL>& D);
+
+    virtual void ElasticityTensor(TPZFNMatrix<36,REAL>& D);
+
+    virtual void StrainTensor(const TPZFNMatrix<10, STATE>& gradU, TPZFNMatrix<6,REAL>& epsilon);
+
+    virtual void DeviatoricStressTensor(const TPZFNMatrix<10, STATE>& gradU, TPZFNMatrix<6,REAL>& sigma);
+
+    virtual void StressTensor(const TPZFNMatrix<10, STATE>& gradU, TPZFNMatrix<6,REAL>& sigma);
 };
 
 #endif

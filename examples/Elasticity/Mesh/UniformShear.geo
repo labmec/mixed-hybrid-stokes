@@ -30,13 +30,11 @@ Plane Surface(1) = {1};
 //+
 Physical Surface("Domain", 1) = {1};
 
-Physical Curve("UnitNormalStress", 2) = {2};
+Physical Curve("ZeroNormalDisplacement", 2) = {1};
 //+
-Physical Curve("ZeroNormalVelocity", 3) = {1,4};
+Physical Curve("ZeroTangentialDisplacement", 3) = {1,2,4};
 //+
-Physical Curve("ZeroNormalStress", 4) = {3};
-//+
-Physical Curve("ZeroTangentialStress", 5) = {1,2,3,4};
+Physical Curve("UnitTangentialDisplacement", 4) = {3};
 //+
 
 Transfinite Surface {1} = {1, 2, 3, 4};
