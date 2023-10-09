@@ -18,8 +18,7 @@
 #include "TPZMeshOperator.h"
 #include <pzskylstrmatrix.h>
 #include <pzfstrmatrix.h>
-#include <pzstrmatrixot.h>
-#include <TPZSpStructMatrix.h>
+#include <pzmatred.h>
 
 int main()
 {
@@ -27,10 +26,10 @@ int main()
     TPZLogger::InitializePZLOG("Stokes.cfg");
 #endif
   
-    bool printdata = true;
+    bool printdata = false;
 
-    std::string filepath = "../examples/Elasticity/";
-    std::string filename = "UniformTension3D";
+    std::string filepath = "../examples/";
+    std::string filename = "AxisymmetricHagenPoiseuilleFlow";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
@@ -50,56 +49,58 @@ int main()
 
     if (simData.CondensedElements())
     {
-        TPZMeshOperator::CondenseElements(&simData, cmesh_m);
+        TPZMeshOperator::CondenseElements(cmesh_m);
     }
-    TPZMeshOperator::PrintCompMesh(cmesh_m);
-    //cmesh_m->SaddlePermute();
 
-    TPZLinearAnalysis an(cmesh_m, RenumType::ENone);
-    
-    //TPZSSpStructMatrix<STATE, TPZStructMatrixOT<STATE>> strmat(cmesh_m);
+    cmesh_m->SaddlePermute();
+    TPZLinearAnalysis an(cmesh_m,RenumType::ENone);
+
+    TPZMeshOperator::PrintCompMesh(cmesh_m);
+
+    int64_t nEq = cmesh_m->NEquations();
+    int64_t nEq1d = 0;
+    for (const TPZGeoEl* gel : gmesh->ElementVec())
+    {
+        int matid = gel->MaterialId();
+        if (matid == simData.InterfaceID() || matid == simData.LambdaID() || matid == simData.DomainVec()[0].matID) //we only want the 1d elements
+            continue;
+        const TPZCompEl* cel = gel->Reference();
+        if (cel)
+        {
+            const int nconnects = cel->NConnects();
+            for (int i = 0; i < nconnects; i++)
+            {
+                TPZConnect con = cel->Connect(i);
+                
+            }
+        }
+
+    }
+    TPZMatRed<STATE, TPZFMatrix<STATE>> *matRed = new TPZMatRed<STATE, TPZFMatrix<STATE>>(nEq,);
+
     TPZSSpStructMatrix<> strmat(cmesh_m);
     //TPZFStructMatrix<> strmat(cmesh_m);
-    // TPZSkylineStructMatrix<> strmat(cmesh_m);
+    //TPZSkylineStructMatrix<> strmat(cmesh_m);
 
     strmat.SetNumThreads(0);
 
-    // TPZEquationFilter filter(cmesh_m->NEquations());
-    // std::set<int64_t> setremove;
-
-    // for (auto el : cmesh_m->ElementVec())
-    // {
-    //     auto matid = el->Reference()->MaterialId();
-    //     if (matid != 6)
-    //         continue;
-    //     int64_t nconnects = el->NConnects();
-    //     for (int64_t ic = 0; ic < nconnects; ic++)
-    //     {
-    //         TPZConnect &c = el->Connect(ic);
-    //         int64_t blocknumber = c.SequenceNumber();
-    //         auto firsteq = cmesh_m->Block().Position(blocknumber);
-    //         int64_t blocksize = cmesh_m->Block().Size(blocknumber);
-    //         for (int64_t eq = firsteq; eq < firsteq + blocksize; eq++)
-    //         {
-    //             setremove.insert(eq);
-    //         }
-    //     }
-    // }
-    // filter.ExcludeEquations(setremove);
-    // strmat.EquationFilter() = filter;
     an.SetStructuralMatrix(strmat);
 
     TPZStepSolver<STATE> step;
     step.SetDirect(ELDLt);
     an.SetSolver(step);
 
-    std::cout << "Starting assemble...\n";
-    an.Assemble();
-    std::cout << "Finished assemble...\n";
+    {
+        TPZSimpleTimer timer("Solving", true);
+        
+        an.Assemble();
+        
+        an.Solve();
+    }
 
-    std::cout << "Starting solver...\n";
     an.Solve();
-    std::cout << "Finished solver...\n";
+
+    
 
     if (printdata)
     {
@@ -116,11 +117,10 @@ int main()
     //an.PostProcessError(Errors, false);
 
     // vtk export
-    TPZVTKGenerator vtk(cmesh_m, {"Pressure", "Displacement", "Stress", "Strain"}, filename, simData.Resolution());
-    vtk.SetNThreads(0);
+    TPZVTKGenerator vtk(cmesh_m, {"Pressure", "Velocity", "Tension"}, filename, simData.Resolution());
     vtk.Do();
 
     std::cout << "\n\nSimulation finished without errors :) \n\n";
-       
+            
 	return 0;
 }

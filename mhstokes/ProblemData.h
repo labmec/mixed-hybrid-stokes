@@ -31,7 +31,7 @@ class ProblemData
     struct BcData {
         std::string name = "none"; // name of the bc
         int type = 0; // bc type (explained below)
-        TPZManVector<double,1>  value = {0}; // bc value
+        TPZManVector<double, 3>  value = {0.0, 0.0, 0.0}; // bc value
         int matID = 0; // bc material ID
     };
 
@@ -89,64 +89,64 @@ public:
     // you can pass a file, so that the simulation data will be printed inside it. Otherwise, it will be displayed on terminal
     
     const std::string& MeshName() const {return fMeshName;} //setter using reference variable;
-    std::string& MeshName(){return fMeshName;}  //getter using reference variable
+    void SetMeshName(const std::string& meshname) {fMeshName = meshname;}  //getter using reference variable
     
     const bool& CreateMshFile() const {return fMshFile;}
-    bool& CreateMshFile() {return fMshFile;}
+    void SetCreateMshFile(bool create) {fMshFile = create;}
     
     const int& HdivType() const {return fHdivtype;}
-    int& HdivType() {return fHdivtype;}
+    void SetHdivType(int hdivtype) {fHdivtype = hdivtype;}
 
     const int& Axisymmetric() const {return fAxisymmetric;}
-    int& Axisymmetric() {return fAxisymmetric;}
+    void SetAxisymmetric(int axisymmetric) {fAxisymmetric = axisymmetric;}
     
     const int& VelpOrder() const {return fVelpOrder;}
-    int& VelpOrder(){return fVelpOrder;}
+    void SetVelpOrder(int velp) {fVelpOrder = velp;}
     
     const int& TracpOrder() const {return fTracpOrder;}
-    int& tracpOrder(){return fTracpOrder;}
+    void SetTracpOrder(int tracp) {fTracpOrder = tracp;}
     
     const int& Dim() const {return fDim;}
-    int& Dim(){return fDim;}
+    void SetDim(int dim) {fDim = dim;}
     
     const int& Resolution() const {return fResolution;}
-    int& Resolution() {return fResolution;}
+    void SetResolution(int res) {fResolution = res;}
     
     const bool& CondensedElements() const {return fCondensedElement;}
-    bool& CondensedElements() {return fCondensedElement;}
+    void SetCondensedElements(bool condense) {fCondensedElement = condense;}
 
     const std::vector<DomainData>& DomainVec() const {return fDomain;}
-    std::vector<DomainData>& DomainVec(){return fDomain;}
+    void SetDomainVec(const std::vector<DomainData>& vec) {fDomain = vec;}
 
     const std::vector<AxisymmetryDomainData>& AxisymmetryDomainVec() const {return fAxisymmetryDomain;}
-    std::vector<AxisymmetryDomainData>& AxisymmetryDomainVec(){return fAxisymmetryDomain;}
+    void SetAxisymmetryDomainVec(const std::vector<AxisymmetryDomainData>& vec) {fAxisymmetryDomain = vec;}
     
     const std::vector<BcData>& NormalBCs() const {return fBcNormalVec;}
-    std::vector<BcData>& NormalBCs(){return fBcNormalVec;}
+    void SetNormalBCs(const std::vector<BcData>& bcs) {fBcNormalVec = bcs;}
     
     const std::vector<BcData>& TangentialBCs() const {return fBcTangentialVec;}
-    std::vector<BcData>& TangentialBCs(){return fBcTangentialVec;}
+    void SetTangentialBCs(const std::vector<BcData>& bcs) {fBcTangentialVec = bcs;}
 
     const std::vector<BcData>& AxisymmetryBCs() const {return fBcAxisymmetryVec;}
-    std::vector<BcData>& AxisymmetryBCs(){return fBcAxisymmetryVec;}
+    void SetAxisymmetryBCs(const std::vector<BcData>& bcs) {fBcAxisymmetryVec = bcs;}
     
     const int& InterfaceID() const{return fInterfaceID;}
-    int& InterfaceID(){return fInterfaceID;}
+    void SetInterfaceID(int id) {fInterfaceID = id;}
     
     const int& LambdaID() const{return fLambdaID;}
-    int& LambdaID(){return fLambdaID;}
+    void SetLambdaID(int id ){fLambdaID = id;}
 
     const int& AxiLambdaID() const{return fAxiLambdaID;}
-    int& AxiLambdaID(){return fAxiLambdaID;}
+    void SetAxiLambdaID(int id) {fAxiLambdaID = id;}
     
     const int& AxiInterfaceID() const{return fAxiInterfaceID;}
-    int& AxiInterfaceID(){return fAxiInterfaceID;}
+    void SetAxiInterfaceID(int id) {fAxiInterfaceID = id;}
 
     const int& FluxInterfaceID() const{return fFluxInterfaceID;}
-    int& FluxInterfaceID(){return fFluxInterfaceID;}
+    void SetFluxInterfaceID(int id) {fFluxInterfaceID = id;}
     
     const TPZVec<TPZCompMesh*>& MeshVector() const {return fMeshVector;}
-    TPZVec<TPZCompMesh*>& MeshVector() {return fMeshVector;}
+    void SetMeshVector(const TPZVec<TPZCompMesh*>& vec) {fMeshVector = vec;}
 };
 
 #endif

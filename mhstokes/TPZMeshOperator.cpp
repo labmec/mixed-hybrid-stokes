@@ -27,6 +27,7 @@
 #include "TPZStokesMaterial.h"
 #include "TPZAxisymStokesMaterial.h"
 #include "TPZ1dStokesMaterial.h"
+#include "TPZMixedLinearElasticMaterial.h"
 #include "TPZMeshOperator.h"
 #include "ProblemData.h"
 
@@ -61,8 +62,6 @@ TPZGeoMesh *TPZMeshOperator::CreateGMesh(ProblemData *simData)
     TPZMeshOperator::InsertLambdaGEl(simData, gmesh);
 
     gmesh->BuildConnectivity();
-
-    //Check if 
 
     return gmesh;
 }
@@ -416,7 +415,6 @@ TPZCompMesh *TPZMeshOperator::CreateCMeshV(ProblemData *simData, TPZGeoMesh *gme
         else if (simData->HdivType() == EStandard)
         {
             cmesh_v->ApproxSpace().SetHDivFamily(HDivFamily::EHDivStandard);
-            
         }
 
         cmesh_v->SetAllCreateFunctionsHDiv();
@@ -450,7 +448,7 @@ TPZCompMesh *TPZMeshOperator::CreateCMeshV(ProblemData *simData, TPZGeoMesh *gme
             // only in those elements whose dimension equals to the simulation dim
             if (compEl->Dimension() == simData->Dim())
             {
-                // dynamica casting the compEl object to use the ForceSideOrder function
+                // dynamic casting the compEl object to use the ForceSideOrder function
                 TPZInterpolatedElement *intercEl = dynamic_cast<TPZInterpolatedElement *>(compEl);
 
                 // checking if the dynamic cast exists
@@ -461,6 +459,8 @@ TPZCompMesh *TPZMeshOperator::CreateCMeshV(ProblemData *simData, TPZGeoMesh *gme
                 intercEl->ForceSideOrder(compEl->Reference()->NSides() - 1, simData->VelpOrder() + 1);
             }
         }
+
+        int numEq2d = cmesh_v->NEquations();
         gmesh->ResetReference();
     }
 
@@ -494,6 +494,23 @@ TPZCompMesh *TPZMeshOperator::CreateCMeshV(ProblemData *simData, TPZGeoMesh *gme
         }
 
         cmesh_v->AutoBuild(materialIDs);
+        std::cout << cmesh_v->NElements() << std::endl;
+        
+        for (int64_t el = 0; el < cmesh_v->NElements(); el++)
+        {
+            auto cel = cmesh_v->Element(el);
+            auto gel = cel->Reference();
+            if (gel->Dimension() == 1 && cel->NConnects() == 3)
+            {
+                
+                int64_t ncon = cel->NConnects();
+                for (int64_t i = 0; i < ncon; i++)
+                {
+                    TPZConnect &newnod = cel->Connect(i);
+                    newnod.SetLagrangeMultiplier(3);
+                }
+            }
+        }
     }
 
     // expanding the solution vector
@@ -516,7 +533,7 @@ TPZCompMesh *TPZMeshOperator::CreateCmeshP(ProblemData *simData, TPZGeoMesh *gme
 
     std::set<int> materialIDs;
 
-    if (simData->DomainVec().size() != 0) //if true, there is a 2D domain
+    if (simData->DomainVec().size() != 0) //if true, there is a 2D/3D domain
     {
         cmesh_p->SetDimModel(simData->Dim());
 
@@ -546,6 +563,7 @@ TPZCompMesh *TPZMeshOperator::CreateCmeshP(ProblemData *simData, TPZGeoMesh *gme
 
         // matlambda traction material
         auto matLambda = new TPZNullMaterial<>(simData->LambdaID());
+        matLambda->SetNStateVariables(simData->Dim() - 1); //In 3D, lambda has 2 state variables (one at each tangential direction)
         cmesh_p->InsertMaterialObject(matLambda);
 
         materialIDs.insert(simData->LambdaID());
@@ -554,6 +572,7 @@ TPZCompMesh *TPZMeshOperator::CreateCmeshP(ProblemData *simData, TPZGeoMesh *gme
         for (const auto &bc : simData->TangentialBCs())
         {
             auto matLambdaBC = new TPZNullMaterial<>(bc.matID);
+            matLambdaBC->SetNStateVariables(simData->Dim() - 1);
             cmesh_p->InsertMaterialObject(matLambdaBC);
 
             materialIDs.insert(bc.matID);
@@ -600,36 +619,52 @@ TPZCompMesh *TPZMeshOperator::CreateCmeshP(ProblemData *simData, TPZGeoMesh *gme
         materialIDs.insert(simData->AxisymmetryDomainVec()[0].matID);
 
         cmesh_p->AutoBuild(materialIDs);
-        gmesh->ResetReference();
-
-        materialIDs.clear();
-        //if (simData->DomainVec().size() == 0) //if a 2D domain was not specified, we need to create the lambda material
-        {
-            // matlambda traction material
-            auto matLambda = new TPZNullMaterial<>(simData->AxiLambdaID());
-            cmesh_p->InsertMaterialObject(matLambda);
-            materialIDs.insert(simData->AxiLambdaID());
-            if (simData->TracpOrder() > 0)
-            {
-                cmesh_p->SetAllCreateFunctionsContinuous();
-                cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
-            }
-            else
-            {
-                cmesh_p->SetAllCreateFunctionsDiscontinuous();
-                cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
-            }
-
-            cmesh_p->SetDefaultOrder(simData->TracpOrder());
-            cmesh_p->SetDimModel(1);
-            cmesh_p->AutoBuild(materialIDs);
-        }
 
         int64_t ncon = cmesh_p->NConnects();
         for (int64_t i = 0; i < ncon; i++)
         {
             TPZConnect &newnod = cmesh_p->ConnectVec()[i];
-            newnod.SetLagrangeMultiplier(1);
+            unsigned char lagrange = newnod.LagrangeMultiplier();
+            unsigned char zero = '\000';
+            if (lagrange == zero)
+            {
+                newnod.SetLagrangeMultiplier(2);
+            }
+        }
+
+        gmesh->ResetReference();
+
+        materialIDs.clear();
+
+        // matlambda traction material
+        auto matLambda = new TPZNullMaterial<>(simData->AxiLambdaID());
+        cmesh_p->InsertMaterialObject(matLambda);
+        materialIDs.insert(simData->AxiLambdaID());
+        if (simData->TracpOrder() > 0)
+        {
+            cmesh_p->SetAllCreateFunctionsContinuous();
+            cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
+        }
+        else
+        {
+            cmesh_p->SetAllCreateFunctionsDiscontinuous();
+            cmesh_p->ApproxSpace().CreateDisconnectedElements(true);
+        }
+
+        cmesh_p->SetDefaultOrder(simData->TracpOrder());
+        cmesh_p->SetDimModel(1);
+        cmesh_p->AutoBuild(materialIDs);
+
+        ncon = cmesh_p->NConnects();
+        for (int64_t i = 0; i < ncon; i++)
+        {
+            TPZConnect &newnod = cmesh_p->ConnectVec()[i];
+            unsigned char lagrange = newnod.LagrangeMultiplier();
+            unsigned char zero = '\000';
+            if (lagrange == zero)
+            {
+                newnod.SetLagrangeMultiplier(1);
+            }
         }
     }
 
@@ -730,19 +765,48 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
     {
         TPZStokesMaterial *material = simData->Axisymmetric() ? new TPZAxisymStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity) : new TPZStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity);
 
-        bool hasAnalyticSolution = false;
-        if (hasAnalyticSolution)
+        //TPZMixedLinearElasticMaterial* material = new TPZMixedLinearElasticMaterial(simData->DomainVec()[0].matID, simData->Dim(), 1.0, 0.0, AnalysisType::EPlaneStress);
+
+        bool hasAnalyticSolution = true;
+        if (hasAnalyticSolution && dynamic_cast<TPZStokesMaterial*>(material))
         {
-            TAxisymmetricStokesAnalytic *analyticSol = new TAxisymmetricStokesAnalytic();
-            analyticSol->fExactSol = TAxisymmetricStokesAnalytic::EAxialFlow;
-            analyticSol->fL = 2.0;
-            analyticSol->fRe = 4.0;
-            analyticSol->fRi = 2.0;
-            analyticSol->fp = -1.0;
-            //analyticSol->fvel = 1.0;
-            analyticSol->fviscosity = simData->DomainVec()[0].viscosity;
-            material->SetExactSol(analyticSol->ExactSolution(), 0);
-            material->SetForcingFunction(analyticSol->ForceFunc(), 0);
+            // TAxisymmetricStokesAnalytic *analyticSol = new TAxisymmetricStokesAnalytic();
+            // analyticSol->fExactSol = TAxisymmetricStokesAnalytic::ESlidingCouetteFlow;
+            // analyticSol->fL = 2.0;
+            // analyticSol->fRe = 2.0;
+            // analyticSol->fRi = 1.0;
+            // analyticSol->fp = -1.0; 
+            // analyticSol->fvel = 1.0;
+            // analyticSol->fviscosity = simData->DomainVec()[0].viscosity;
+            // material->SetExactSol(analyticSol->ExactSolution(), 0);
+            // material->SetForcingFunction(analyticSol->ForceFunc(), 0);
+        }
+        else if (hasAnalyticSolution && dynamic_cast<TPZMixedLinearElasticMaterial*>(material))
+        {
+            if (simData->Dim() == 2)
+            {
+                TElasticity2DAnalytic *analyticSol = new TElasticity2DAnalytic();
+                analyticSol->fProblemType = TElasticity2DAnalytic::EDefState::EBend;
+                analyticSol->gE = 200000.0;
+                analyticSol->gPoisson = 0.0;
+                analyticSol->fPlaneStress = 1;
+                material->SetExactSol(analyticSol->ExactSolution(), 3);
+                material->SetForcingFunction(analyticSol->ForceFunc(), 3);
+            }
+            else if (simData->Dim() == 3)
+            {
+                TElasticity3DAnalytic *analyticSol = new TElasticity3DAnalytic();
+                analyticSol->fProblemType = TElasticity3DAnalytic::EDefState::EBend;
+                analyticSol->fE = 1.0;
+                analyticSol->fPoisson = 0.0;
+                material->SetExactSol(analyticSol->ExactSolution(), 3);
+                material->SetForcingFunction(analyticSol->ForceFunc(), 3);
+            }
+            else
+            {
+                std::cout << "Dimension wrong!" << std::endl;
+                DebugStop();
+            }
         }
 
         cmesh_m->InsertMaterialObject(material);
@@ -756,6 +820,9 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
             val2 = bc.value;
 
             TPZBndCond *matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
+            auto matBC2 = dynamic_cast<TPZBndCondT<STATE>*>(matBC);
+            if (material->HasExactSol())
+                matBC2->SetForcingFunctionBC(material->ExactSol(),5);
             cmesh_m->InsertMaterialObject(matBC);
         }
 
@@ -764,6 +831,9 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
             val2 = bc.value;
 
             TPZBndCond *matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
+            auto matBC2 = dynamic_cast<TPZBndCondT<STATE>*>(matBC);
+            if (material->HasExactSol())
+                matBC2->SetForcingFunctionBC(material->ExactSol(),5);
             cmesh_m->InsertMaterialObject(matBC);
         }
 
@@ -771,15 +841,15 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
         TPZNullMaterialCS<> *matLambda = new TPZNullMaterialCS<>(simData->LambdaID());
         double dim = simData->Axisymmetric()? 1 : simData->Dim()-1;
         matLambda->SetDimension(dim);
-        matLambda->SetNStateVariables(1);
+        matLambda->SetNStateVariables(dim);
         cmesh_m->InsertMaterialObject(matLambda);
 
         // 4 - Material for interfaces (Inner)
-        TPZInterfaceAxisymStokesMaterial *matInterfaceLeft = new TPZInterfaceAxisymStokesMaterial(simData->InterfaceID(), simData->Dim());
+        TPZInterfaceAxisymStokesMaterial *matInterfaceLeft = new TPZInterfaceAxisymStokesMaterial(simData->InterfaceID(), simData->Dim()-1);
         matInterfaceLeft->SetMultiplier(1.);
         cmesh_m->InsertMaterialObject(matInterfaceLeft);
 
-        TPZInterfaceAxisymStokesMaterial *matInterfaceRight = new TPZInterfaceAxisymStokesMaterial(-simData->InterfaceID(), simData->Dim());
+        TPZInterfaceAxisymStokesMaterial *matInterfaceRight = new TPZInterfaceAxisymStokesMaterial(-simData->InterfaceID(), simData->Dim()-1);
         matInterfaceRight->SetMultiplier(-1.);
         cmesh_m->InsertMaterialObject(matInterfaceRight);
     }
@@ -845,12 +915,13 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
     {
         cmesh_m->SetName("CMesh_M_BeforeCond");
         cmesh_m->ComputeNodElCon();
+        PrintCompMesh(cmesh_m);
     }
 
     return cmesh_m;
 }
 
-void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh *cmesh_m)
+void TPZMeshOperator::CondenseElements(ProblemData *simData, TPZMultiphysicsCompMesh *cmesh_m)
 {
     int64_t ncompEl = cmesh_m->ElementVec().NElements();
     int dim = cmesh_m->Reference()->Dimension();
@@ -860,8 +931,13 @@ void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh *cmesh_m)
     TPZStack<TPZElementGroup *> elGroups;
     int count = 0;
 
-    // Creating the element groups
+    int domain1d_matid = simData->AxisymmetryDomainVec()[0].matID;
+    int lambda1d_matid = simData->AxiLambdaID();
+    int bc1d_matid[2] = {simData->AxisymmetryBCs()[0].matID, simData->AxisymmetryBCs()[1].matID};
 
+    auto cmesh_v = cmesh_m->MeshVector()[0];
+
+    // Creating the element groups for the domain
     for (int64_t el = 0; el < ncompEl; el++)
     {
         TPZCompEl *compEl = cmesh_m->Element(el);
@@ -893,6 +969,43 @@ void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh *cmesh_m)
         elGroups[count - 1]->AddElement(compEl);
     }
 
+    //Creating element group for axisymmetric tube
+    // if (simData->Axisymmetric() && simData->AxisymmetryDomainVec().size() != 0)
+    // {
+    //     for (int64_t el = 0; el < ncompEl; el++)
+    //     {
+    //         TPZCompEl *compEl = cmesh_m->Element(el);
+
+    //         if (!compEl) continue;
+
+    //         TPZGeoEl* gel = compEl->Reference();
+    //         int matid = gel->MaterialId();
+            
+
+    //         if (matid == domain1d_matid || matid == lambda1d_matid || matid == bc1d_matid[0] || matid == bc1d_matid[1])
+    //         {
+    //             TPZMultiphysicsElement *multEl = dynamic_cast<TPZMultiphysicsElement *>(compEl);
+    //             int64_t numSpaces = multEl->NMeshes();
+
+    //             int nConnect = multEl->NConnects();
+
+    //             if (matid == bc1d_matid[1]) //Not condensing 1 pressure dof
+    //             {
+    //                 int64_t conIndex = compEl->ConnectIndex(0);
+    //                 externalNode.insert(conIndex);
+    //             }
+
+    //             count++;
+    //             groupIndex.resize(count);
+    //             groupIndex[count - 1] = compEl->Index();
+
+    //             TPZElementGroup *groupEl = new TPZElementGroup(*cmesh_m);
+    //             elGroups.Push(groupEl);
+    //             elGroups[count - 1]->AddElement(compEl);
+    //         }
+    //     }
+    // }
+
     // Inserting interfaces and boundary conditions
 
     for (int64_t el = 0; el < ncompEl; el++)
@@ -904,6 +1017,8 @@ void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh *cmesh_m)
         if (interEl)
         {
             TPZCompEl *leftEl = interEl->LeftElement();
+            TPZGeoEl *leftGel = leftEl->Reference();
+            int left_matid = leftGel->MaterialId();
 
             if (leftEl->Dimension() != dim)
                 continue;
@@ -959,7 +1074,7 @@ void TPZMeshOperator::CondenseElements(TPZMultiphysicsCompMesh *cmesh_m)
     for (int64_t iEnv = 0; iEnv < nenvel; iEnv++)
     {
         TPZElementGroup *elGroup = elGroups[iEnv];
-        new TPZCondensedCompEl(elGroup);
+        new TPZCondensedCompElT<STATE>(elGroup);
     }
 
     cmesh_m->SetName("CMesh_M_Condensed");

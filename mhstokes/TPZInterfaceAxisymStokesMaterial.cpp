@@ -43,12 +43,11 @@ void TPZInterfaceAxisymStokesMaterial::ContributeInterface(const TPZMaterialData
     
     const TPZFNMatrix<9, REAL>& axes = pDataRight.axes;
     
-    int64_t nShapeV = vDataLeft.fVecShapeIndex.NElements(); // number of lambda Hdiv velocity shape functions
-    int64_t nShapeLambda = pDataRight.phi.Rows();
+    int64_t nShapeV = vDataLeft.fVecShapeIndex.NElements(); // number of Hdiv velocity/displacement shape functions
+    int64_t nShapeLambda = pDataRight.phi.Rows(); // number of lambda shape functions
     
     TPZFNMatrix<100, REAL> PhiV(3, nShapeV, 0.0);
-
-    TPZFNMatrix<100, REAL> PhiLambda(3, nShapeLambda, 0.0);
+    TPZFNMatrix<100, REAL> PhiLambdaT(3, fdimension * nShapeLambda, 0.0); //lambda in the tangential directions
     
     if (vDataLeft.fNeedsDeformedDirectionsFad)
     {
@@ -63,15 +62,19 @@ void TPZInterfaceAxisymStokesMaterial::ContributeInterface(const TPZMaterialData
 
     for (int64_t j = 0; j < nShapeLambda; j++)
     {
-        for (int64_t k = 0; k < 3; k++)
+        for (int k = 0; k < fdimension; k++)
         {
-            PhiLambda(k, j) = pDataRight.phi(j, 0) * axes(0, k); // lambda shape function at tangential direction
+            TPZManVector<REAL,3> tangent(3,0.0);
+            for (int64_t i = 0; i < 3; i++)
+            {
+                PhiLambdaT(i, fdimension*j+k) = pDataRight.phi(j, 0) * axes(k, i); // lambda shape function at tangential direction
+            }
         }
     }
 
     REAL factor = fMultiplier * weight;
-    ek.AddContribution(0, nShapeV, PhiV, true, PhiLambda, false, factor);
-    ek.AddContribution(nShapeV, 0, PhiLambda, true, PhiV, false, factor);
+    ek.AddContribution(0, nShapeV, PhiV, true, PhiLambdaT, false, factor);
+    ek.AddContribution(nShapeV, 0, PhiLambdaT, true, PhiV, false, factor);
 
 #ifdef PZ_LOG
     if(logger.isDebugEnabled()){
@@ -140,5 +143,5 @@ int TPZInterfaceAxisymStokesMaterial::GetIntegrationOrder(const TPZVec<int> &por
     for (auto porder: porder_right) {
         maxr = std::max(maxr,porder);
     }
-    return (maxl+maxr)*10;
+    return (maxl+maxr);
 }

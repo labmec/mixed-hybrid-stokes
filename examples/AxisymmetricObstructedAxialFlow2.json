@@ -13,9 +13,9 @@
 
 	"Dim": 2,
 
-	"Resolution": 4,
+	"Resolution": 3,
 
-    "StaticCondensation": false,
+    "StaticCondensation": true,
 
 	"Domain": [ // domain data
 		{

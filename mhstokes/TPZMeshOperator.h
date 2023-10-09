@@ -22,7 +22,7 @@ public:
         
     static TPZMultiphysicsCompMesh* CreateMultiPhysicsMesh(ProblemData* simData, TPZGeoMesh* gmesh);
     
-    static void CondenseElements(TPZMultiphysicsCompMesh* cmesh_m);
+    static void CondenseElements(ProblemData *simData, TPZMultiphysicsCompMesh* cmesh_m);
     
     static void InsertBCInterfaces(TPZMultiphysicsCompMesh* cmesh_m, ProblemData* simData, TPZGeoMesh* gmesh);
     

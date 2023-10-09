@@ -1,0 +1,81 @@
+{	
+	"MeshName": "../examples/Elasticity/Mesh/UniformShear3D",
+
+	"CreateMsh": false,
+
+	"HdivType": 0,
+
+    "isAxisymmetric": 0,
+
+	"VelpOrder": 3, // approximation order for velocity
+
+	"TracpOrder": 2, // approximation order for traction
+
+	"Dim": 3,
+
+	"Resolution": 4,
+
+    "StaticCondensation": true,
+
+	"Domain": [ // domain data
+		{
+			"name": "Elastic_Domain",
+			"matID": 1,
+			"viscosity": 1
+		}
+	],
+
+	"NormalBoundary":[
+		{
+			"name": "ZeroNormalDisplacement", // name of boundary condition
+			"type": 0, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 0.0,
+			"matID": 2
+		},
+        {
+			"name": "ZeroNormalStress", // name of boundary condition
+			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 0.0,
+			"matID": 3
+		}
+	],
+
+	"TangentialBoundary": [
+        {
+			"name": "ZeroTangentialDisplacement", // name of boundary condition
+			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": [0.0, 0.0, 0.0], //For 3D, we have two tangential components
+			"matID": 4
+		},
+        {
+			"name": "ZeroTangentialStress", // name of boundary condition
+			"type": 3, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": [0.0, 0.0, 0.0], //For 3D, we have two tangential components
+			"matID": 5
+		},
+        {
+			"name": "UnitTangentialStress", // name of boundary condition
+			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": [1.0, 0.0, 0.0], //For 3D, we have two tangential components
+			"matID": 6
+		}
+	],
+
+	"AxisymmetryDomain": [
+    ],
+
+    "AxisymmetryBoundary": [
+    ],
+
+	"LambdaID": 10,
+	"InterfaceID" : 20,
+    "AxiLambdaID" : 30,
+    "AxiInterfaceID" : 40,
+    "FluxInterfaceID" : 50
+}
+
+
+
+
+
+

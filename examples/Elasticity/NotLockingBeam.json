@@ -1,0 +1,81 @@
+{	
+	"MeshName": "../examples/Elasticity/Mesh/NotLockingBeam",
+
+	"CreateMsh": false,
+
+	"HdivType": 0,
+
+    "isAxisymmetric": 0,
+
+	"VelpOrder": 3, // approximation order for velocity
+
+	"TracpOrder": 2, // approximation order for traction
+
+	"Dim": 2,
+
+	"Resolution": 4,
+
+    "StaticCondensation": true,
+
+	"Domain": [ // domain data
+		{
+			"name": "Elastic_Domain",
+			"matID": 1,
+			"viscosity": 1
+		}
+	],
+
+	"NormalBoundary":[
+        {
+			"name": "ZeroNormalVelocity", // name of boundary condition
+			"type": 0, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 0.0,
+			"matID": 2
+		},
+        {
+			"name": "ZeroNormalStress", // name of boundary condition
+			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 0.0,
+			"matID": 3
+		}
+	],
+
+	"TangentialBoundary": [
+        {
+			"name": "ZeroTangentialVelocity", // name of boundary condition
+			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": [0.0, 0.0, 0.0],
+			"matID": 4
+		},
+        {
+			"name": "ZeroTangentialStress", // name of boundary condition
+			"type": 3, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": [0.0, 0.0, 0.0],
+			"matID": 5
+		},
+        {
+			"name": "TangentialStress", // name of boundary condition
+			"type": 3, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": [0.0, 1.0, 0.0],
+			"matID": 6
+		}
+	],
+
+	"AxisymmetryDomain": [
+    ],
+
+    "AxisymmetryBoundary": [
+    ],
+
+	"LambdaID": 10,
+	"InterfaceID" : 20,
+    "AxiLambdaID" : 30,
+    "AxiInterfaceID" : 40,
+    "FluxInterfaceID" : 50
+}
+
+
+
+
+
+

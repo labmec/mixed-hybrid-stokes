@@ -47,15 +47,18 @@ int main()
     }
 
     TPZMultiphysicsCompMesh *cmesh_m = TPZMeshOperator::CreateMultiPhysicsMesh(&simData, gmesh);
-    TPZMeshOperator::PrintCompMesh(cmesh_m);
 
     if (simData.CondensedElements())
     {
-        TPZMeshOperator::CondenseElements(cmesh_m);
+        TPZMeshOperator::CondenseElements(&simData, cmesh_m);
     }
 
-    TPZLinearAnalysis an(cmesh_m, false);
+    //cmesh_m->SaddlePermute();
+    TPZLinearAnalysis an(cmesh_m,RenumType::ENone);
+    TPZMeshOperator::PrintCompMesh(cmesh_m);
     TPZSSpStructMatrix<> strmat(cmesh_m);
+    // TPZSkylineStructMatrix<> strmat(cmesh_m);
+    // TPZFStructMatrix<> strmat(cmesh_m);
 
     strmat.SetNumThreads(0);
 
