@@ -3,7 +3,7 @@
     
     "CreateMsh": false,
 
-	"HdivType": 1,
+	"HdivType": 0,
 
     "isAxisymmetric": 1,
 
@@ -50,7 +50,7 @@
 		{
 			"name": "NoSlipWall", // name of boundary condition
 			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
-			"value": 0,
+			"value": [0,0,0],
 			"matID": 5
 		}
 	],

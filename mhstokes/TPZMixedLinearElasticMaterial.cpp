@@ -30,7 +30,7 @@ TPZMixedLinearElasticMaterial::TPZMixedLinearElasticMaterial(int matID, int dime
         }
         case AnalysisType::EPlaneStress:
         {
-            fbulk = (fpoisson == 0.5) ? 3.0*fmu : fmu * (2.0*fmu + 3.0*flambda) / (flambda + 2.0*fmu);
+            fbulk = ((fpoisson - 0.5) <= 1.0e-9) ? 3.0*fmu : fmu * (2.0*fmu + 3.0*flambda) / (flambda + 2.0*fmu);
             break;
         }
         default:
@@ -192,20 +192,17 @@ void TPZMixedLinearElasticMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<S
 
     case 1: // Tangential displacement
     {
-        TPZManVector<REAL,3> u_t = val2; //if bc was set in .json file, the tangential value was already prescribed
-        if (bc.HasForcingFunctionBC()) //if the bc is set through an analytic solution, we need to compute its tangential component
-        {
-            u_t = {0.0,0.0,0.0};
-            for (int i = 0; i < fdimension-1; i++)
-                for (int j = 0 ; j < fdimension; j++)
-                    u_t[i] += val2[j] * datavec[index].axes(i,j);
-        }
+        TPZManVector<REAL,3> u_t = {0.0, 0.0, 0.0}; //for tangential bc, a vector is prescribed, so we take the inner product with the local tangential axe    
+        for (int i = 0; i < fdimension-1; i++) //number of tangential components
+            for (int j = 0 ; j < fdimension; j++)
+                u_t[i] += val2[j] * datavec[index].axes(i,j);
 
         for (int64_t i = 0; i < nShapeP; i++)
         {
-            for (int j = 0; j < fdimension-1; i++)
+            for (int j = 0; j < fdimension-1; j++)
             {
-                ef((fdimension-1)*i+j) += PhiP(i,0) * u_t[j] * weight;
+                int64_t index = (fdimension-1)*i+j;
+                ef(index) += PhiP(i,0) * u_t[j] * weight;
             }
         }
         break;
@@ -214,7 +211,7 @@ void TPZMixedLinearElasticMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<S
     case 2: // Normal Stress
     {
         REAL sigma_nn = val2[0]; //if bc was set in .json file, the normal value was already prescribed
-        if (bc.HasForcingFunctionBC()) //if the bc is set through an analytic solution, we need to compute its normal component
+        if (bc.HasForcingFunctionBC()) //if the bc is set through an analytic solution, we need to compute its normal component from the displacement gradient
         {
             const int n = fdimension * (fdimension + 1) / 2;
 
@@ -254,8 +251,8 @@ void TPZMixedLinearElasticMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<S
 
     case 3: // Tangential Stress
     {
-        TPZManVector<REAL,3> sigma_nt = val2;
-        if (bc.HasForcingFunctionBC()) //if the bc is set through an analytic solution, we need to compute its normal component
+        TPZManVector<REAL,3> sigma_nt = {0.0,0.0,0.0};
+        if (bc.HasForcingFunctionBC()) //if the bc is set through an analytic solution, we need to compute its tangential component from the displacement gradient
         {
             const int n = fdimension * (fdimension + 1) / 2;
 
@@ -280,12 +277,21 @@ void TPZMixedLinearElasticMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<S
                 for (int j = 0; j < fdimension; j++)
                     sigma_n[i] += sigma(i,j) * datavec[index].normal[j];
 
-            sigma_nt = {0.0,0.0,0.0};
             for (int i = 0; i < fdimension-1; i++)
             {
                 for (int j = 0; j < fdimension; j++)
                 {
                     sigma_nt[i] += sigma_n[j] * datavec[index].axes(i,j);
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < fdimension-1; i++)
+            {
+                for (int j = 0; j < fdimension; j++)
+                {
+                    sigma_nt[i] += val2[j] * datavec[index].axes(i,j);
                 }
             }
         }
@@ -296,15 +302,15 @@ void TPZMixedLinearElasticMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<S
         {
             for (int k = 0; k < fdimension-1; k++)
             {
-                int index1 = (fdimension-1)*j+k;
+                int64_t index1 = (fdimension-1)*j+k;
                 ef(index1) += sigma_nt[k] * PhiP(j,0) * factor;
 
                 for (int64_t i = 0; i < nShapeP; i++)
                 {
                     for (int l = 0; l < fdimension-1; l++)
                     {
-                        int index2 = (fdimension-1)*i+l;
-                        if (index1 != index2) continue;
+                        int64_t index2 = (fdimension-1)*i+l;
+                        if (k != l) continue;
                         ek(index1, index2) += PhiP(i,0) * PhiP(j,0) * factor;
                     }
                 }
@@ -324,11 +330,12 @@ void TPZMixedLinearElasticMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<S
 
 int TPZMixedLinearElasticMaterial::VariableIndex(const std::string& name) const {
     
-    if(!strcmp("Pressure", name.c_str())) return 0;
-    if(!strcmp("Displacement", name.c_str())) return 1;
-    if(!strcmp("Force", name.c_str())) return 2;
-    if(!strcmp("Stress", name.c_str())) return 3;
-    if(!strcmp("Strain", name.c_str())) return 4;
+    if(!strcmp("Pressure", name.c_str())) return EPressure;
+    if(!strcmp("Displacement", name.c_str())) return EDisplacement;
+    if(!strcmp("Force", name.c_str())) return EForce;
+    if(!strcmp("Stress", name.c_str())) return EStress;
+    if(!strcmp("Strain", name.c_str())) return EStrain;
+    if(!strcmp("VonMises", name.c_str())) return EVonMises;
     
     std::cout << "\n\nVar index not implemented\n\n";
     DebugStop();
@@ -340,15 +347,16 @@ int TPZMixedLinearElasticMaterial::NSolutionVariables(int var) const{
     
     int aux;
     switch (var) {
-        case 0: // pressure  [scalar]
+        case EPressure: // pressure  [scalar]
+        case EVonMises: //VonMises
             aux = 1;
             break;
-        case 1: // displacement [vector]
-        case 2: // external force [vector]
+        case EDisplacement: // displacement [vector]
+        case EForce: // external force [vector]
             aux = 3;
             break;
-        case 3: // stress tensor
-        case 4: // strain tensor
+        case EStress: // stress tensor
+        case EStrain: // strain tensor
             aux = 9;
             break;
         default:
@@ -367,6 +375,8 @@ void TPZMixedLinearElasticMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE
     TPZFNMatrix<10, STATE> gradU = datavec[EUindex].dsol[0];
     TPZFNMatrix<9, STATE> strain(3, 3, 0.0);
 
+    const int n = fdimension * (fdimension + 1) / 2;
+
     for (int i = 0; i < fdimension; i++)
     {
         for (int j = 0; j < fdimension; j++)
@@ -382,13 +392,13 @@ void TPZMixedLinearElasticMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE
     
     switch(var) {
             
-        case 0:
+        case EPressure:
         {
             Solout[0] = p_h[0];
             break;
         }
             
-        case 1:
+        case EDisplacement:
         {
             Solout[0] = u_h[0]; //Vx
             Solout[1] = u_h[1]; //Vy
@@ -399,7 +409,7 @@ void TPZMixedLinearElasticMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE
             break;
         }
             
-        case 2:
+        case EForce:
         {
             TPZVec<STATE> f(3,0.);
             
@@ -412,10 +422,8 @@ void TPZMixedLinearElasticMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE
             Solout[2] = f[2];
             break;
         }
-        case 3:
+        case EStress:
         {
-            const int n = fdimension * (fdimension + 1) / 2;
-
             TPZFNMatrix<6, STATE> sigmavoight(n, 1, 0.0);
             DeviatoricStressTensor(gradU, sigmavoight);
 
@@ -443,7 +451,7 @@ void TPZMixedLinearElasticMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE
             }
             break;
         }
-        case 4:
+        case EStrain:
         {
             for (int i = 0; i < 3; i++)
             {
@@ -452,6 +460,42 @@ void TPZMixedLinearElasticMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE
                     Solout[i * 3 + j] = strain(i, j);
                 }
             }
+            break;
+        }
+        case EVonMises:
+        {
+            TPZManVector<STATE,3> PrincipalStress(3);
+            TPZFNMatrix<6, STATE> sigmavoight(n, 1, 0.0);
+            StressTensor(gradU, sigmavoight, p_h[0]);
+            TPZFNMatrix<9, STATE> sigma(3, 3, 0.0);
+            int cont = fdimension-1;
+            for (int i = 0; i < fdimension; i++)
+            {
+                sigma(i,i) = sigmavoight(i,0);
+                for (int j = i+1; j < fdimension; j++)
+                {
+                    sigma(i,j) = sigmavoight(++cont,0);
+                    sigma(j,i) = sigmavoight(cont,0);
+                }
+            }
+            if (fAnalysisType == AnalysisType::EPlaneStrain)
+                sigma(2,2) = fthickness * fpoisson * (sigma(0,0) + sigma(1,1));
+            
+            REAL tol = 1.0e-9;
+            int64_t numiterations = 1000;
+            bool result;
+            result = sigma.SolveEigenvaluesJacobi(numiterations, tol, &PrincipalStress);
+    #ifdef PZDEBUG        
+            if (result == false)
+            {
+                std::cout << "Error while computing the principal stresses: result == false." << std::endl;
+                DebugStop();
+            }
+    #endif    
+            Solout[0] = (PrincipalStress[0] - PrincipalStress[1]) * (PrincipalStress[0] - PrincipalStress[1]) 
+                      + (PrincipalStress[1] - PrincipalStress[2]) * (PrincipalStress[1] - PrincipalStress[2])
+                      + (PrincipalStress[2] - PrincipalStress[0]) * (PrincipalStress[2] - PrincipalStress[0]);
+            Solout[0] = sqrt(0.5 * Solout[0]);
             break;
         }
  
@@ -669,4 +713,20 @@ void TPZMixedLinearElasticMaterial::StressTensor(const TPZFNMatrix<10, STATE>& g
     StrainTensor(gradU, strain);
 
     D.Multiply(strain,sigma);
+}
+
+void TPZMixedLinearElasticMaterial::StressTensor(const TPZFNMatrix<10, STATE>& gradU, TPZFNMatrix<6,REAL>& sigma, REAL pressure)
+{
+    const int n = fdimension * (fdimension + 1) / 2;
+
+    TPZFNMatrix<36, REAL> D(n, n, 0.0);
+    DeviatoricElasticityTensor(D);
+    
+    TPZFNMatrix<6,REAL> strain(n,1,0.0);
+    StrainTensor(gradU, strain);
+
+    D.Multiply(strain,sigma);
+
+    for (int i = 0; i < fdimension; i++)
+        sigma(i,0) -= pressure;
 }

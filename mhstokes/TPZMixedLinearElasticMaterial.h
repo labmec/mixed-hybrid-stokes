@@ -117,6 +117,10 @@ public:
     virtual void DeviatoricStressTensor(const TPZFNMatrix<10, STATE>& gradU, TPZFNMatrix<6,REAL>& sigma);
 
     virtual void StressTensor(const TPZFNMatrix<10, STATE>& gradU, TPZFNMatrix<6,REAL>& sigma);
+
+    virtual void StressTensor(const TPZFNMatrix<10, STATE>& gradU, TPZFNMatrix<6,REAL>& sigma, REAL pressure);
+
+    enum SolutionVars {ENone = -1, EPressure = 0, EDisplacement = 1, EForce = 2, EStress = 3, EStrain = 4, EVonMises = 5};
 };
 
 #endif

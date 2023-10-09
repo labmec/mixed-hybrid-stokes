@@ -1,5 +1,5 @@
 {	
-	"MeshName": "../examples/Elasticity/Mesh/NotLockingBeam",
+	"MeshName": "../examples/Elasticity/Mesh/UniformShear3D",
 
 	"CreateMsh": false,
 
@@ -11,7 +11,7 @@
 
 	"TracpOrder": 2, // approximation order for traction
 
-	"Dim": 2,
+	"Dim": 3,
 
 	"Resolution": 4,
 
@@ -26,8 +26,8 @@
 	],
 
 	"NormalBoundary":[
-        {
-			"name": "ZeroNormalVelocity", // name of boundary condition
+		{
+			"name": "ZeroNormalDisplacement", // name of boundary condition
 			"type": 0, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
 			"value": 0.0,
 			"matID": 2
@@ -42,21 +42,21 @@
 
 	"TangentialBoundary": [
         {
-			"name": "ZeroTangentialVelocity", // name of boundary condition
+			"name": "ZeroTangentialDisplacement", // name of boundary condition
 			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
-			"value": [0.0, 0.0, 0.0],
+			"value": [0.0, 0.0, 0.0], //For 3D, we have two tangential components
 			"matID": 4
 		},
         {
 			"name": "ZeroTangentialStress", // name of boundary condition
 			"type": 3, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
-			"value": [0.0, 0.0, 0.0],
+			"value": [0.0, 0.0, 0.0], //For 3D, we have two tangential components
 			"matID": 5
 		},
         {
-			"name": "TangentialStress", // name of boundary condition
-			"type": 3, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
-			"value": [0.0, 1.0, 0.0],
+			"name": "UnitTangentialStress", // name of boundary condition
+			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": [1.0, 0.0, 0.0], //For 3D, we have two tangential components
 			"matID": 6
 		}
 	],

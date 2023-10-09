@@ -32,9 +32,11 @@ Physical Surface("Domain", 1) = {1};
 
 Physical Curve("ZeroNormalDisplacement", 2) = {1};
 //+
-Physical Curve("ZeroTangentialDisplacement", 3) = {1,2,4};
+Physical Curve("ZeroNormalStress", 3) = {2,3,4};
 //+
-Physical Curve("UnitTangentialDisplacement", 4) = {3};
+Physical Curve("ZeroTangentialDisplacement", 4) = {1,2,4};
+//+
+Physical Curve("UnitTangentialDisplacement", 5) = {3};
 //+
 
 Transfinite Surface {1} = {1, 2, 3, 4};

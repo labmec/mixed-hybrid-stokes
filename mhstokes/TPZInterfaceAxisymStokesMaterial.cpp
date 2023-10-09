@@ -65,10 +65,8 @@ void TPZInterfaceAxisymStokesMaterial::ContributeInterface(const TPZMaterialData
         for (int k = 0; k < fdimension; k++)
         {
             TPZManVector<REAL,3> tangent(3,0.0);
-            for (int i = 0; i < 3; i++) tangent[i] = axes(k,i);
             for (int64_t i = 0; i < 3; i++)
             {
-                
                 PhiLambdaT(i, fdimension*j+k) = pDataRight.phi(j, 0) * axes(k, i); // lambda shape function at tangential direction
             }
         }

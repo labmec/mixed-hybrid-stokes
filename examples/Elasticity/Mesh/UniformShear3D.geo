@@ -1,7 +1,7 @@
 // Gmsh project created on Fri Aug 25 11:33:46 2023
 SetFactory("OpenCASCADE");
 
-el = 2;
+el = 1;
 ndiv = el + 1;
 
 L = 1.0;
@@ -36,14 +36,15 @@ Extrude {0, 0, -L} {
 
 Physical Volume("Domain", 1) = {1};
 //+
-Physical Surface("UnitNormalStress", 2) = {5};
+Physical Surface("ZeroNormalDisplacement", 2) = {4, 1, 6};
 //+
-Physical Surface("ZeroNormalStress", 3) = {2};
+Physical Surface("ZeroNormalStress", 3) = {2, 3, 5};
 //+
-Physical Surface("ZeroNormalDisplacement", 4) = {6, 3, 4, 1};
+Physical Surface("ZeroTangentialDisplacement", 4) = {4, 3, 5};
 //+
-Physical Surface("ZeroTangentialStress", 5) = {3, 2, 6, 5, 1, 4};
+Physical Surface("ZeroTangentialStress", 5) = {1, 6};
 //+
+Physical Surface("UnitTangentialStress", 6) = {2};
 
 Transfinite Curve {4, 6, 7, 5, 3, 9, 12, 2, 1, 8, 11, 10} = ndiv Using Progression 1;
 //+
@@ -63,3 +64,4 @@ Recombine Surface {2, 3, 6, 5, 1, 4};
 //+
 
 Transfinite Volume{1} = {1, 2, 3, 4, 7, 8, 5, 6};
+//+

@@ -763,30 +763,30 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
     // 1. For domain
     if (simData->DomainVec().size() != 0)
     {
-        //TPZStokesMaterial *material = simData->Axisymmetric() ? new TPZAxisymStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity) : new TPZStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity);
+        TPZStokesMaterial *material = simData->Axisymmetric() ? new TPZAxisymStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity) : new TPZStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), simData->DomainVec()[0].viscosity);
 
-        TPZMixedLinearElasticMaterial* material = new TPZMixedLinearElasticMaterial(simData->DomainVec()[0].matID, simData->Dim(), 1.0, 0.0, AnalysisType::EGeneral);
+        //TPZMixedLinearElasticMaterial* material = new TPZMixedLinearElasticMaterial(simData->DomainVec()[0].matID, simData->Dim(), 1.0, 0.0, AnalysisType::EPlaneStress);
 
-        bool hasAnalyticSolution = false;
+        bool hasAnalyticSolution = true;
         if (hasAnalyticSolution && dynamic_cast<TPZStokesMaterial*>(material))
         {
-            TAxisymmetricStokesAnalytic *analyticSol = new TAxisymmetricStokesAnalytic();
-            analyticSol->fExactSol = TAxisymmetricStokesAnalytic::ESlidingCouetteFlow;
-            analyticSol->fL = 2.0;
-            analyticSol->fRe = 2.0;
-            analyticSol->fRi = 1.0;
-            analyticSol->fp = -1.0; 
-            analyticSol->fvel = 1.0;
-            analyticSol->fviscosity = simData->DomainVec()[0].viscosity;
-            material->SetExactSol(analyticSol->ExactSolution(), 0);
-            material->SetForcingFunction(analyticSol->ForceFunc(), 0);
+            // TAxisymmetricStokesAnalytic *analyticSol = new TAxisymmetricStokesAnalytic();
+            // analyticSol->fExactSol = TAxisymmetricStokesAnalytic::ESlidingCouetteFlow;
+            // analyticSol->fL = 2.0;
+            // analyticSol->fRe = 2.0;
+            // analyticSol->fRi = 1.0;
+            // analyticSol->fp = -1.0; 
+            // analyticSol->fvel = 1.0;
+            // analyticSol->fviscosity = simData->DomainVec()[0].viscosity;
+            // material->SetExactSol(analyticSol->ExactSolution(), 0);
+            // material->SetForcingFunction(analyticSol->ForceFunc(), 0);
         }
         else if (hasAnalyticSolution && dynamic_cast<TPZMixedLinearElasticMaterial*>(material))
         {
             if (simData->Dim() == 2)
             {
                 TElasticity2DAnalytic *analyticSol = new TElasticity2DAnalytic();
-                analyticSol->fProblemType = TElasticity2DAnalytic::EDefState::ELoadedBeam;
+                analyticSol->fProblemType = TElasticity2DAnalytic::EDefState::EBend;
                 analyticSol->gE = 200000.0;
                 analyticSol->gPoisson = 0.0;
                 analyticSol->fPlaneStress = 1;
@@ -796,7 +796,7 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
             else if (simData->Dim() == 3)
             {
                 TElasticity3DAnalytic *analyticSol = new TElasticity3DAnalytic();
-                analyticSol->fProblemType = TElasticity3DAnalytic::EDefState::EStretchx;
+                analyticSol->fProblemType = TElasticity3DAnalytic::EDefState::EBend;
                 analyticSol->fE = 1.0;
                 analyticSol->fPoisson = 0.0;
                 material->SetExactSol(analyticSol->ExactSolution(), 3);

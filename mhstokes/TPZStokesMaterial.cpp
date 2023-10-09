@@ -212,7 +212,7 @@ int TPZStokesMaterial::VariableIndex(const std::string& name) const {
     if(!strcmp("Pressure", name.c_str())) return 0;
     if(!strcmp("Velocity", name.c_str())) return 1;
     if(!strcmp("Force", name.c_str())) return 2;
-    if(!strcmp("Tension", name.c_str())) return 3;
+    if(!strcmp("Stress", name.c_str())) return 3;
     
     std::cout << "\n\nVar index not implemented\n\n";
     DebugStop();

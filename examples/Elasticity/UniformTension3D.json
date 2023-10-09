@@ -3,7 +3,7 @@
 
 	"CreateMsh": false,
 
-	"HdivType": 1,
+	"HdivType": 0,
 
     "isAxisymmetric": 0,
 
@@ -50,7 +50,7 @@
         {
 			"name": "ZeroTangentialStress", // name of boundary condition
 			"type": 3, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
-			"value": [0.0, 1.0], //For 3D, we have two tangential components
+			"value": [0.0, 0.0], //For 3D, we have two tangential components
 			"matID": 5
 		}
 	],
