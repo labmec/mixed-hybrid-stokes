@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import ClassVar
 import json
 import gmsh
 import sys
@@ -6,211 +7,163 @@ import os
 
 @dataclass
 class TPZMeshModeling:
+    kernel: ClassVar[str] = 'occ'
 
     @staticmethod
     def PrintJson(JsonData: dict, FileName: str)->None:
         """ 
-        PrintJson(JsonData, FileName)
-
         Reads the information from the 'JsonData' dictionary and writes them in a Json file
         named 'FileName'.
-
-        Return: None
-
-        Types: 
-        - 'JsonData': dict
-        - 'FileName': string 
         """
-
         json_object = json.dumps(JsonData, indent=4)
 
         with open(FileName+".json", "w") as outfile:
             outfile.write(json_object)
 
     @staticmethod
-    def WriteMeshFiles(FileName: str)->None:
+    def WriteMeshFiles(FileName: str, *extensions: str)->None:
         """
-        Creates the .geo and .msh files from a gmsh model. 
-
-        Return: None 
-
-        Types:
-        - 'FileName': string
+        Creates files with given extensions from a gmsh model.
+        Currently are available .json, .geo, .msh, and .vtk 
         """
-
-        # gmsh.write(FileName + ".geo_unrolled")
-        gmsh.write(FileName + ".msh")
+        for extension in extensions:
+            gmsh.write(FileName + extension)
 
     @staticmethod
-    def MoveFiles(fileName: str, JsonNewPath: str, MeshNewPath:str)->None:
+    def MoveFiles(fileName: str, JsonNewPath: str, MeshNewPath:str, *extensions: str)->None:
         """
-        Move the .json, .msh, and .geo_unrolled files 
-        to an given directory
-
-        Return: None
-
-        Types:
-            - 'fileName': string
-            - 'JsonNewPath': string
-            - 'MeshNewPath': string
+        Move the files with extensions provided to a given directory
+        Currently are available: .json, .geo, .msh, and .vtk 
         """
-        
-        oldJson = fileName + ".json"
-        oldmsh = fileName + ".msh"
-        oldgeo = fileName + ".geo_unrolled"
+        for extension in extensions:
+            if extension == ".json":
+                oldJson = fileName + extension
+                os.rename(oldJson, JsonNewPath+oldJson)
 
-        os.rename(oldJson, JsonNewPath+oldJson)
-        os.rename(oldmsh, MeshNewPath+oldmsh)
-        os.rename(oldgeo, MeshNewPath+oldgeo)
+            else:
+                old_file = fileName + extension
+                os.rename(old_file, MeshNewPath+old_file)
 
     @staticmethod
-    def CreatePoints(PointCoordinates: list[tuple], lc: float, kernel: str = 'occ')->None:
+    def CreatePoints(PointCoordinates: list[int], lc: float)->list[int]:
         """
-        Creates points from a list of 'PointCoordinates' with elements spaced with lc. 
-        Important: currently it only generates points with sequential numbering! 
-
-        Return: None
-
-        Types:
-        - PointCoordinates: list of list of float
-        - step: float
+        Return a list with the tags of the points created from 'PointCoordinates' with mesh size lc. 
         """
-        
+        points = []
         for coord in PointCoordinates:
             x,y,z = coord
-            if kernel == 'occ': 
-                gmsh.model.occ.addPoint(x,y,z,lc)
-            elif kernel == 'built':
-                gmsh.model.geo.addPoint(x,y,z,lc)
+            if TPZMeshModeling.kernel == 'occ': 
+                p = gmsh.model.occ.addPoint(x,y,z,lc)
+
+            elif TPZMeshModeling.kernel == 'built':
+                p = gmsh.model.geo.addPoint(x,y,z,lc)
+            
+            points.append(p)
+
+        return points
 
     @staticmethod
-    def CreateLines(LineIndexes: list[tuple], kernel:str = 'occ')->None:
+    def CreateLines(LineIndexes: list[int])->list[int]:
         """
-        Creates lines from a list of 'LineIndexes'. In this list, it must be put 
-        the index of each point that belongs to each line
-        Important: currently it only generates lines with sequential numbering! 
-
-        Types: 
-        - 'LineIndexes': list of list of int
+        Returns a list with the tags of the lines created from the indexes of points in 'LineIndexes'
         """
-
+        lines = []
         for index in LineIndexes:
             init, end = index
-            if kernel == 'occ':
-                gmsh.model.occ.addLine(init, end)
-            elif kernel == 'built':
-                gmsh.model.geo.addLine(init, end)
+            if TPZMeshModeling.kernel == 'occ':
+                l = gmsh.model.occ.addLine(init, end)
+
+            elif TPZMeshModeling.kernel == 'built':
+                l = gmsh.model.geo.addLine(init, end)
+
+            lines.append(l)
+
+        return lines
 
     @staticmethod
-    def CreateCurveLoops(CurveLoopIndexes: list[tuple], kernel: str = 'occ')->None:
+    def CreateCurveLoops(CurveLoopIndexes: list[int])->list[int]:
         """
-        Creates curve loops from the 'CurveLoopIndex' list. In this list, it must be put the
-        index of each line that belongs to each curve loop.
-
-        Important: currently it only creates curve loops with sequential numbering
-
-        Return: None
-
-        Types: 
-        - 'CurveLoopIndex': list of int
+        Returns a list of curve loops created from the line indexes in 'CurveLoopIndexes'
         """
-
+        curves = []
         for  index in (CurveLoopIndexes):
-            if kernel == 'occ':
-                gmsh.model.occ.addCurveLoop(index)
-            elif kernel == 'built':
-                gmsh.model.geo.addCurveLoop(index)
+            if TPZMeshModeling.kernel == 'occ':
+                c = gmsh.model.occ.addCurveLoop(index)
+
+            elif TPZMeshModeling.kernel == 'built':
+                c = gmsh.model.geo.addCurveLoop(index)
+
+            curves.append(c)
+
+        return curves
 
     @staticmethod
-    def CreatePlanes(PlaneIndexes: list[list], kernel: str = 'occ')->None:
+    def CreatePlanes(PlaneIndexes: list[int])->list[int]:
         """
-        Creates plane surfaces from the 'PlaneIndex' list. In this list, it must be put the index 
-        of each curve loop that belong to each plane surface. 
-
-        Return: None
-
-        Types:
-        - 'PlaneIndexes': list of int
+        Returns a list of integers as the created plane tags. 
         """
+        planes = []
         for index in (PlaneIndexes):
-            if kernel == 'occ': 
-                gmsh.model.occ.addPlaneSurface(index) 
-            elif kernel == 'built':
-                gmsh.model.geo.addPlaneSurface(index) 
+            if TPZMeshModeling.kernel == 'occ': 
+                plane = gmsh.model.occ.addPlaneSurface(index) 
+
+            elif TPZMeshModeling.kernel == 'built':
+                plane = gmsh.model.geo.addPlaneSurface(index) 
+
+            planes.append(plane)
+
+        return planes
 
     @staticmethod
-    def CreateSurfaceLoop(SurfaceLoopIndexes: list, kernel: str = 'occ')->None:
+    def CreateSurfaceLoop(SurfaceLoopIndexes: list[int])->list[int]:
         """
-        Creates curve loops from the 'SurfaceLoopIndex' list. In this list, it must be put the
-        index of each surface that belongs to each surface loop.
-
-        Important: currently it only creates surface loops with sequential numbering
-
-        Return: None
-
-        Types: 
-        - 'SurfaceLoopIndex': list of int
+        Returns a list of integers as the created surface loop tags
         """
-
+        surface_loop = []
         for index in (SurfaceLoopIndexes):
-            if kernel == 'occ':
-                gmsh.model.occ.addSurfaceLoop(index)
-            elif kernel == 'built':
-                gmsh.model.geo.addSurfaceLoop(index)
+            if TPZMeshModeling.kernel == 'occ':
+                s = gmsh.model.occ.addSurfaceLoop(index)
+
+            elif TPZMeshModeling.kernel == 'built':
+                s = gmsh.model.geo.addSurfaceLoop(index)
+
+            surface_loop.append(s)
+
+        return surface_loop
 
     @staticmethod
-    def CreateVolumes(VolumesIndexes: list, kernel: str = 'occ')->None:
+    def CreateVolumes(VolumesIndexes: list)->None:
         """
-        Creates volumes from the 'VolumesIndezes' list. In this list, it must be put the index 
-        of each surface loop that belong to each volume. 
-
-        Return: None
-
-        Types:
-        - 'VolumesIndexes': list of int
+        Returns a list of integers as the created volume tags
         """
 
+        volume = []
         for index in (VolumesIndexes):
-            if kernel == 'occ':
-                gmsh.model.occ.addVolume([index])
-            elif kernel == 'built':
-                gmsh.model.geo.addVolume([index])
+            if TPZMeshModeling.kernel == 'occ':
+                v = gmsh.model.occ.addVolume([index])
+
+            elif TPZMeshModeling.kernel == 'built':
+                v = gmsh.model.geo.addVolume([index])
+
+            volume.append(v)
+
+        return volume
 
     @staticmethod
     def CreatePhysicalGroup(GroupData: list)->None:
         """
-        Creates the Physical Group from the 'GroupDimension', 'GroupIndex', 'GroupID', 'GroupName' information.
-        This function should use the same information to write the Json file! So that, the FEM simulation will 
-        be properly set.
-
-        Return: None
-
-        Types: 
-        - 'GroupDimension': list of int
-        - 'GroupIndex': list of index
-        - 'GroupID': list of int
-        - 'GroupName': list of string
+        Creates the physical groups from a list contaning the group information. 
+        Proide a tuple with 'dimTags', an integer ID, and the group name.
         """
 
-        for dimTag, id, BCname in GroupData:
+        for dimTag, id, name in GroupData:
             dimension, tag = dimTag
-            gmsh.model.addPhysicalGroup(dimension, tag, tag=id, name=BCname)
+            gmsh.model.addPhysicalGroup(dimension, tag, tag=id, name=name)
 
     @staticmethod
     def CreateCircles(Xcenter: float, Ycenter: float, Zcenter: float, Radius: float) -> int:
         """
-        Creates surface circles from lists of 'Xcenter', 'Ycenter', 'Zcenter', and 'Radius'. 
-        It first generates the circle as a drawong element in gmsh. Then, it transforms these circles 
-        into curve loops to finally converts them into surfaces. Returns the surface circle TAG
-
-        Return: surfaceCircle
-
-        Types:
-        - 'Xcenter': float
-        - 'Ycenter': float
-        - 'Zcenter': float
-        - 'Radius': float
-        - 'surfaceCircle': int
+        Returns the tag of the created surface circle, using the OPENCASCADE kernel
         """
 
         circle = gmsh.model.occ.addCircle(Xcenter,Ycenter,Zcenter,Radius)
@@ -220,7 +173,10 @@ class TPZMeshModeling:
         return surfaceCircle
 
     @staticmethod
-    def CreateRectangles(coordinates:tuple[float], sideX:float, sideY:float)->None:
+    def CreateRectangles(coordinates:tuple[float], sideX:float, sideY:float)->list[int]:
+        """
+        Returns a list of integers as the rectangle surface tags, using the OPENCASCADE kernel
+        """
         square_list = []
         for coord in coordinates:
             x, y, z = coord
@@ -230,43 +186,30 @@ class TPZMeshModeling:
         return square_list
 
     @staticmethod
-    def MakeHoles(object: int, holesList: list, holeDim: int)->None:
+    def MakeHoles(object: int, holesList: list, holeDim: int)->list[int]:
         """
         Makes holes in a surface domain. Given a 'domain' tag, the 'holeList' tags, and the 'meshDim', it uses the 
-        gmsh module cut to calculate the boolean difference the object domain and the object to be cut from it.
-
-        Return: None
-
-        Types:
-        - 'domain': int
-        - 'holesList': list of int
-        - 'meshDim': int
+        gmsh module cut to calculate the boolean difference the object domain and the object to be cut from it. Returns
+        the new surface tags.
         """
         
         holesTuple = [(holeDim, hole) for hole in holesList]
-        gmsh.model.occ.cut([(holeDim,object)], holesTuple)
+        holes = gmsh.model.occ.cut([(holeDim,object)], holesTuple)
+
+        return holes
 
     @staticmethod
-    def TurnOnLabels(*variables: str):
+    def TurnOnRepresentation(*variables: str):
         """
-        Turn on the selected entities' labels. 
+        Turn on the selected entity CAD representation. 
             - points
             - curves
             - surfaces
             - volumes
         """
-
-        if 'points' in variables:
-            gmsh.option.setNumber("Geometry.Points",1)
-
-        if 'curves' in variables:
-            gmsh.option.setNumber("Geometry.Curves",1)
-        
-        if 'surfaces' in variables:
-            gmsh.option.setNumber("Geometry.Surfaces",1)
-
-        if 'volumes' in variables:
-            gmsh.option.setNumber("Geometry.Volumes",1)
+        for var in variables:
+            var = var.capitalize()
+            gmsh.option.setNumber("Geometry." + var, 1)
 
     def TurnOnNumbering(*variables: str):
         """
@@ -276,18 +219,9 @@ class TPZMeshModeling:
             - surfaces
             - volumes
         """
-
-        if 'points' in variables:
-            gmsh.option.setNumber("Geometry.PointNumbers",1)
-
-        if 'curves' in variables:
-            gmsh.option.setNumber("Geometry.LineNumbers",1)
-        
-        if 'surfaces' in variables:
-            gmsh.option.setNumber("Geometry.SurfaceNumbers",1)
-
-        if 'volumes' in variables:
-            gmsh.option.setNumber("Geometry.VolumeNumbers",1)
+        for var in variables:
+            var = var.capitalize()  + "Numbers"
+            gmsh.option.setNumber("Geometry." + var, 1)
 
     @staticmethod
     def TurnOnNormals(size: int=50)->None:
@@ -304,6 +238,17 @@ class TPZMeshModeling:
         gmsh.option.setNumber("Geometry.Tangents", size)
 
     @staticmethod
+    def Synchronize():
+        """
+        Synchronizes the gmsh CAD with the gmsh kernel
+        """
+        if TPZMeshModeling.kernel == 'occ':
+            gmsh.model.occ.synchronize()
+        
+        elif TPZMeshModeling.kernel == 'built':
+            gmsh.model.geo.synchronize()
+
+    @staticmethod
     def ShowModel(meshDim: int =-1)->None:
         """
         Show the model
@@ -313,6 +258,9 @@ class TPZMeshModeling:
 
     @staticmethod
     def SetMeshSize(fieldID, surfacesList, meshSize, bigNumber = 1e12):
+        """
+        Defines the mesh size in a surface.
+        """
         fieldOperator = gmsh.model.mesh.field 
 
         fieldOperator.add("Constant", fieldID)
@@ -325,3 +273,27 @@ class TPZMeshModeling:
         gmsh.option.setNumber("Mesh.MeshSizeExtendFromBoundary", 0)
         gmsh.option.setNumber("Mesh.MeshSizeFromPoints", 0)
         gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", 0)
+
+    @staticmethod
+    def Begin():
+        """
+        Initializes gmsh
+        """
+        gmsh.initialize()
+
+    @staticmethod
+    def End():
+        """
+        Finalizes gmsh
+        """
+        gmsh.finalize()
+
+    @staticmethod
+    def SetGmshKernel(kernel: int)->None:
+        """
+        Sets the gmsh kernel used during the modeling. Default: OPENCASCADE
+        0 -> built-in
+        1 -> OPENCASCADE
+        """
+        option = {0: 'built', 1: 'occ'}
+        TPZMeshModeling.kernel = option[kernel]

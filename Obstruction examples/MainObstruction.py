@@ -4,12 +4,7 @@ This script is a new version of how to create pipe modules with obstructions
 #%% ****************** 
 #   IMPORTED MODULES
 #   ******************
-import os 
-import sys 
 import gmsh
-
-# adding previous folder to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 
 #%% ****************** 
 #   IMPORTED CLASSES

@@ -1,9 +1,10 @@
 
 .vscode
-.DS_Store
+**/.DS_Store
 CMakeLists.txt.user
 cmake-build-debug
 cmake-build-release
+**/__pycache__
 .idea
 build
 build-*
