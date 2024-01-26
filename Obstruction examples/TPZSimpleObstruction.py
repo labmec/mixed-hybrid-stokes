@@ -179,12 +179,7 @@ class TPZSimpleObstruction(TPZModuleTypology):
             [p5, p1, p2]
         ]
 
-        ob_arcs = []
-        for coord in arc_points:
-            start, center, end = coord
-
-            arc = gmsh.model.occ.addCircleArc(start, center, end)
-            ob_arcs.append(arc)
+        ob_arcs = TPZMeshModeling.CreateCircleArcs(arc_points)
 
         gmsh.model.occ.remove([(0, p1)]) # center of obstruction circle
 

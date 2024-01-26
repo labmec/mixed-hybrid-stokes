@@ -161,6 +161,22 @@ class TPZMeshModeling:
             gmsh.model.addPhysicalGroup(dimension, tag, tag=id, name=name)
 
     @staticmethod
+    def CreateCircleArcs(arc_points: list[int])->list[int]:
+        arcs = []
+        for coord in arc_points:
+            start, center, end = coord
+
+            if TPZMeshModeling.kernel == 'occ':
+                arc = gmsh.model.occ.addCircleArc(start, center, end)
+
+            elif TPZMeshModeling.kernel == 'built':
+                arc = gmsh.model.occ.addCircleArc(start, center, end)
+
+            arcs.append(arc)
+
+        return arcs
+
+    @staticmethod
     def CreateCircles(Xcenter: float, Ycenter: float, Zcenter: float, Radius: float) -> int:
         """
         Returns the tag of the created surface circle, using the OPENCASCADE kernel

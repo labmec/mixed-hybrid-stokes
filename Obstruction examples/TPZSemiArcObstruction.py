@@ -15,6 +15,7 @@ import gmsh
 import sys
 
 from TPZModuleTypology import TPZModuleTypology
+from TPZMeshModeling import TPZMeshModeling
 #%% ****************** 
 #   CLASS DEFINITION
 #   ******************
@@ -163,33 +164,37 @@ class TPZSemiArcObstruction(TPZModuleTypology):
         dx = r*np.cos(np.deg2rad(60))
         dy = r*np.sin(np.deg2rad(60))
 
-        center = gmsh.model.occ.addPoint(cx, cy, l, lc)
+        points_coord = [
+            [cx, cy, l],
 
-        upper_right_1 = gmsh.model.occ.addPoint(cx+dx, cy+dy, l, lc)
-        upper_right_2 = gmsh.model.occ.addPoint(cx+cons*dx, cy+cons*dy, l, lc)
-        upper_left_1 = gmsh.model.occ.addPoint(cx-dx, cy+dy, l, lc)
-        upper_left_2 = gmsh.model.occ.addPoint(cx-cons*dx, cy+cons*dy, l, lc)
-
-        lower_right_1 = gmsh.model.occ.addPoint(cx+dx, cy-dy, l, lc)
-        lower_right_2 = gmsh.model.occ.addPoint(cx+cons*dx, cy-cons*dy, l, lc)
-        lower_left_1 = gmsh.model.occ.addPoint(cx-dx, cy-dy, l, lc)
-        lower_left_2 = gmsh.model.occ.addPoint(cx-cons*dx, cy-cons*dy, l, lc)
+            [cx + dx, cy + dy, l],
+            [cx + cons * dx, cy + cons * dy, l],
+            [cx - cons * dx, cy + cons * dy, l],
+            [cx - dx, cy + dy, l],
+            
+            [cx + dx, cy - dy, l],
+            [cx + cons * dx, cy - cons * dy, l],
+            [cx - dx, cy - dy, l],
+            [cx - cons * dx, cy - cons * dy, l]
+        ]
 
         dx = r*np.cos(np.deg2rad(30))
         dy = r*np.sin(np.deg2rad(30))
 
-        right_upper_1 = gmsh.model.occ.addPoint(cx+dx, cy+dy, l, lc)
-        right_upper_2 = gmsh.model.occ.addPoint(cx+cons*dx, cy+cons*dy, l, lc)
-        right_lower_1 = gmsh.model.occ.addPoint(cx+dx, cy-dy, l, lc)
-        right_lower_2 = gmsh.model.occ.addPoint(cx+cons*dx, cy-cons*dy, l, lc)
+        points_coord += [
+            [cx + dx, cy + dy, l],
+            [cx + cons * dx, cy + cons * dy, l],
+            [cx + dx, cy - dy, l],
+            [cx + cons * dx, cy - cons * dy, l],
 
-        left_upper_1 = gmsh.model.occ.addPoint(cx-dx, cy+dy, l, lc)
-        left_upper_2 = gmsh.model.occ.addPoint(cx-cons*dx, cy+cons*dy, l, lc)
-        left_lower_1 = gmsh.model.occ.addPoint(cx-dx, cy-dy, l, lc)
-        left_lower_2 = gmsh.model.occ.addPoint(cx-cons*dx, cy-cons*dy, l, lc)
+            [cx - dx, cy + dy, l],
+            [cx - cons * dx, cy + cons * dy, l],
+            [cx - dx, cy - dy, l],
+            [cx - cons * dx, cy - cons * dy, l]
+        ]
 
 
-        ob_points = (center, upper_right_1, upper_right_2, upper_left_2, upper_left_1, lower_right_1, lower_right_2, lower_left_1, lower_left_2, right_upper_1, right_upper_2, right_lower_1, right_lower_2, left_upper_1, left_upper_2, left_lower_1, left_lower_2)
+        ob_points = TPZMeshModeling.CreatePoints(points_coord, lc)
 
         return ob_points
 
@@ -199,28 +204,26 @@ class TPZSemiArcObstruction(TPZModuleTypology):
         """
         p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17 = points
 
-        l_upper_right = gmsh.model.occ.addLine(p2,p3)        
-        a_upper_upper = gmsh.model.occ.addCircleArc(p3,p1,p4)
-        l_upper_left = gmsh.model.occ.addLine(p4,p5)
-        a_upper_lower = gmsh.model.occ.addCircleArc(p5,p1,p2)
+        line_points = [
+            [[p2, p3], [p3, p1, p4], [p4, p5], [p5, p1, p2]],
+            [[p7, p6], [p6, p1, p8], [p8, p9], [p9, p1, p7]],
+            [[p12, p13], [p13, p1, p11], [p11, p10], [p10, p1, p12]],
+            [[p14, p15], [p15, p1, p17], [p17, p16], [p16, p1, p14]]
+        ]
 
-        l_lower_right = gmsh.model.occ.addLine(p7,p6)     
-        a_lower_upper = gmsh.model.occ.addCircleArc(p6,p1,p8)
-        l_lower_left = gmsh.model.occ.addLine(p8,p9)
-        a_lower_lower = gmsh.model.occ.addCircleArc(p9,p1,p7)
+        ob_arcs = []
+        for group in line_points:
+            g1, g2, g3, g4 = group
+            
+            arc = []
+            arc.append(gmsh.model.occ.addLine(g1[0], g1[1]))
+            arc.append(gmsh.model.occ.addCircleArc(g2[0], g2[1], g2[2]))
+            arc.append(gmsh.model.occ.addLine(g3[0], g3[1]))
+            arc.append(gmsh.model.occ.addCircleArc(g4[0], g4[1], g4[2]))
 
-        l_right_lower = gmsh.model.occ.addLine(p12, p13)
-        a_right_right = gmsh.model.occ.addCircleArc(p13,p1,p11)
-        l_right_upper = gmsh.model.occ.addLine(p11, p10)
-        a_right_left = gmsh.model.occ.addCircleArc(p10,p1,p12)
+            ob_arcs.append(arc)
 
-        l_left_lower = gmsh.model.occ.addLine(p14, p15)
-        a_left_right = gmsh.model.occ.addCircleArc(p15,p1,p17)
-        l_left_upper = gmsh.model.occ.addLine(p17, p16)
-        a_left_left = gmsh.model.occ.addCircleArc(p16,p1,p14)
-
-
-        ob_arcs = [[l_upper_right, a_upper_upper, l_upper_left, a_upper_lower], [l_lower_right, a_lower_upper, l_lower_left, a_lower_lower],[l_right_lower, a_right_right, l_right_upper, a_right_left],[l_left_lower, a_left_right,l_left_upper, a_left_left]]
+        gmsh.model.occ.remove([(0, p1)])
 
         return ob_arcs
 

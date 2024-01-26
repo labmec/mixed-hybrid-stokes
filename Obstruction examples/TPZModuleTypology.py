@@ -240,12 +240,7 @@ class TPZModuleTypology:
             [p10, p6, p7]
         ]
 
-        arcs = []
-        for coord in line_points:
-            start, center, end = coord
-
-            arc = gmsh.model.occ.addCircleArc(start, center, end)
-            arcs.append(arc)
+        arcs = TPZMeshModeling.CreateCircleArcs(line_points)
 
         gmsh.model.occ.remove([(0, p1)]) # center of the back circle
         gmsh.model.occ.remove([(0, p6)]) # center of the front circle

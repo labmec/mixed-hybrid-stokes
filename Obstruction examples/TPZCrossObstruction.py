@@ -227,43 +227,16 @@ class TPZCrossObstruction(TPZModuleTypology):
             gp_arcs = group["arcs"]
             gp_lines = group["lines"]
 
-            for arc in gp_arcs:
-                start, center, end = arc
-
-                a = gmsh.model.occ.addCircleArc(start, center, end)
-                obs_lines.append(a)
-
-            l1, l2 = TPZMeshModeling.CreateLines(gp_lines)
+            a = TPZMeshModeling.CreateCircleArcs(gp_arcs)
+            l = TPZMeshModeling.CreateLines(gp_lines)
             
-            obs_lines.append(l1)
-            obs_lines.append(l2)
-
-        # a_right_lower = gmsh.model.occ.addCircleArc(p2, p1, p3)
-        # a_right_upper = gmsh.model.occ.addCircleArc(p3, p1, p4)
-        # l_right_upper = gmsh.model.occ.addLine(p4, p17)
-        # l_upper_right = gmsh.model.occ.addLine(p17, p6)
-
-        # a_upper_right = gmsh.model.occ.addCircleArc(p6, p5, p7)
-        # a_upper_left = gmsh.model.occ.addCircleArc(p7, p5, p8)
-        # l_upper_left = gmsh.model.occ.addLine(p8, p18)
-        # l_left_upper = gmsh.model.occ.addLine(p18, p10)
-
-        # a_left_upper = gmsh.model.occ.addCircleArc(p10, p9, p11)
-        # a_left_lower = gmsh.model.occ.addCircleArc(p11, p9, p12)
-        # l_left_lower = gmsh.model.occ.addLine(p12, p19)
-        # l_lower_left = gmsh.model.occ.addLine(p19, p14)
-
-        # a_lower_left = gmsh.model.occ.addCircleArc(p14, p13, p15)
-        # a_lower_right = gmsh.model.occ.addCircleArc(p15, p13, p16)
-        # l_lower_right = gmsh.model.occ.addLine(p16, p20)
-        # l_right_lower = gmsh.model.occ.addLine(p20, p2)
+            obs_lines += a
+            obs_lines += l
 
         gmsh.model.occ.remove([(0, p1)])
         gmsh.model.occ.remove([(0, p5)])
         gmsh.model.occ.remove([(0, p9)])
         gmsh.model.occ.remove([(0, p13)])
-
-        # obs_lines = [a_right_lower, a_right_upper, l_right_upper, l_upper_right, a_upper_right, a_upper_left, l_upper_left, l_left_upper, a_left_upper, a_left_lower, l_left_lower, l_lower_left, a_lower_left, a_lower_right, l_lower_right, l_right_lower]
 
         return obs_lines
 

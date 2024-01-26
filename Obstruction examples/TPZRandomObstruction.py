@@ -15,6 +15,7 @@ from datetime import datetime
 from dataclasses import dataclass, field
 
 from TPZModuleTypology import TPZModuleTypology
+from TPZMeshModeling import TPZMeshModeling
 #%% ****************** 
 #   CLASS DEFINITION
 #   ******************
@@ -233,13 +234,15 @@ class TPZRandomObstruction(TPZModuleTypology):
         l = self.length
         lc = self.lc
 
-        center = gmsh.model.occ.addPoint(cx, cy, l, lc)
-        right = gmsh.model.occ.addPoint(cx+r, cy, l, lc)
-        upper = gmsh.model.occ.addPoint(cx, cy+r, l, lc)
-        left = gmsh.model.occ.addPoint(cx-r, cy, l, lc)
-        lower = gmsh.model.occ.addPoint(cx, cy-r, l, lc)
+        point_coord = [
+            [cx, cy, l],
+            [cx + r, cy, l],
+            [cx, cy + r, l],
+            [cx - r, cy, l],
+            [cx, cy - r, l]
+        ]
 
-        ob_points = (center, right, upper, left, lower)
+        ob_points = TPZMeshModeling.CreatePoints(point_coord, lc)
 
         return ob_points
 
@@ -249,12 +252,16 @@ class TPZRandomObstruction(TPZModuleTypology):
         """
         p1, p2, p3, p4, p5 = points
 
-        upper_right = gmsh.model.occ.addCircleArc(p2, p1, p3)
-        upper_left = gmsh.model.occ.addCircleArc(p3, p1, p4)
-        lower_left = gmsh.model.occ.addCircleArc(p4, p1, p5)
-        lower_right = gmsh.model.occ.addCircleArc(p5, p1, p2)
+        arc_points = [
+            [p2, p1, p3],
+            [p3, p1, p4],
+            [p4, p1, p5],
+            [p5, p1, p2]
+        ]
 
-        ob_arcs = [upper_right, upper_left, lower_left, lower_right]
+        ob_arcs = TPZMeshModeling.CreateCircleArcs(arc_points)
+
+        gmsh.model.occ.remove([(0, p1)])
 
         return ob_arcs
 
