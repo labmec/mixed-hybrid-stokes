@@ -211,7 +211,7 @@ class TPZMeshModeling:
             var = var.capitalize()
             gmsh.option.setNumber("Geometry." + var, 1)
 
-    def TurnOnNumbering(*variables: str):
+    def TurnOnLabels(*variables: str):
         """
         Turn on the selected entities' labels. 
             - points
@@ -297,3 +297,10 @@ class TPZMeshModeling:
         """
         option = {0: 'built', 1: 'occ'}
         TPZMeshModeling.kernel = option[kernel]
+
+    @staticmethod
+    def CreateMesh(meshDim: int):
+        """
+        Creates the model mesh with dimension meshDim
+        """
+        gmsh.model.mesh.generate(meshDim)

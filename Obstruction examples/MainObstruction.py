@@ -88,10 +88,10 @@ def main()->None:
     # File name
     file_name = "SimpleObstruction"
 
-    gmsh.initialize()
+    TPZMeshModeling.Begin()
 
-    TPZMeshModeling.TurnOnLabels('surfaces', 'volumes')
-    # TPZMeshModeling.TurnOnNumbering('points', 'volumes', 'surfaces')
+    TPZMeshModeling.TurnOnLabels('surface', 'volume')
+    TPZMeshModeling.TurnOnRepresentation('surfaces')
     
     TPZMeshModeling.TurnOnNormals()
     TPZMeshModeling.TurnOnTangents()
@@ -118,21 +118,21 @@ def main()->None:
     modules = []
     if circular:
         # modules.append(TPZCrossObstruction(_length = length ,_lc = lc, _module_typology = circle, _radius = r/2, _obstruction_width = width, _obstruction_height = height))
-        modules.append(TPZMultipleObstruction(length, lc, circle, obstruction/3, .3))
+        # modules.append(TPZMultipleObstruction(length, lc, circle, obstruction/3, .3))
         modules.append(TPZSimpleObstruction(length, lc, circle, obstruction))
         # modules.append(TPZSemiArcObstruction(length, lc, circle, obstruction))
         # modules.append(TPZRandomObstruction(length, lc, circle, obstruction/2, 5, _seed = 10))
         # modules.append(TPZRandomObstruction(length, lc, circle, obstruction/2, 5))
-        modules.append(TPZMultipleObstruction(length, lc, circle, obstruction/3, .3))
+        # modules.append(TPZMultipleObstruction(length, lc, circle, obstruction/3, .3))
         modules.append(TPZNoObstruction(_length = length, _lc = lc, _module_typology = circle))
         # modules.append(TPZNoObstruction(_length = length, _lc = lc, _module_typology = circle))
 
     else:
-        modules.append(TPZSimpleObstruction(length, lc, rec, obstruction))
-        modules.append(TPZCrossObstruction(_length = length ,_lc = lc, _module_typology = rec, _radius = r, _obstruction_width = width, _obstruction_height = height))
-        modules.append(TPZMultipleObstruction(length, lc, rec, obstruction/3, .3))
-        modules.append(TPZSemiArcObstruction(length, lc, rec, obstruction))
-        modules.append(TPZRandomObstruction(length, lc, rec, obstruction/2, 5))
+        # modules.append(TPZSimpleObstruction(length, lc, rec, obstruction))
+        # modules.append(TPZCrossObstruction(_length = length ,_lc = lc, _module_typology = rec, _radius = r, _obstruction_width = width, _obstruction_height = height))
+        # modules.append(TPZMultipleObstruction(length, lc, rec, obstruction/3, .3))
+        # modules.append(TPZSemiArcObstruction(length, lc, rec, obstruction))
+        # modules.append(TPZRandomObstruction(length, lc, rec, obstruction/2, 5))
         modules.append(TPZNoObstruction(_length = length, _lc = lc, _module_typology = rec))
     
     "Moving them to the right place"
@@ -152,18 +152,18 @@ def main()->None:
     ]
 
     # "Creating the elements"
-    gmsh.model.occ.synchronize()
+    TPZMeshModeling.Synchronize()
 
     TPZMeshModeling.CreatePhysicalGroup(physical_group)
 
-    gmsh.model.mesh.generate(mesh_dim)
+    TPZMeshModeling.CreateMesh(mesh_dim)
     
     TPZMeshModeling.ShowModel()
 
-    TPZMeshModeling.WriteMeshFiles(file_name)
-    TPZMeshModeling.PrintJson(json_data, file_name)
+    # TPZMeshModeling.WriteMeshFiles(file_name)
+    # TPZMeshModeling.PrintJson(json_data, file_name)
 
-    gmsh.finalize()
+    TPZMeshModeling.End()
 
 if __name__ == '__main__':
     main()
