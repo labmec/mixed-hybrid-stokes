@@ -1,4 +1,4 @@
-*.msh
+
 .vscode
 .DS_Store
 CMakeLists.txt.user
