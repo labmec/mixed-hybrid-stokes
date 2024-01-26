@@ -1,0 +1,68 @@
+{
+    "MeshName": "../Meshes/Constant3D",
+    "CreateMsh": false,
+    "HdivType": 1,
+    "VelpOrder": 1,
+    "TracpOrder": 0,
+    "Dim": 3,
+    "Resolution": 0,
+    "StaticCondensation": true,
+    "isAxisymmetric": 0,
+    "HasAnalyticSolution": false,
+    "Domain": [
+        {
+            "name": "Domain",
+            "matID": 1,
+            "viscosity": 1
+        }
+    ],
+    "NormalBoundary": [
+        {
+            "name": "NormVelM",
+            "type": 0,
+            "value": -2,
+            "matID": 2
+        },
+        {
+            "name": "NormVelP",
+            "type": 0,
+            "value": 2,
+            "matID": 3
+        },
+        {
+            "name": "NormStressP",
+            "type": 2,
+            "value": -10,
+            "matID": 5
+        }
+    ],
+    "TangentialBoundary": [
+        {
+            "name": "NoTanVel",
+            "type": 1,
+            "value": [
+                0,
+                0,
+                0
+            ],
+            "matID": 4
+        },
+        {
+            "name": "TanVelP",
+            "type": 1,
+            "value": [
+                0,
+                0,
+                2
+            ],
+            "matID": 6
+        }
+    ],
+    "AxisymmetryDomain": [],
+    "AxisymmetryBoundary": [],
+    "LambdaID": 10,
+    "InterfaceID": 20,
+    "AxiLambdaID": 30,
+    "AxiInterfaceID": 40,
+    "FluxInterfaceID": 50
+}

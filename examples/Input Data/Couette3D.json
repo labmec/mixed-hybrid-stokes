@@ -1,0 +1,66 @@
+{
+    "MeshName": "../Meshes/Couette3D",
+    "CreateMsh": false,
+    "HdivType": 1,
+    "VelpOrder": 1,
+    "TracpOrder": 0,
+    "Dim": 3,
+    "Resolution": 0,
+    "StaticCondensation": true,
+    "isAxisymmetric": 0,
+    "HasAnalyticSolution": false,
+    "Domain": [
+        {
+            "name": "Domain",
+            "matID": 1,
+            "viscosity": 1
+        }
+    ],
+    "NormalBoundary": [
+        {
+            "name": "NullNormStress",
+            "type": 2,
+            "value": 0,
+            "matID": 2
+        }
+    ],
+    "TangentialBoundary": [
+        {
+            "name": "NullTanStress",
+            "type": 3,
+            "value": [
+                0,
+                0,
+                0
+            ],
+            "matID": 3
+        },
+        {
+            "name": "NullTanVel",
+            "type": 1,
+            "value": [
+                0,
+                0,
+                0
+            ],
+            "matID": 4
+        },
+        {
+            "name": "UnitTanVel",
+            "type": 1,
+            "value": [
+                0,
+                0,
+                1
+            ],
+            "matID": 5
+        }
+    ],
+    "AxisymmetryDomain": [],
+    "AxisymmetryBoundary": [],
+    "LambdaID": 10,
+    "InterfaceID": 20,
+    "AxiLambdaID": 30,
+    "AxiInterfaceID": 40,
+    "FluxInterfaceID": 50
+}

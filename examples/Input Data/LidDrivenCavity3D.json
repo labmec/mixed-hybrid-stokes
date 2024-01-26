@@ -1,0 +1,66 @@
+{
+    "MeshName": "../Meshes/LidDrivenCavity3D",
+    "CreateMsh": false,
+    "HdivType": 1,
+    "VelpOrder": 1,
+    "TracpOrder": 0,
+    "Dim": 3,
+    "Resolution": 0,
+    "StaticCondensation": true,
+    "isAxisymmetric": 0,
+    "HasAnalyticSolution": false,
+    "Domain": [
+        {
+            "name": "Domain",
+            "matID": 1,
+            "viscosity": 1
+        }
+    ],
+    "NormalBoundary": [
+        {
+            "name": "NoPenetration",
+            "type": 0,
+            "value": 0,
+            "matID": 2
+        }
+    ],
+    "TangentialBoundary": [
+        {
+            "name": "SlipCondition",
+            "type": 3,
+            "value": [
+                0,
+                0,
+                0
+            ],
+            "matID": 3
+        },
+        {
+            "name": "NoSlipCondition",
+            "type": 1,
+            "value": [
+                0,
+                0,
+                0
+            ],
+            "matID": 4
+        },
+        {
+            "name": "TanVel",
+            "type": 1,
+            "value": [
+                0,
+                0,
+                1
+            ],
+            "matID": 5
+        }
+    ],
+    "AxisymmetryDomain": [],
+    "AxisymmetryBoundary": [],
+    "LambdaID": 10,
+    "InterfaceID": 20,
+    "AxiLambdaID": 30,
+    "AxiInterfaceID": 40,
+    "FluxInterfaceID": 50
+}

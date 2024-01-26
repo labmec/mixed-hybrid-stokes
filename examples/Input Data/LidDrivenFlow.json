@@ -1,0 +1,75 @@
+{	
+	"MeshName": "../Meshes/LidDrivenFlow",
+
+	"CreateMsh": true,
+
+	"HdivType": 1,
+
+	"VelpOrder": 2, // approximation order for velocity
+
+	"TracpOrder": 1, // approximation order for traction
+
+	"Dim": 2,
+
+	"Resolution": 0,
+
+	"StaticCondensation": true,
+
+	"isAxisymmetric": 0,
+
+	"HasAnalyticSolution": false, 
+
+	"Domain": [ // domain data
+		{
+			"name": "Stokes_Domain",
+			"matID": 1,
+			"viscosity": 1
+		}
+	],
+
+	"NormalBoundary":[
+		{
+			"name": "NoNormFlow", // name of boundary condition
+			"type": 0, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 0,
+			"matID": 2
+		}
+	],
+
+	"TangentialBoundary": [
+		{
+			"name": "UnitTanFlow", // name of boundary condition
+			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": [-1,0,0],
+			"matID": 3
+		},
+		{
+			"name": "NoTanFlow", // name of boundary condition
+			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": [0,0,0],
+			"matID": 4
+		}
+	],
+
+	"AxisymmetryDomain":[
+		
+	],
+
+	"AxisymmetryBoundary":[
+		
+	],
+	
+
+	"LambdaID": 10,
+	"InterfaceID" : 20,
+	"AxiLambdaID": 30,
+	"AxiInterfaceID": 40,
+	"FluxInterfaceID": 50
+
+}
+
+
+
+
+
+

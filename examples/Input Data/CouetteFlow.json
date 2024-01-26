@@ -1,0 +1,73 @@
+{	
+	"MeshName": "../Meshes/CouetteFlow",
+
+	"CreateMsh": true,
+
+	"HdivType": 1,
+
+	"VelpOrder": 1, // approximation order for velocity
+
+	"TracpOrder": 0, // approximation order for traction
+
+	"Dim": 2,
+
+	"Resolution": 0,
+
+	"StaticCondensation": true,
+
+	"HasAnalyticSolution": false, 
+
+	"isAxisymmetric": 0,
+
+	"Domain": [ // domain data
+		{
+			"name": "Stokes_Domain",
+			"matID": 1,
+			"viscosity": 1
+		}
+	],
+
+	"NormalBoundary":[
+		{
+			"name": "NoNormStress", // name of boundary condition
+			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 0,
+			"matID": 2
+		}
+	],
+
+	"TangentialBoundary": [
+		{
+			"name": "NoTanFlow", 
+			"type": 1, 
+			"value": [0,0,0],
+			"matID": 3
+		},
+		{
+			"name": "UnitMTanFlow", 
+			"type": 1, 
+			"value": [-1,0,0],
+			"matID": 4
+		}
+	],
+
+		"AxisymmetryDomain":[
+		
+	],
+
+	"AxisymmetryBoundary":[
+		
+	],
+
+	"LambdaID": 10,
+	"InterfaceID" : 20,
+	"AxiLambdaID": 30,
+	"AxiInterfaceID": 40,
+	"FluxInterfaceID": 50
+}
+
+
+
+
+
+

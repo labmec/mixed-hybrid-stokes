@@ -1,0 +1,79 @@
+{	
+	"MeshName": "../Meshes/PoiseuilleFlow",
+
+	"CreateMsh": true,
+
+	"HdivType": 1,
+
+	"VelpOrder": 1, // approximation order for velocity
+
+	"TracpOrder": 0, // approximation order for traction
+
+	"Dim": 2,
+
+	"Resolution": 0,
+
+	"StaticCondensation": true,
+
+	"isAxisymmetric": 0,
+
+	"HasAnalyticSolution": false, 
+
+	"Domain": [ // domain data
+		{
+			"name": "Stokes_Domain",
+			"matID": 1,
+			"viscosity": 1
+		}
+	],
+
+	"NormalBoundary":[
+		{
+			"name": "UnitMNormStress", // name of boundary condition
+			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": -1,
+			"matID": 2
+		},
+		{
+			"name": "UnitPNormStress", // name of boundary condition
+			"type": 2, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 1,
+			"matID": 3
+		},
+		{
+			"name": "NoNormVelocity", // name of boundary condition
+			"type": 0, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": 0,
+			"matID": 4
+		}
+	],
+
+	"TangentialBoundary": [
+		{
+			"name": "NoFlow", // name of boundary condition
+			"type": 1, // type: 0 -> Normal Velocity, 1 -> Tangential Velocity, 2 -> Normal Stress, and 3 -> Tangential Stress 
+			"value": [0,0,0],
+			"matID": 5
+		}
+	],
+
+	"AxisymmetryDomain":[
+		
+	],
+
+	"AxisymmetryBoundary":[
+		
+	],
+
+	"LambdaID": 10,
+	"InterfaceID" : 20,
+	"AxiLambdaID": 30,
+	"AxiInterfaceID": 40,
+	"FluxInterfaceID": 50
+}
+
+
+
+
+
+
