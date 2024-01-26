@@ -25,7 +25,7 @@ protected:
     /// fluid viscosity
     double fviscosity;
     
-    enum SpaceIndex {EVindex, EPindex, EPMindex, EVMindex};
+    enum SpaceIndex {EVindex, EPindex, EGindex, EPMindex};
     
 //    /// Velocity index in datavec
 //    int fVindex = 0;
@@ -41,6 +41,10 @@ protected:
     REAL fBigNumber = pow(10,std::numeric_limits<STATE>::max_digits10*2/3);
     
 public:
+    enum MVoigt {
+        Exx, Exy, Eyy, Exz, Eyz, Ezz
+    };
+    
     /// Empty Constructor
     TPZStokesMaterial();
 
@@ -103,9 +107,21 @@ public:
      */
     void FillDataRequirements(TPZVec<TPZMaterialDataT<STATE>> &datavec) const override;
     
+    void FillBoundaryConditionDataRequirements(int type, TPZVec<TPZMaterialDataT<STATE>> &datavec) const override;
+    
     virtual void Errors(const TPZVec<TPZMaterialDataT<STATE>>& data, TPZVec<REAL>& errors) override;
     
     virtual int NEvalErrors(){return 6;}
+    
+    virtual void StressTensor(const TPZFNMatrix<10, STATE>& gradU, TPZFNMatrix<6, REAL>& sigma, REAL pressure);
+    
+    virtual void StrainTensor(const TPZFNMatrix<10, STATE>& gradU, TPZFNMatrix<6, REAL>& epsilon);
+    
+    virtual void ViscosityTensor(TPZFNMatrix<36, REAL>& D);
+    
+    void ToVoigt(const TPZFNMatrix<9, STATE> &Sigma, TPZFNMatrix<6, STATE> &SVoigt) const;
+    
+    void FromVoigt(const TPZFNMatrix<6, STATE> &Svoigt, TPZFNMatrix<9, STATE> &S) const;
 };
 
 #endif

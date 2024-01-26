@@ -25,6 +25,7 @@ ProblemData::~ProblemData(){
 // readjson function. takes a json function as parameter and completes the required simulation data
 void ProblemData::ReadJson(std::string file){
     std::ifstream filejson(file);
+
     json input = json::parse(filejson,nullptr,true,true); // to ignore comments in json file
     
     // checking infos in the json file
@@ -47,6 +48,8 @@ void ProblemData::ReadJson(std::string file){
     if(input.find("AxiLambdaID") == input.end()) DebugStop();
     if(input.find("AxiInterfaceID")==input.end()) DebugStop();
     if(input.find("FluxInterfaceID") == input.end()) DebugStop();
+    if(input.find("HasAnalyticSolution") == input.end()) DebugStop();
+//    if(input.find("ObstructionID") == input.end()) DebugStop();
         
     // accessing and assigning values
     fMeshName = input["MeshName"];
@@ -66,6 +69,11 @@ void ProblemData::ReadJson(std::string file){
     fResolution = input["Resolution"];
     
     fCondensedElement = input["StaticCondensation"];
+    
+    fhasAnalyticSolution = input["HasAnalyticSolution"];
+    
+    if (input.find("ObstructionID") != input.end())
+        fObstructionID = input["ObstructionID"];
     
     DomainData domaindata;
     for(auto& domainjson : input["Domain"]){
@@ -152,7 +160,7 @@ void ProblemData::ReadJson(std::string file){
     fAxiInterfaceID = input["AxiInterfaceID"];
     fFluxInterfaceID = input["FluxInterfaceID"];
 
-    if (fCondensedElement) fMeshVector.resize(4);
+    if (fCondensedElement && fHdivtype != EConstant) fMeshVector.resize(4);
     else fMeshVector.resize(2);
 }
 
@@ -211,7 +219,7 @@ void ProblemData::Print(std::ostream& out){
 
     out << "Axisymmetric Boundary Conditions at r=0: " << std::endl;
     
-    for(const auto& bcdata : fBcTangentialVec){
+    for(const auto& bcdata : fBcAxisymmetryVec){
         out << "  BC Name: " << bcdata.name << std::endl;
         out << "  BC MatID: " << bcdata.matID << std::endl;
         out << "  BC Type: " << bcdata.type << std::endl;

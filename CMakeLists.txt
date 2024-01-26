@@ -6,7 +6,7 @@ include_directories(
 	"${PROJECT_SOURCE_DIR}/mhstokes"
 )
 
-find_package(NeoPZ REQUIRED HINTS ${CMAKE_SOURCE_DIR}/../neopz_install/ ${CMAKE_SOURCE_DIR}/neopz_install/)
+find_package(NeoPZ REQUIRED HINTS ${CMAKE_SOURCE_DIR}/../neopz_install_debug/ ${CMAKE_SOURCE_DIR}/neopz_install/)
 
 option(USING_LAPACK OFF)
 if(USING_LAPACK)

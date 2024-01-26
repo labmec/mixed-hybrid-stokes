@@ -41,48 +41,55 @@ void TPZInterfaceAxisymStokesMaterial::ContributeInterface(const TPZMaterialData
     const TPZMaterialDataT<STATE>& vDataLeft = dataleft.find(fVindex)->second;
     const TPZMaterialDataT<STATE>& pDataRight = dataright.find(fPindex)->second;
     
-    const TPZFNMatrix<9, REAL>& axes = pDataRight.axes;
+    const TPZFNMatrix<9, REAL>& axes_right = pDataRight.axes;
+    const TPZFNMatrix<9, REAL>& axes_left = vDataLeft.axes;
     
-    int64_t nShapeV = vDataLeft.fVecShapeIndex.NElements(); // number of Hdiv velocity/displacement shape functions
-    int64_t nShapeLambda = pDataRight.phi.Rows(); // number of lambda shape functions
+    int64_t nShapeV = (vDataLeft.fShapeType == TPZShapeData::MShapeFunctionType::EVecShape) ? vDataLeft.fVecShapeIndex.NElements() : vDataLeft.phi.Rows();
+    int64_t nShapeLambda = pDataRight.phi.Rows();
     
-    TPZFNMatrix<100, REAL> PhiV(3, nShapeV, 0.0);
-    TPZFNMatrix<100, REAL> PhiLambdaT(3, fdimension * nShapeLambda, 0.0); //lambda in the tangential directions
+    int dimAux = (vDataLeft.fShapeType == TPZShapeData::MShapeFunctionType::EVecShape) ? 1 : fdimension;
+    TPZFNMatrix<100, REAL> PhiV(3, dimAux*nShapeV, 0.);
+    TPZFNMatrix<100, REAL> PhiLambdaT(3, fdimension*nShapeLambda, 0.); // lambda in the tangential direction
     
-    if (vDataLeft.fNeedsDeformedDirectionsFad)
+    if (vDataLeft.fShapeType == TPZShapeData::MShapeFunctionType::EVecShape)
     {
         for (int64_t j = 0; j < nShapeV; j++)
-        {
             for (int64_t k = 0; k < 3; k++)
-            {
                 PhiV(k, j) = vDataLeft.fDeformedDirectionsFad(k, j).val();
-            }
-        }
     }
-
-    for (int64_t j = 0; j < nShapeLambda; j++)
+    else
     {
-        for (int k = 0; k < fdimension; k++)
-        {
-            TPZManVector<REAL,3> tangent(3,0.0);
-            for (int64_t i = 0; i < 3; i++)
-            {
-                PhiLambdaT(i, fdimension*j+k) = pDataRight.phi(j, 0) * axes(k, i); // lambda shape function at tangential direction
-            }
-        }
+        for (int64_t j = 0; j < nShapeV; j++)
+            for (int64_t k = 0; k < fdimension; k++)
+                for (int64_t i = 0; i < 3; i++)
+                    PhiV(i, fdimension*j+k) = vDataLeft.phi(j,0)*axes_left(k, i); // velocity H1 shape function at tangential direction
     }
-
-    REAL factor = fMultiplier * weight;
-    ek.AddContribution(0, nShapeV, PhiV, true, PhiLambdaT, false, factor);
-    ek.AddContribution(nShapeV, 0, PhiLambdaT, true, PhiV, false, factor);
-
+    
+    for (int64_t j = 0; j < nShapeLambda; j++)
+        for (int64_t k = 0; k < fdimension; k++)
+            for (int64_t i = 0; i < 3; i++)
+                PhiLambdaT(i, fdimension*j+k) = pDataRight.phi(j, 0)*axes_right(k, i);
+    
+    REAL factor = fMultiplier*weight;
+    if (vDataLeft.fShapeType == TPZShapeData::MShapeFunctionType::EVecShape)
+    {
+        ek.AddContribution(0, nShapeV, PhiV, true, PhiLambdaT, false, factor);
+        ek.AddContribution(nShapeV, 0, PhiLambdaT, true, PhiV, false, factor);
+    }
+    else
+    {
+        ek.AddContribution(0, dimAux*nShapeV, PhiV, true, PhiLambdaT, false, factor);
+        ek.AddContribution(dimAux*nShapeV, 0, PhiLambdaT, true, PhiV, false, factor);
+    }
+    
 #ifdef PZ_LOG
-    if(logger.isDebugEnabled()){
+    if (logger.isDebugEnabled())
+    {
         std::stringstream sout;
         ek.Print("ek", sout, EMathematicaInput);
         ef.Print("ef", sout, EMathematicaInput);
         sout << std::endl << std::endl;
-        LOGPZ_DEBUG(logger, sout.str())
+        LOGPZ_DEBUG(logger, sout.str());
     }
 #endif
 }

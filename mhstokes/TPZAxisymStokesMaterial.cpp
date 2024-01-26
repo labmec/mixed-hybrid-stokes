@@ -81,7 +81,7 @@ void TPZAxisymStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
 
     if(datavec.size()>2)
     {
-        TPZFMatrix<REAL>& phivM = datavec[EVMindex].phi;
+        TPZFMatrix<REAL>& phivM = datavec[EGindex].phi;
         TPZFMatrix<REAL>& phipM = datavec[EPMindex].phi;
         
         // Pressure and distributed flux

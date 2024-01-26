@@ -12,6 +12,10 @@
 
 class ProblemData
 {
+public: 
+    enum HDivType {EStandard, EConstant};
+    
+private:
     // struct responsible to summarize all the data from every domain
     struct DomainData {
         std::string name = "none"; // domains name
@@ -42,7 +46,7 @@ private:
     
     bool fMshFile = false;
     
-    int fHdivtype = 0; // 0 -> Standard & 1 -> Constant
+    HDivType fHdivtype = EStandard; // 0 -> Standard & 1 -> Constant
     
     int fVelpOrder = -1; // polynomial approximation order for velocity
     
@@ -69,14 +73,22 @@ private:
     int fInterfaceID = -1;
     
     int fLambdaID = -1;
+    
+    int fTanVelID = 15;
 
     int fAxiLambdaID = -1;
 
     int fAxiInterfaceID = -1;
+    
+    int fAxiTanVelID = 25;
 
     int fFluxInterfaceID = -1;
     
+    bool fhasAnalyticSolution = false;
+    
     TPZVec<TPZCompMesh*> fMeshVector;
+    
+    int fObstructionID = -1;
     
 public:
     ProblemData();
@@ -94,8 +106,8 @@ public:
     const bool& CreateMshFile() const {return fMshFile;}
     void SetCreateMshFile(bool create) {fMshFile = create;}
     
-    const int& HdivType() const {return fHdivtype;}
-    void SetHdivType(int hdivtype) {fHdivtype = hdivtype;}
+    const HDivType& HdivType() const {return fHdivtype;}
+    void SetHdivType(HDivType hdivtype) {fHdivtype = hdivtype;}
 
     const int& Axisymmetric() const {return fAxisymmetric;}
     void SetAxisymmetric(int axisymmetric) {fAxisymmetric = axisymmetric;}
@@ -135,6 +147,9 @@ public:
     
     const int& LambdaID() const{return fLambdaID;}
     void SetLambdaID(int id ){fLambdaID = id;}
+    
+    const int& TanVelID() const{return fTanVelID;}
+    void SetTanVelID(int id){fTanVelID = id;}
 
     const int& AxiLambdaID() const{return fAxiLambdaID;}
     void SetAxiLambdaID(int id) {fAxiLambdaID = id;}
@@ -142,11 +157,20 @@ public:
     const int& AxiInterfaceID() const{return fAxiInterfaceID;}
     void SetAxiInterfaceID(int id) {fAxiInterfaceID = id;}
 
+    const int& AxiTanVelID() const{return fAxiTanVelID;}
+    void SetAxiTanVelID(int id){fAxiTanVelID = id;}
+
     const int& FluxInterfaceID() const{return fFluxInterfaceID;}
     void SetFluxInterfaceID(int id) {fFluxInterfaceID = id;}
     
     const TPZVec<TPZCompMesh*>& MeshVector() const {return fMeshVector;}
     void SetMeshVector(const TPZVec<TPZCompMesh*>& vec) {fMeshVector = vec;}
+    
+    const bool& HasAnalyticSolution() const{return fhasAnalyticSolution;}
+    void SetHasAnalyticSolution(bool analyticalSol){fhasAnalyticSolution = analyticalSol;}
+    
+    const int& ObstructionID() const{return fObstructionID;}
+    void SetObstruction(int obID){fObstructionID = obID;}
 };
 
 #endif
