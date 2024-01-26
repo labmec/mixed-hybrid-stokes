@@ -8,7 +8,8 @@ Created by Carlos Puga: 01/13/2024
 #   ******************
 from dataclasses import dataclass, field
 import gmsh
-import sys
+
+from TPZMeshModeling import TPZMeshModeling
 #%% ****************** 
 #   CLASS DEFINITION
 #   ******************
@@ -99,17 +100,19 @@ class TPZModuleTypology:
         Returns the basic points of a rectangular box of dimensions '(dx, dy, length)'
         with mesh size 'lc'. 
         """
-        back_lower_left = gmsh.model.occ.addPoint(0, 0, 0, self.lc)
-        back_lower_right = gmsh.model.occ.addPoint(dx, 0, 0, self.lc)
-        back_upper_right = gmsh.model.occ.addPoint(dx, dy, 0, self.lc)
-        back_upper_left = gmsh.model.occ.addPoint(0, dy, 0, self.lc)
+        points_coord = [ 
+            [0,0,0],
+            [dx, 0, 0],
+            [dx, dy, 0],
+            [0, dy, 0],
 
-        front_lower_left = gmsh.model.occ.addPoint(0, 0, self.length, self.lc)
-        front_lower_right = gmsh.model.occ.addPoint(dx, 0, self.length, self.lc)
-        front_upper_right = gmsh.model.occ.addPoint(dx, dy, self.length, self.lc)
-        front_upper_left = gmsh.model.occ.addPoint(0, dy, self.length, self.lc)
+            [0, 0, self.length],
+            [dx, 0, self.length],
+            [dx, dy, self.length],
+            [0, dy, self.length]
+        ]
 
-        points = (back_lower_left, back_lower_right, back_upper_right, back_upper_left, front_lower_left, front_lower_right, front_upper_right, front_upper_left)
+        points = TPZMeshModeling.CreatePoints(points_coord, self.lc)
 
         return points
     
@@ -119,23 +122,25 @@ class TPZModuleTypology:
         """
         p1, p2, p3, p4, p5, p6, p7, p8 = self.points
 
-        back_lower = gmsh.model.occ.addLine(p1, p2)
-        back_right = gmsh.model.occ.addLine(p2, p3)
-        back_upper = gmsh.model.occ.addLine(p3, p4)
-        back_left = gmsh.model.occ.addLine(p4, p1)
+        lines_points = [
+            [p1, p2],
+            [p2, p3],
+            [p3, p4],
+            [p4, p1],
 
-        front_lower = gmsh.model.occ.addLine(p5, p6)
-        front_right = gmsh.model.occ.addLine(p6, p7)
-        front_upper = gmsh.model.occ.addLine(p7, p8)
-        front_left = gmsh.model.occ.addLine(p8, p5)
+            [p5, p6],
+            [p6, p7],
+            [p7, p8],
+            [p8, p5],
 
-        upper_left = gmsh.model.occ.addLine(p4, p8)
-        upper_right = gmsh.model.occ.addLine(p3, p7)
+            [p4, p8],
+            [p3, p7],
+            
+            [p1, p5],
+            [p2, p6]
+        ]
 
-        lower_left = gmsh.model.occ.addLine(p1, p5)
-        lower_right = gmsh.model.occ.addLine(p2, p6)
-
-        lines = (back_lower, back_right, back_upper, back_left, front_lower, front_right, front_upper, front_left, upper_left, upper_right, lower_left, lower_right)
+        lines = TPZMeshModeling.CreateLines(lines_points)
 
         return lines
     
@@ -146,16 +151,16 @@ class TPZModuleTypology:
         """
         l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12 = self.lines
 
-        back = gmsh.model.occ.addCurveLoop([l1,l2,l3,l4])
-        front = gmsh.model.occ.addCurveLoop([l5,l6,l7,l8])
+        curve_lines = [
+            [l1, l2, l3, l4],
+            [l5, l6, l7, l8],
+            [l3, l10, l7, l9],
+            [l1, l11, l5, l12],
+            [l4, l9, l8, l11],
+            [l2, l10, l6, l12]
+        ] 
 
-        upper = gmsh.model.occ.addCurveLoop([l3,l10,l7,l9])
-        lower = gmsh.model.occ.addCurveLoop([l1, l11, l5, l12])
-
-        left = gmsh.model.occ.addCurveLoop([l4, l9,l8, l11])
-        right = gmsh.model.occ.addCurveLoop([l2,l10,l6,l12])
-
-        curves = (back, front, upper, lower, left, right)
+        curves = TPZMeshModeling.CreateCurveLoops(curve_lines)
 
         return curves
 
@@ -166,16 +171,16 @@ class TPZModuleTypology:
         """
         c1, c2, c3, c4, c5, c6 = self.curves
 
-        back = gmsh.model.occ.addPlaneSurface([c1])
-        front = gmsh.model.occ.addPlaneSurface([c2])
+        surfaces_curves = [
+            [c1],
+            [c2],
+            [c3],
+            [c4],
+            [c5],
+            [c6]
+        ]
 
-        lower = gmsh.model.occ.addPlaneSurface([c3])
-        upper = gmsh.model.occ.addPlaneSurface([c4])
-
-        left = gmsh.model.occ.addPlaneSurface([c5])
-        right = gmsh.model.occ.addPlaneSurface([c6])
-
-        surfaces = (back, front, lower, upper, left, right)
+        surfaces = TPZMeshModeling.CreatePlanes(surfaces_curves)
 
         return surfaces
 
@@ -199,19 +204,21 @@ class TPZModuleTypology:
         """
         Returns the cylinder points
         """
-        back_center = gmsh.model.occ.addPoint(0, 0, 0, self.lc)
-        back_right = gmsh.model.occ.addPoint(radius, 0, 0, self.lc)
-        back_upper = gmsh.model.occ.addPoint(0, radius, 0, self.lc)
-        back_left = gmsh.model.occ.addPoint(-radius, 0, 0, self.lc)
-        back_lower = gmsh.model.occ.addPoint(0, -radius, 0, self.lc)
+        points_coord = [
+            [0, 0, 0],
+            [radius, 0, 0],
+            [0, radius, 0],
+            [-radius, 0, 0],
+            [0, -radius, 0],
 
-        front_center = gmsh.model.occ.addPoint(0, 0, self.length, self.lc)
-        front_right = gmsh.model.occ.addPoint(radius, 0, self.length, self.lc)
-        front_upper = gmsh.model.occ.addPoint(0, radius, self.length, self.lc)
-        front_left = gmsh.model.occ.addPoint(-radius, 0, self.length, self.lc)
-        front_lower = gmsh.model.occ.addPoint(0, -radius, self.length, self.lc)
+            [0, 0, self.length],
+            [radius, 0, self.length],
+            [0, radius, self.length],
+            [-radius, 0, self.length],
+            [0, -radius, self.length]
+        ]
 
-        points = (back_center, back_right, back_upper, back_left, back_lower, front_center, front_right, front_upper, front_left, front_lower)
+        points = TPZMeshModeling.CreatePoints(points_coord, self.lc)
 
         return points
 
@@ -221,22 +228,30 @@ class TPZModuleTypology:
         """
         p1, p2, p3, p4, p5, p6, p7, p8, p9, p10 = self.points
 
-        back_upper_right = gmsh.model.occ.addCircleArc(p2, p1, p3)
-        back_upper_left = gmsh.model.occ.addCircleArc(p3, p1, p4)
-        back_lower_left = gmsh.model.occ.addCircleArc(p4, p1, p5)
-        back_lower_right = gmsh.model.occ.addCircleArc(p5, p1, p2)
+        line_points = [
+            [p2, p1, p3],
+            [p3, p1, p4],
+            [p4, p1, p5],
+            [p5, p1, p2],
 
-        front_upper_right = gmsh.model.occ.addCircleArc(p7, p6, p8)
-        front_upper_left = gmsh.model.occ.addCircleArc(p8, p6, p9)
-        front_lower_left = gmsh.model.occ.addCircleArc(p9, p6, p10)
-        front_lower_right = gmsh.model.occ.addCircleArc(p10, p6, p7)
+            [p7, p6, p8],
+            [p8, p6, p9],
+            [p9, p6, p10],
+            [p10, p6, p7]
+        ]
 
-        gmsh.model.occ.remove([(0, p1)])
-        gmsh.model.occ.remove([(0, p6)])
+        arcs = []
+        for coord in line_points:
+            start, center, end = coord
 
-        lines = (back_upper_right, back_upper_left, back_lower_left, back_lower_right, front_upper_right, front_upper_left, front_lower_left, front_lower_right)
+            arc = gmsh.model.occ.addCircleArc(start, center, end)
+            arcs.append(arc)
 
-        return lines
+        gmsh.model.occ.remove([(0, p1)]) # center of the back circle
+        gmsh.model.occ.remove([(0, p6)]) # center of the front circle
+        # this was made due to some problems we faced creating the mesh
+
+        return arcs
     
     def CylinderCurves(self)->tuple[int]:
         """
