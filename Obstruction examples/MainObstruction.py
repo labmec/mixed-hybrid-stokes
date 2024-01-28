@@ -21,8 +21,10 @@ from TPZRandomObstruction import TPZRandomObstruction
 #     JSON DATA
 #   ******************
 
+file_name = "DifferentObstructions"
+
 json_data = {
-        "MeshName": "../Meshes/SimpleObstruction",
+        "MeshName": "../Meshes/"+file_name,
         "CreateMsh": False,
         "HdivType": 1,
         "VelpOrder": 1,
@@ -85,9 +87,6 @@ def main()->None:
     """
     Main function
     """
-    # File name
-    file_name = "SimpleObstruction"
-
     TPZMeshModeling.Begin()
 
     TPZMeshModeling.TurnOnLabels('surface', 'volume')
@@ -117,11 +116,11 @@ def main()->None:
 
     modules = []
     if circular:
-        modules.append(TPZSimpleObstruction(length, lc, circle, obstruction))
-        modules.append(TPZCrossObstruction(_length = length ,_lc = lc, _module_typology = circle, _radius = r/2, _obstruction_width = width, _obstruction_height = height))
-        modules.append(TPZMultipleObstruction(length, lc, circle, obstruction/3, .3))
-        modules.append(TPZSemiArcObstruction(length, lc, circle, obstruction))
-        modules.append(TPZRandomObstruction(length, lc, circle, obstruction/2, 5, _seed = 10))
+        # modules.append(TPZSimpleObstruction(length, lc, circle, obstruction))
+        # modules.append(TPZCrossObstruction(_length = length ,_lc = lc, _module_typology = circle, _radius = r/2, _obstruction_width = width, _obstruction_height = height))
+        # modules.append(TPZMultipleObstruction(length, lc, circle, obstruction/3, .3))
+        # modules.append(TPZSemiArcObstruction(length, lc, circle, obstruction))
+        # modules.append(TPZRandomObstruction(length, lc, circle, obstruction/2, 5, _seed = 10))
         modules.append(TPZNoObstruction(_length = length, _lc = lc, _module_typology = circle))
     else:
         # modules.append(TPZSimpleObstruction(length, lc, rec, obstruction))
@@ -139,12 +138,12 @@ def main()->None:
     gmsh.model.occ.removeAllDuplicates()
 
     physical_group = [
-        [(3, [1, 2]), 1, "Domain"],
+        [(3, [i + 1 for i, _ in enumerate(modules) ]), 1, "Domain"],
         [(2, [1]), 2, "PressIn"],
-        [(2, [12]), 3, "PressOut"],
-        [(2, [1, 2, 3, 4, 5, 8, 9, 10, 11, 12]), 4, "NoTanVel"],
-        [(2, [2, 3, 4, 5, 8, 9, 10, 11]), 5, "NoPenetration"],
-        [(2, [6]), 100, "Obstruction"]
+        [(2, [26]), 3, "PressOut"],
+        [(2, [1, 2, 3, 4, 5, 8, 9, 10, 11, 22, 23, 24, 25, 26]), 4, "NoTanVel"],
+        [(2, [2, 3, 4, 5, 8, 9, 10, 11, 22, 23, 24, 25]), 5, "NoPenetration"],
+        [(2, [6, 12]), 100, "Obstruction"]
     ]
 
     # "Creating the elements"
@@ -156,9 +155,9 @@ def main()->None:
     
     TPZMeshModeling.ShowModel()
 
-    # TPZMeshModeling.WriteMeshFiles(file_name)
+    TPZMeshModeling.WriteMeshFiles(file_name, ".msh")
 
-    # TPZMeshModeling.PrintJson(json_data, file_name)
+    TPZMeshModeling.PrintJson(json_data, file_name)
 
     TPZMeshModeling.End()
 

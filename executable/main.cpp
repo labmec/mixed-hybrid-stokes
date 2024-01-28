@@ -30,7 +30,7 @@ int main()
     bool printdata = false;
 
     std::string filepath = "../DataInput/";
-    std::string filename = "SimpleObstruction";
+    std::string filename = "DifferentObstructions";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
