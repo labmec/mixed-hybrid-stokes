@@ -45,6 +45,7 @@ class TPZSimpleObstruction(TPZModuleTypology):
 #   ******************  
     _module_typology: tuple[str, dict]
     _obstruction_radius: float
+    _obstruction_face: int = field(init=False)
     _obstruction_cx: float = field(init=False)
     _obstruction_cy: float = field(init=False)
     _id: int = field(init=False)
@@ -64,6 +65,11 @@ class TPZSimpleObstruction(TPZModuleTypology):
     def obstruction_radius(self)->float: return self._obstruction_radius
     @obstruction_radius.setter
     def obstruction_radius(self, R)->None: self._obstruction_radius = R
+
+    @property
+    def obstruction_face(self)->int: return self._obstruction_face
+    @obstruction_face.setter
+    def obstruction_face(self, Face)->None: self._obstruction_face = Face
 
     @property
     def obstruction_cx(self)->float: return self._obstruction_cx
@@ -134,6 +140,7 @@ class TPZSimpleObstruction(TPZModuleTypology):
         # calculating the boolean difference between the domain and the obstruction faces  
         new_surfaces = gmsh.model.occ.fragment([(2, self.obstruction_face)], [(2, obstruction)])
 
+        self.obstruction_surface = obstruction
         domain_surfaces = self.surfaces + [surface[1] for surface in new_surfaces[0]]
 
         # creating the module volume

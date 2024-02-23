@@ -20,16 +20,11 @@
 #include <pzelementgroup.h>
 #include <pzcondensedcompel.h>
 #include <filesystem>
+#include <tpzchangeel.h>
 
-#include "TPZInterfaceAxisymStokesMaterial.h"
-#include "TPZInterface1dStokesMaterial.h"
-#include "TPZInterface1dFlux.h"
-#include "TPZStokesMaterial.h"
-#include "TPZAxisymStokesMaterial.h"
-#include "TPZ1dStokesMaterial.h"
-#include "TPZMixedLinearElasticMaterial.h"
 #include "TPZMeshOperator.h"
 #include "ProblemData.h"
+#include "pzreal.h"
 
 void TPZMeshOperator::GenerateMshFile(ProblemData *simData)
 {
@@ -53,6 +48,27 @@ TPZGeoMesh *TPZMeshOperator::CreateGMesh(ProblemData *simData)
     TPZGmshReader reader;
 
     reader.GeometricGmshMesh(simData->MeshName() + ".msh", gmesh);
+    
+    //     using geo blend
+    if (simData->CsvFile() != "none")
+    {
+        switch (simData->Dim()) {
+            case 2:
+                {
+                    simData->ReadCirclesData();
+                    TPZMeshOperator::SetExactArcRepresentation(*gmesh, simData);
+                }
+                break;
+                
+            case 3:
+            {
+                simData->ReadCylindersData();
+                TPZMeshOperator::SetExactCylinderRepresentation(*gmesh, simData);
+            }
+            default:
+                break;
+        }
+    }
     
     TPZMeshOperator::InsertLagrangeMultipliers(simData, gmesh);
     
@@ -602,7 +618,8 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
         
         TPZStokesMaterial *material = new TPZStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), viscosity);
         
-        if (sol) material->SetExactSol(sol->ExactSolution(), 0);
+        if (sol) material->SetExactSol(sol->ExactSolution(), 3);
+        if (sol) material->SetForcingFunction(sol->ForceFunc(), 3);
             
         cmesh_m->InsertMaterialObject(material);
         materialID.insert(simData->DomainVec()[0].matID);
@@ -619,7 +636,7 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
             TPZBndCond *matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
             
             auto matBC2 = dynamic_cast<TPZBndCondT<STATE> *>(matBC);
-            if (sol) matBC2->SetForcingFunctionBC(sol->ExactSolution(), 0);
+            if (sol) matBC2->SetForcingFunctionBC(sol->ExactSolution(), 3);
             
             cmesh_m->InsertMaterialObject(matBC);
             materialID.insert(bc.matID);
@@ -633,7 +650,7 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
             TPZBndCond *matBC = material->CreateBC(material, bc.matID, bc.type, val1, val2);
             
             auto matBC2 = dynamic_cast<TPZBndCondT<STATE> *>(matBC);
-            if (sol) matBC2->SetForcingFunctionBC(sol->ExactSolution(), 0);
+            if (sol) matBC2->SetForcingFunctionBC(sol->ExactSolution(), 3);
             
             cmesh_m->InsertMaterialObject(matBC);
             materialID.insert(bc.matID);
@@ -687,6 +704,7 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
 
 void TPZMeshOperator::CondenseElements(ProblemData *simData, TPZMultiphysicsCompMesh *cmesh_m, TPZGeoMesh *gemesh)
 {
+    bool condensedPressure = (simData->MeshVector().size()==2 && simData->HdivType() != ProblemData::EConstant) ? false : true;
     int64_t nCompEl = cmesh_m->ElementVec().NElements();
     int dim = gemesh->Dimension();
     
@@ -711,12 +729,11 @@ void TPZMeshOperator::CondenseElements(ProblemData *simData, TPZMultiphysicsComp
         if (compEl->Dimension() != dim)
             continue;
         
-        int numConnectExt = (simData->MeshVector().size()==2 && simData->HdivType() != ProblemData::EConstant) ? 0 : 1;
         int nConnect = compEl->NConnects();
         
-        for (int ic = nConnect - numConnectExt; ic < nConnect; ic++)
+        if (condensedPressure)
         {
-            int64_t coIndex = compEl->ConnectIndex(ic);
+            int64_t coIndex = compEl->ConnectIndex(nConnect - 1);
             externalNodes.insert(coIndex);
         }
         
@@ -729,20 +746,23 @@ void TPZMeshOperator::CondenseElements(ProblemData *simData, TPZMultiphysicsComp
     }
     
     int64_t nGeoEl = gemesh->NElements();
-    for (int el = 0; el < nGeoEl; el++)
+    for (int elgr = 0; elgr < elGroups.size(); elgr++)
     {
-        TPZGeoEl *geoEl = gemesh->Element(el);
+        TPZElementGroup *groupEl = elGroups[elgr];
+        TPZCompEl *compEl = groupEl->GetElGroup()[0];
+        
+        if (!compEl) 
+            DebugStop();
+        
+        TPZGeoEl *geoEl = compEl->Reference();
         
         if (geoEl->Dimension() != dim)
-            continue;
+            DebugStop();
         
         if (geoEl->HasSubElement())
-            continue;
+            DebugStop();
         
         int nSides = geoEl->NSides();
-        TPZCompEl *compEl = geoEl->Reference();
-        
-        if (!compEl) continue;
         
         int64_t compEl_Index = compEl->Index();
         
@@ -756,45 +776,28 @@ void TPZMeshOperator::CondenseElements(ProblemData *simData, TPZMultiphysicsComp
             TPZStack<TPZGeoElSide> allNeighbours;
             geoEl_Side.AllNeighbours(allNeighbours);
             
+            TPZStack<TPZCompEl*> neighbourCompEls;
+            
             if (allNeighbours.size() > 0)
             {
-                std::vector<TPZCompEl*> neighbourCompEls;
                 
-                if (allNeighbours.size() >= 8)
+                if (allNeighbours[0].Element()->MaterialId() == simData->InterfaceID())
                 {
-                    neighbourCompEls.reserve(3);
-                    TPZGeoElSide geoEl_neighbour = geoEl_Side;
-                    
                     for (int i = 0; i < 3; i++)
                     {
-                        geoEl_neighbour++;
-                        TPZCompEl *compEl_neighbour = geoEl_neighbour.Element()->Reference();
-                        neighbourCompEls.push_back(compEl_neighbour);
-                    }
-                }
-                else if (allNeighbours.size() >= 1 && allNeighbours.size() <= 5)
-                {
-                    neighbourCompEls.reserve(3);
-                    TPZGeoElSide geoEl_neighbour = geoEl_Side;
-                    for (int i = 0; i < allNeighbours.size(); i++)
-                    {
-                        geoEl_neighbour++;
-                        int neigh_matID = geoEl_neighbour.Element()->MaterialId();
+                        TPZGeoEl *gel = allNeighbours[i].Element();
+                        int matID = gel->MaterialId();
                         
-                        if (BCsIDs.find(neigh_matID) != BCsIDs.end()) continue;
+#ifdef PZDEBUG
+                        if (matID != simData->InterfaceID() && matID != simData->LambdaID() && matID != 21)
+                            DebugStop();
+#endif
+                        TPZCompEl *cel = allNeighbours[i].Element()->Reference();
                         
-                        TPZCompEl *compEl_neighbour = geoEl_neighbour.Element()->Reference();
-                        neighbourCompEls.push_back(compEl_neighbour);
-                    }
-                }
-                
-                for (int64_t i = 0; i < groupIndex.size(); i++)
-                {
-                    if (compEl_Index == groupIndex[i])
-                    {
-                        for (TPZCompEl *const &compEl : neighbourCompEls)
-                            elGroups[i]->AddElement(compEl);
-                            break;
+                        if (!cel) 
+                            DebugStop();
+                        
+                        groupEl->AddElement(cel);
                     }
                 }
             }
@@ -1052,4 +1055,264 @@ void TPZMeshOperator::ConfigureBoundaryFilter(TPZGeoMesh *gmesh, TPZMultiphysics
         for (int64_t eq = firstEq; eq < firstEq + blockSize; eq++)
             removeEquations.insert(eq);
     }
+}
+
+//void TPZMeshOperator::SetExactArcRepresentation(TPZAutoPointer<TPZGeoMesh> gmesh, ProblemData *simData)
+void TPZMeshOperator::SetExactArcRepresentation(TPZGeoMesh &gmesh, ProblemData *simData)
+{
+    TPZVec<ProblemData::ArcData> circles = simData->ArcDataVec();
+
+    std::map<int, int> arc_ids;
+    std::map<int, bool> found_arcs;
+    std::map<int, int> arc_newIDs;
+    
+    std::set<int> new_IDs;
+    int availableID = 0;
+    
+    // calculate availableID
+    for (auto domain : simData->DomainVec())
+        availableID += domain.matID;
+
+    for (auto bc : simData->NormalBCs())
+        availableID += bc.matID;
+
+    for (auto bc : simData->TangentialBCs())
+        availableID += bc.matID;
+    
+    availableID *= 10;
+    
+    for (int i = 0; i < circles.size(); i++)
+    {
+        arc_ids[circles[i].matID] = i;
+        arc_newIDs[circles[i].matID] = i + availableID;
+        new_IDs.insert(i+availableID);
+        found_arcs[circles[i].matID] = false;
+    }
+    
+    TPZManVector<TPZGeoElSide, 50> neighs;
+    
+    for (auto el : gmesh.ElementVec())
+    {
+        // this way we avoid processing recently inserted elements
+        if (!el || el->IsLinearMapping() == false) continue;
+        
+        const int matID = el->MaterialId();
+        const bool is_arc = arc_ids.find(matID) != arc_ids.end();
+        
+        if (is_arc) // found arc
+        {
+            const int nSides = el->NSides();
+            const int nNodes = el->NCornerNodes();
+            
+            found_arcs[matID] = true;
+            const int arc_pos = arc_ids[matID];
+            const REAL r = circles[arc_pos].radius;
+            const REAL xc = circles[arc_pos].xc;
+            const REAL yc = circles[arc_pos].yc;
+            const REAL zc = circles[arc_pos].zc;
+            
+            auto new_el = el->CreateBCGeoEl(nSides - 1, arc_newIDs[matID]);
+            auto *arc = TPZChangeEl::ChangeToArc3D(&gmesh, new_el->Index(), {xc, yc, zc}, r);
+        
+            // now we need to replace each neighbour by a blend element
+            // so it can be deformed accordingly
+            
+            TPZGeoElSide geoElSide(arc, arc->NSides() - 1);
+            
+            // now we iterate through all the neighbours of the linear side
+            TPZGeoElSide neighbour = geoElSide.Neighbour();
+            
+            // let us store all the neighbours
+            std::set<TPZGeoElSide> all_neighbours;
+            while (neighbour.Exists() && neighbour != geoElSide)
+            {
+                all_neighbours.insert(neighbour);
+                neighbour = neighbour.Neighbour();
+            }
+            
+            // let us replace all the neighbours
+            for (auto neighbour : all_neighbours)
+            {
+                const auto neigh_side = neighbour.Side();
+                auto neigh_el = neighbour.Element();
+                
+                /* 
+                 let us take into account the possibility that
+                 one triangle might be neighbour of two cylinders
+                */
+                
+                if (!neigh_el->IsGeoBlendEl())
+                {
+                    const auto neigh_index = neigh_el->Index();
+                    TPZChangeEl::ChangeToGeoBlend(&gmesh, neigh_index);
+                }
+                else
+                {
+                    neigh_el->SetNeighbourForBlending(neigh_side);
+                }
+            }
+        }
+    }
+    
+    for (auto arc : found_arcs)
+    {
+        if (!arc.second)
+        {
+            PZError<<__PRETTY_FUNCTION__
+            <<"\n arc " << arc.first << " not found in mesh" << std::endl;
+        }
+    }
+}
+
+//void TPZMeshOperator::SetExactCylinderRepresentation(TPZAutoPointer<TPZGeoMesh> gmesh,  ProblemData *simData)
+void TPZMeshOperator::SetExactCylinderRepresentation(TPZGeoMesh &gmesh,  ProblemData *simData)
+{
+    TPZVec<ProblemData::CylinderData> cylinders = simData->CylinderDataVec();
+
+    std::map<int, int> cylinder_ids;
+    std::map<int, bool> found_cylinders;
+    std::map<int, int> cylinder_newIDs;
+
+    int availableID = 0;
+    std::set<int> new_IDs;
+
+    // calculate availableID
+    for (auto domain : simData->DomainVec())
+        availableID += domain.matID;
+
+    for (auto bc : simData->NormalBCs())
+        availableID += bc.matID;
+
+    for (auto bc : simData->TangentialBCs())
+        availableID += bc.matID;
+
+    availableID *= 10;
+    
+    for (auto i = 0; i < cylinders.size(); i++)
+    {
+        cylinder_ids[cylinders[i].matID] = i;
+        cylinder_newIDs[cylinders[i].matID] = i + availableID;
+        new_IDs.insert(i + availableID);
+        found_cylinders[cylinders[i].matID] = false;
+    }
+    
+    TPZManVector<TPZGeoElSide, 50> neighs;
+    
+    std::set<TPZGeoEl*> blend_neighs;
+    for (auto el : gmesh.ElementVec())
+    {
+        // this way we avoid processing recently inserted elements
+        if (!el || el->IsLinearMapping() == false) continue;
+        
+        const int matID = el->MaterialId();
+        const bool is_cylinder = cylinder_ids.find(matID) != cylinder_ids.end();
+        
+        if (is_cylinder)
+        {
+            const int nSides = el->NSides();
+            const int nNodes = el->NCornerNodes();
+            
+            found_cylinders[matID] = true;
+            const int cylinder_pos = cylinder_ids[matID];
+            const auto &cylData = cylinders[cylinder_pos];
+            const REAL r = cylData.radius;
+            TPZManVector<REAL, 3> xc = {cylData.xc, cylData.yc, cylData.zc};
+            TPZManVector<REAL, 3> axis = {cylData.xaxis, cylData.yaxis, cylData.zaxis};
+            
+//            auto new_el = el->CreateBCGeoEl(nSides - 1, cylinder_newIDs[matID]);
+            auto cyl = TPZChangeEl::ChangeToCylinder(&gmesh, el->Index(), xc, axis);
+            
+            // let us store all the neighbours
+            std::set<TPZGeoElSide> all_neighbours;
+            {
+//                TPZGeoElSide elSide(el, nSides - 1);
+//                all_neighbours.insert(elSide);
+            }
+            
+            // just to ensure we wont remove any element twice
+            std::set<TPZGeoEl*> neigh_els;
+            
+//            neigh_els.insert(el);
+            
+            for (auto is = cyl->NNodes(); is < cyl->NSides(); is++)
+            {
+                /*
+                now we need to replace each neighbour by a blend element with a blend element 
+                so it can be deformed accordingly
+                */
+
+                TPZGeoElSide geoElSide(cyl, is);
+
+                // now we iterate through all the neighbours of the given side
+                TPZGeoElSide neighbour = geoElSide.Neighbour();
+
+                while (neighbour.Exists() && neighbour != geoElSide)
+                {
+                    auto neigh_el = neighbour.Element();
+
+                    /*
+                    let us skip:
+                    1. neighbours that have been already identified (will be in neigh_els)
+                    2. neighbours that are in the cylinder wall as well
+                    */
+        
+                   auto check_el = neigh_els.find(neigh_el) == neigh_els.end();
+                   if (check_el && neigh_el->MaterialId() != matID)
+                   {
+                       all_neighbours.insert(neighbour);
+                       neigh_els.insert(neigh_el);
+                   }
+                   neighbour = neighbour.Neighbour();
+                }
+            }
+
+           // let us replace all the neighbours
+           for (auto neighbour : all_neighbours)
+           {
+               const auto neigh_side = neighbour.Side();
+               auto neigh_el = neighbour.Element();
+
+               /* 
+               let us take into account the possibility that
+               one triangle might be neighbour of two cylinders
+               */
+
+               if (!neigh_el->IsGeoBlendEl())
+               {
+                   const auto neigh_index = neigh_el->Index();
+                   TPZChangeEl::ChangeToGeoBlend(&gmesh, neigh_index);
+               }
+               else
+               {
+                   neigh_el->SetNeighbourForBlending(neigh_side);
+               }
+           }
+        }
+    }
+
+    for (auto cylinder : found_cylinders)
+    {
+        if (!cylinder.second)
+        {
+            PZError<<__PRETTY_FUNCTION__
+            <<"\n cylinder " << cylinder.first << " not found in mesh" << std::endl;
+        }
+    }
+}
+
+void TPZMeshOperator::printVTKWJacInfo(std::string filename, TPZGeoMesh* gmesh) {
+    TPZVec<REAL> elData(gmesh->NElements(), -100);
+    for (int i = 0; i < gmesh->NElements(); i++) {
+        TPZGeoEl* gel = gmesh->Element(i);
+        if(!gel) DebugStop();
+        const int geldim = gel->Dimension();
+        TPZManVector<REAL,3> qsi(geldim,0.);
+        gel->CenterPoint(gel->NSides()-1, qsi);
+        REAL detjac = -1000;
+        TPZFMatrix<REAL> jac(3,3,0.), axes(3,3,0.), jacinv(3,3,0.);
+        gel->Jacobian(qsi, jac, axes, detjac, jacinv);
+        elData[i] = detjac;
+    }
+    std::ofstream out(filename);
+    TPZVTKGeoMesh::PrintGMeshVTK(gmesh, out, elData);
 }

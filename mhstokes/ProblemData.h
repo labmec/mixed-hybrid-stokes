@@ -14,6 +14,29 @@ class ProblemData
 {
 public: 
     enum HDivType {EStandard, EConstant};
+
+        // data to generate 2D geo blend elements
+    struct ArcData
+    {
+        int matID = 0;
+        REAL radius = 0.0;
+        REAL xc = 0.0;
+        REAL yc = 0.0;
+        REAL zc = 0.0;
+    };
+    
+    // data to create 3d geo blend elements
+    struct CylinderData
+    {
+        int matID = 0;
+        REAL radius = 0.0;
+        REAL xc = 0.0;
+        REAL yc = 0.0;
+        REAL zc = 0.0;
+        REAL xaxis = 0.0;
+        REAL yaxis = 0.0;
+        REAL zaxis = 0.0;
+    };
     
 private:
     // struct responsible to summarize all the data from every domain
@@ -38,8 +61,7 @@ private:
         TPZManVector<double, 3>  value = {0.0, 0.0, 0.0}; // bc value
         int matID = 0; // bc material ID
     };
-
-private:
+    
     using json = nlohmann::json; // declaration of json class
     
     std::string fMeshName = "none";
@@ -90,6 +112,12 @@ private:
     
     int fObstructionID = -1;
     
+    std::string fcsvFile = "none";
+    
+    TPZVec<ArcData> farcData;
+    
+    TPZVec<CylinderData> fcylData;
+    
 public:
     ProblemData();
     
@@ -98,6 +126,11 @@ public:
     void ReadJson(std::string jsonfile);
     
     void Print(std::ostream& out = std::cout);
+
+    void ReadCirclesData();
+    
+    void ReadCylindersData();
+
     // you can pass a file, so that the simulation data will be printed inside it. Otherwise, it will be displayed on terminal
     
     const std::string& MeshName() const {return fMeshName;} //setter using reference variable;
@@ -171,6 +204,15 @@ public:
     
     const int& ObstructionID() const{return fObstructionID;}
     void SetObstruction(int obID){fObstructionID = obID;}
+
+    const std::string& CsvFile() const{return fcsvFile;}
+    void SetCsvFile(const std::string& csv){fcsvFile = csv;}
+
+    const TPZVec<ArcData>& ArcDataVec() const{return farcData;}
+    void SetArcDataVec(const TPZVec<ArcData>& vec){farcData = vec;}
+
+    const TPZVec<CylinderData>& CylinderDataVec() const{return fcylData;}
+    void SetCylinderDataVec(const TPZVec<CylinderData>& vec){fcylData = vec;}
 };
 
 #endif

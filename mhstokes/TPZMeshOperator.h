@@ -1,8 +1,19 @@
 #ifndef STOKESEXAMPLE_H
 #define STOKESEXAMPLE_H
 
+#include <fstream>
+#include <sstream>
+#include <string>
+
+#include "TPZAnalyticSolution.h"
+#include "TPZInterfaceAxisymStokesMaterial.h"
+#include "TPZInterface1dStokesMaterial.h"
+#include "TPZInterface1dFlux.h"
+#include "TPZStokesMaterial.h"
+#include "TPZAxisymStokesMaterial.h"
+#include "TPZ1dStokesMaterial.h"
+#include "TPZMixedLinearElasticMaterial.h"
 #include "ProblemData.h"
-#include <TPZAnalyticSolution.h>
 
 class TPZMeshOperator{
 public:
@@ -38,5 +49,13 @@ public:
     static void ConfigureObstructionFilter(TPZGeoMesh *gmesh, TPZMultiphysicsCompMesh *cmesh_m, ProblemData *simData, std::set<int64_t> &removeEquations);
     
     static void ConfigureBoundaryFilter(TPZGeoMesh *gmesh, TPZMultiphysicsCompMesh *cmesh_m, ProblemData *simData, std::set<int64_t> &removeEquations);
+    
+//    static void SetExactArcRepresentation(const TPZAutoPointer<TPZGeoMesh> &gmesh, ProblemData *simData);
+    static void SetExactArcRepresentation(TPZGeoMesh &gmesh, ProblemData *simData);
+    
+//    static void SetExactCylinderRepresentation(const TPZAutoPointer<TPZGeoMesh> &gmesh, ProblemData *simData);
+    static void SetExactCylinderRepresentation(TPZGeoMesh &gmesh, ProblemData *simData);
+    
+    static void printVTKWJacInfo(std::string filename, TPZGeoMesh *gmesh);
 };
 #endif

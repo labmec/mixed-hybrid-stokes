@@ -15,6 +15,8 @@ ProblemData::ProblemData(){
     fBcAxisymmetryVec.clear(); fBcAxisymmetryVec.reserve(10);
     fDomain.clear(); fDomain.reserve(10);
     fAxisymmetryDomain.clear(); fAxisymmetryDomain.reserve(10);
+    farcData.clear();
+    fcylData.clear();
 }
 
 // deconstructor
@@ -49,7 +51,6 @@ void ProblemData::ReadJson(std::string file){
     if(input.find("AxiInterfaceID")==input.end()) DebugStop();
     if(input.find("FluxInterfaceID") == input.end()) DebugStop();
     if(input.find("HasAnalyticSolution") == input.end()) DebugStop();
-//    if(input.find("ObstructionID") == input.end()) DebugStop();
         
     // accessing and assigning values
     fMeshName = input["MeshName"];
@@ -75,6 +76,9 @@ void ProblemData::ReadJson(std::string file){
     if (input.find("ObstructionID") != input.end())
         fObstructionID = input["ObstructionID"];
     
+    if (input.find("CsvFile") != input.end())
+        fcsvFile = input["CsvFile"];
+
     DomainData domaindata;
     for(auto& domainjson : input["Domain"]){
         if(domainjson.find("name") == domainjson.end()) DebugStop();
@@ -231,3 +235,77 @@ void ProblemData::Print(std::ostream& out){
     out << "Lambda Elements ID: " << fLambdaID << std::endl << std::endl;
 }
 
+void ProblemData::ReadCirclesData()
+{
+    std::ifstream file;
+    file.open(fcsvFile);
+    
+    std::string line;
+    
+    while (std::getline(file, line))
+    {
+        ArcData arc;
+        std::string tempString;
+        
+        std::stringstream inputData(line);
+        
+        std::getline(inputData, tempString, ',');
+        arc.radius = atof(tempString.c_str());
+        
+        std::getline(inputData, tempString, ',');
+        arc.xc = atof(tempString.c_str());
+        
+        std::getline(inputData, tempString, ',');
+        arc.yc = atof(tempString.c_str());
+        
+        std::getline(inputData, tempString, ',');
+        arc.zc  = atof(tempString.c_str());
+        
+        std::getline(inputData, tempString, ',');
+        arc.matID = atoi(tempString.c_str());
+        
+        farcData.push_back(arc);
+    }
+}
+
+void ProblemData::ReadCylindersData()
+{
+    std::ifstream file;
+    file.open(fcsvFile);
+    
+    std::string line;
+    
+    while (std::getline(file, line))
+    {
+        CylinderData cyl;
+        std::string tempString;
+        
+        std::stringstream inputData(line);
+        
+        std::getline(inputData, tempString, ',');
+        cyl.radius = atof(tempString.c_str());
+        
+        std::getline(inputData, tempString, ',');
+        cyl.xc = atof(tempString.c_str());
+        
+        std::getline(inputData, tempString, ',');
+        cyl.yc = atof(tempString.c_str());
+        
+        std::getline(inputData, tempString, ',');
+        cyl.zc = atof(tempString.c_str());
+        
+        std::getline(inputData, tempString, ',');
+        cyl.xaxis = atof(tempString.c_str());
+        
+        std::getline(inputData, tempString, ',');
+        cyl.yaxis = atof(tempString.c_str());
+        
+        std::getline(inputData, tempString, ',');
+        cyl.zaxis = atof(tempString.c_str());
+        
+        std::getline(inputData, tempString, ',');
+        cyl.matID = atoi(tempString.c_str());
+
+        fcylData.push_back(cyl);
+    }
+}

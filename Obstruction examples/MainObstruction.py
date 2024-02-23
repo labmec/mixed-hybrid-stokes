@@ -11,24 +11,38 @@ import gmsh
 #   ******************
 from TPZMeshModeling import TPZMeshModeling
 from TPZSimpleObstruction import TPZSimpleObstruction
-from TPZNoObstruction import TPZNoObstruction
 from TPZCrossObstruction import TPZCrossObstruction
+from TPZRandomObstruction import TPZRandomObstruction
 from TPZMultipleObstruction import TPZMultipleObstruction
 from TPZSemiArcObstruction import TPZSemiArcObstruction
-from TPZRandomObstruction import TPZRandomObstruction
+from TPZNoObstruction import TPZNoObstruction
 
 #%% ****************** 
 #     JSON DATA
 #   ******************
+file_name = "Df20"
 
-file_name = "DifferentObstructions"
+q1 = 0.000026198
+q2 = 2 * q1
+
+mm = 1e-3
+cm = mm*10
+
+# "Input for module generation"
+length = 20*cm
+radius = 45*mm
+
+lc = 125e-4
+
+# "Input for obstruction generation"
+obstruction = 20*mm/2
 
 json_data = {
         "MeshName": "../Meshes/"+file_name,
         "CreateMsh": False,
         "HdivType": 1,
-        "VelpOrder": 1,
-        "TracpOrder": 0,
+        "VelpOrder": 2,
+        "TracpOrder": 1,
         "Dim": 3,
         "Resolution": 0,
         "StaticCondensation": True,
@@ -43,15 +57,15 @@ json_data = {
         ],
         "NormalBoundary": [
             {
-                "name": "PressIn",
+                "name": "VelIn",
                 "type": 2,
-                "value": -10,
+                "value": -1,
                 "matID": 2
             },
             {
                 "name": "PressOut",
                 "type": 2,
-                "value": 10,
+                "value": 0,
                 "matID": 3
             },
             {
@@ -63,7 +77,7 @@ json_data = {
         ],
         "TangentialBoundary": [
             {
-                "name": "NoTanVel",
+                "name": "NoSlip",
                 "type": 1,
                 "value": [0,0,0],
                 "matID": 4
@@ -93,23 +107,12 @@ def main()->None:
     TPZMeshModeling.TurnOnRepresentation('surfaces')
     
     TPZMeshModeling.TurnOnNormals()
-    TPZMeshModeling.TurnOnTangents()
+    # TPZMeshModeling.TurnOnTangents()
 
     # "Input for mesh generation"
-    lc = 1e-1
     mesh_dim = 3
 
-    # "Input for module generation"
-    length = .5
-    radius = .5
     circle = ('Circular', {'radius': radius})
-    rec = ('Rectangular', {'dx': 2*radius, 'dy':2*radius})
- 
-    # "Input for obstruction generation"
-    r = .1
-    width = .3
-    height = .3
-    obstruction = .25
 
     # "Creating the obstructions"
     circular = True
@@ -117,18 +120,9 @@ def main()->None:
     modules = []
     if circular:
         # modules.append(TPZSimpleObstruction(length, lc, circle, obstruction))
-        # modules.append(TPZCrossObstruction(_length = length ,_lc = lc, _module_typology = circle, _radius = r/2, _obstruction_width = width, _obstruction_height = height))
-        # modules.append(TPZMultipleObstruction(length, lc, circle, obstruction/3, .3))
-        # modules.append(TPZSemiArcObstruction(length, lc, circle, obstruction))
-        # modules.append(TPZRandomObstruction(length, lc, circle, obstruction/2, 5, _seed = 10))
+        # modules.append(TPZCrossObstruction(length, lc, circle, 2e-2, 2e-2, 1e-3))
+        # modules.append(TPZMultipleObstruction(length, lc, circle, 5e-3, 3e-2))
         modules.append(TPZNoObstruction(_length = length, _lc = lc, _module_typology = circle))
-    else:
-        # modules.append(TPZSimpleObstruction(length, lc, rec, obstruction))
-        # modules.append(TPZCrossObstruction(_length = length ,_lc = lc, _module_typology = rec, _radius = r, _obstruction_width = width, _obstruction_height = height))
-        # modules.append(TPZMultipleObstruction(length, lc, rec, obstruction/3, .3))
-        # modules.append(TPZSemiArcObstruction(length, lc, rec, obstruction))
-        # modules.append(TPZRandomObstruction(length, lc, rec, obstruction/2, 5))
-        modules.append(TPZNoObstruction(_length = length, _lc = lc, _module_typology = rec))
     
     "Moving them to the right place"
     for i, module in enumerate(modules):
@@ -140,16 +134,16 @@ def main()->None:
     physical_group = [
         [(3, [i + 1 for i, _ in enumerate(modules) ]), 1, "Domain"],
         [(2, [1]), 2, "PressIn"],
-        [(2, [26]), 3, "PressOut"],
-        [(2, [1, 2, 3, 4, 5, 8, 9, 10, 11, 22, 23, 24, 25, 26]), 4, "NoTanVel"],
-        [(2, [2, 3, 4, 5, 8, 9, 10, 11, 22, 23, 24, 25]), 5, "NoPenetration"],
-        [(2, [6, 12]), 100, "Obstruction"]
+        [(2, [12]), 3, "PressOut"],
+        [(2, [2, 3, 4, 5, 8, 9, 10, 11, 1 ,12]), 4, "NoSlip"],
+        [(2, [2, 3, 4, 5, 8, 9, 10, 11]), 5, "NoPenetration"],
+        [(2, [6]), 100, "Obstruction"]
     ]
 
     # "Creating the elements"
     TPZMeshModeling.Synchronize()
 
-    TPZMeshModeling.CreatePhysicalGroup(physical_group)
+    # TPZMeshModeling.CreatePhysicalGroup(physical_group)
 
     TPZMeshModeling.CreateMesh(mesh_dim)
     
