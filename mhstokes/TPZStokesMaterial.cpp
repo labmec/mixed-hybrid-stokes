@@ -2,6 +2,9 @@
 #include <TPZBndCondT.h>
 #include <pzaxestools.h>
 #include <pzlog.h>
+#include <fstream>
+#include <ostream>
+#include <iostream>
 
 #include "TPZStokesMaterial.h"
 
@@ -627,7 +630,7 @@ void TPZStokesMaterial::Errors(const TPZVec<TPZMaterialDataT<STATE>>& data, TPZV
     
     StressTensor(gradsol_exact, sigma_exact, p_exact);
     StressTensor(gradv_h, sigma_h, p_h[0]);
-
+    
     errors[6] = 0.0;
     errors[7] = 0.0;
     for (int i = 0; i < fdimension; i++)
@@ -640,8 +643,30 @@ void TPZStokesMaterial::Errors(const TPZVec<TPZMaterialDataT<STATE>>& data, TPZV
     for (int i = fdimension; i < n; i++)
     {
         const STATE diff_sigma = sigma_h(i, 0) - sigma_exact(i, 0);
-        errors[6] += 2. * diff_sigma * diff_sigma;
-        errors[7] += sigma_exact(i, 0) * sigma_exact(i, 0);
+        errors[6] += 2.0 * diff_sigma * diff_sigma;
+        errors[7] += 2.0 * sigma_exact(i, 0) * sigma_exact(i, 0);
+    }
+    
+    // Deviatoric Stress Tensor
+    TPZFNMatrix<6, REAL> devSigma_exact(n, 1), devSigma_h(n, 1);
+    
+    DeviatoricStressTensor(gradsol_exact, devSigma_exact);
+    DeviatoricStressTensor(gradv_h, devSigma_h);
+    
+    errors[8] = 0.0;
+    errors[9] = 0.0;
+    for (int i = 0; i < fdimension; i++)
+    {
+        const STATE diff_devsigma = devSigma_h(i, 0) - devSigma_exact(i, 0);
+        errors[8] += diff_devsigma * diff_devsigma;
+        errors[9] += devSigma_exact(i, 0) * devSigma_exact(i, 0);
+    }
+    
+    for (int i = fdimension; i < n; i++)
+    {
+        const STATE diff_devsigma = devSigma_h(i, 0) - devSigma_exact(i, 0);
+        errors[8] += 2.0 * diff_devsigma * diff_devsigma;
+        errors[9] += 2.0 * devSigma_exact(i, 0) * devSigma_exact(i, 0);
     }
 }
 
@@ -659,6 +684,18 @@ void TPZStokesMaterial::StressTensor(const TPZFNMatrix<10, STATE>& gradU, TPZFNM
     for(int i=0; i<fdimension; i++){
         sigma(i,0) -= pressure;
     }
+}
+
+void TPZStokesMaterial::DeviatoricStressTensor(const TPZFNMatrix<10, STATE>& gradU, TPZFNMatrix<6,REAL>& sigma){
+    
+    const int n = fdimension*(fdimension+1)/2;
+    TPZFNMatrix<6, REAL> strain(n,1,0.0);
+    TPZFNMatrix<36, REAL> D(n,n,0.0);
+    
+    StrainTensor(gradU, strain);
+    ViscosityTensor(D);
+    
+    D.Multiply(strain, sigma);
 }
 
 void TPZStokesMaterial::StrainTensor(const TPZFNMatrix<10, STATE>& gradU, TPZFNMatrix<6, REAL>& epsilon){

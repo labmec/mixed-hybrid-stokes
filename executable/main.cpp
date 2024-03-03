@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <ostream>
 #include <string>
 #include <TPZMultiphysicsCompMesh.h>
 #include <TPZLinearAnalysis.h>
@@ -26,12 +27,12 @@ int main()
 #ifdef PZ_LOG
     TPZLogger::InitializePZLOG("log4cxx.cfg");
 //    TPZLogger::InitializePZLOG();
-#endif  
-    bool printdata = true;
+#endif
+    bool printdata = false;
     int nThreads = 16;
     
     std::string filepath = "../DataInput/";
-    std::string filename = "TaylorCouette1";
+    std::string filename = "Square_16_4_HdivS";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
@@ -41,11 +42,12 @@ int main()
     flow->fvisco = simData.DomainVec()[0].viscosity;
     flow->fvelocity = 1.;
     flow->fconstPressure = 1.;
-    flow->fExactSol = TStokesAnalytic::ETaylorCouette;
+    flow->fExactSol = TStokesAnalytic::EPaperComp;
+    flow->fDimension = simData.Dim();
     
     // creating the meshes
     // geometric mesh
-    TPZGeoMesh *gmesh = TPZMeshOperator::CreateGMesh(&simData);
+    TPZGeoMesh *gmesh = TPZMeshOperator::CreateGMesh(&simData, false);
     
     // velocity computational mesh
     TPZCompMesh* cmesh_v = TPZMeshOperator::CreateCMeshV(&simData, gmesh);
@@ -56,7 +58,8 @@ int main()
     // atomic meshes for static condensation
     TPZCompMesh *cmesh_Mp = nullptr; // mean pressure
     TPZCompMesh *cmesh_Mv = nullptr; // and mean flux
-    if(simData.CondensedElements() && simData.HdivType() != ProblemData::EConstant){
+    if(simData.CondensedElements() && simData.HdivType() != ProblemData::EConstant)
+    {
             cmesh_Mp = TPZMeshOperator::CreateCmeshPm(&simData, gmesh);
             cmesh_Mv = TPZMeshOperator::CreateCmeshG(&simData, gmesh);
     }
@@ -70,7 +73,7 @@ int main()
     
     cmesh_m->SaddlePermute();
     
-    TPZLinearAnalysis an(cmesh_m, RenumType::ENone);
+    TPZLinearAnalysis an(cmesh_m, RenumType::EMetis);
     
 //    TPZSSpStructMatrix<STATE, TPZStructMatrixOT<STATE>> strmat(cmesh_m);
     TPZSSpStructMatrix<> strmat(cmesh_m);
@@ -82,26 +85,16 @@ int main()
 //     Applying filters to null normal and tangential velocities
     TPZEquationFilter filter(cmesh_m->NEquations());
     std::set<int64_t> removeEquations;
-    
+
 //     on the boundary
     TPZMeshOperator::ConfigureBoundaryFilter(gmesh, cmesh_m, &simData, removeEquations);
-    
+
 //     between the domain and the obstruction
     if (simData.ObstructionID() != - 1)
         TPZMeshOperator::ConfigureObstructionFilter(gmesh, cmesh_m, &simData, removeEquations);
-    
+
     filter.ExcludeEquations(removeEquations);
     strmat.EquationFilter() = filter;
-    
-    // printing meshes
-    if (printdata)
-    {
-        cmesh_m->ComputeNodElCon();
-        TPZMeshOperator::PrintCompMesh(simData.MeshVector());
-        TPZMeshOperator::PrintCompMesh(cmesh_m);
-        
-        TPZMeshOperator::PrintGeoMesh(gmesh);
-    }
     
     // starting the simulation
     TPZSimpleTimer timer;
@@ -123,6 +116,8 @@ int main()
     std::cout << "Starting solver...\n";
     std::cout << "Number of Equations " << cmesh_m->NEquations() << std::endl;
     
+    auto matrix = an.MatrixSolver<STATE>().Matrix();
+    
     TPZSimpleTimer solve_time("Solve time");
     an.Solve();
     std::cout << "Time to solve = " << solve_time.ReturnTimeDouble()/1000. << " s" << std::endl;
@@ -141,29 +136,58 @@ int main()
     }
     
     // vtk export
-    TPZVec<std::string> fields = 
-    {
-        "Pressure",
-        "PressExact",
-        "PressElError",
-        
-        "Velocity",
-        "VelExact",
-        "VelElError",
-        
-//        "Stress",
-//        "StressExact",
-//        "StressElError"
-    };
+    TPZVec<std::string> fields;
     
-    TPZVTKGenerator vtk(cmesh_m, fields, filename, 2);
+    if (flow->fExactSol)
+        fields = 
+        {
+            "Pressure",
+            "PressExact",
+            "PressElError",
+            
+            "Velocity",
+            "VelExact",
+            "VelElError",
+            
+            "Stress",
+            "StressExact",
+//            "StressElError"
+        };
+    else
+     fields =
+        {
+            "Pressure",
+        
+            "Velocity",
+        
+            "Stress",
+        };
+    
+    TPZVTKGenerator vtk(cmesh_m, fields, filename, simData.Resolution());
     vtk.Do();
     
     // Calculating error
-    std::cout << "Calculating error..." << std::endl;
+    
     if (flow->fExactSol != 0)
     {
-        std::vector<std::string> fields = {"p error", "p_ex error", "u error", "u_ex error", "div error", "div_ex error", "sigma error", "sigma_ex error"};
+        std::cout << "Calculating error..." << std::endl;
+        TPZVec<std::string> fields =
+        {
+            "p error",
+            "p_ex error",
+            
+            "u error",
+            "u_ex error",
+            
+            "div error",
+            "div_ex error",
+            
+            "sigma error",
+            "sigma_ex error",
+            
+            "dev_sigma error",
+            "dev_sigma_ex error"
+        };
         
         an.SetExact(flow->ExactSolution());
         an.SetThreadsForError(nThreads);
@@ -173,7 +197,7 @@ int main()
         TPZManVector<REAL, 10> Errors(matError->NEvalErrors());
         
         bool store_errors = false;
-        std::ofstream ErrorOut(filename+"_Errors.txt");
+        std::ofstream ErrorOut(filename  + "_Errors.txt");
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         
         an.PostProcessError(Errors, store_errors);
@@ -206,8 +230,6 @@ int main()
         delete gmesh;
     
     std::cout << "\n\nSimulation finished without errors :) \n\n";
-       
+    
 	return 0;
 }
-
-
