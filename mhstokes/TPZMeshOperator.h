@@ -18,7 +18,7 @@
 class TPZMeshOperator{
 public:
     
-    static TPZGeoMesh* CreateGMesh(ProblemData* simData);
+    static TPZGeoMesh* CreateGMesh(ProblemData* simData, bool blend);
     
     static void InsertLagrangeMultipliers(ProblemData* simData, TPZGeoMesh* gmesh);
     

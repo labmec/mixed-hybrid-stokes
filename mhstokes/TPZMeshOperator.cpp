@@ -34,7 +34,7 @@ void TPZMeshOperator::GenerateMshFile(ProblemData *simData)
     system(command.c_str());
 }
 
-TPZGeoMesh *TPZMeshOperator::CreateGMesh(ProblemData *simData)
+TPZGeoMesh *TPZMeshOperator::CreateGMesh(ProblemData *simData, bool blend)
 {
 
     TPZGeoMesh *gmesh = new TPZGeoMesh;
@@ -50,7 +50,7 @@ TPZGeoMesh *TPZMeshOperator::CreateGMesh(ProblemData *simData)
     reader.GeometricGmshMesh(simData->MeshName() + ".msh", gmesh);
     
     //     using geo blend
-    if (simData->CsvFile() != "none")
+    if (simData->CsvFile() != "none" && blend)
     {
         switch (simData->Dim()) {
             case 2:
@@ -788,10 +788,9 @@ void TPZMeshOperator::CondenseElements(ProblemData *simData, TPZMultiphysicsComp
                         TPZGeoEl *gel = allNeighbours[i].Element();
                         int matID = gel->MaterialId();
                         
-#ifdef PZDEBUG
                         if (matID != simData->InterfaceID() && matID != simData->LambdaID() && matID != 21)
                             DebugStop();
-#endif
+                        
                         TPZCompEl *cel = allNeighbours[i].Element()->Reference();
                         
                         if (!cel) 
@@ -1011,7 +1010,8 @@ void TPZMeshOperator::ConfigureBoundaryFilter(TPZGeoMesh *gmesh, TPZMultiphysics
 {
     // Filter Function
     std::set<int64_t> removeConnectSeq;
-    int NoSlipBC, NoPenetrationBC;
+    int NoSlipBC = -10;
+    int NoPenetrationBC = -10;
     
     for (auto bc : simData->TangentialBCs())
         if (bc.name == "NoSlip")
@@ -1028,7 +1028,8 @@ void TPZMeshOperator::ConfigureBoundaryFilter(TPZGeoMesh *gmesh, TPZMultiphysics
         }
     
     for (auto el : gmesh->ElementVec())
-    {        if (el->Dimension() != gmesh->Dimension() - 1)
+    {        
+        if (el->Dimension() != gmesh->Dimension() - 1)
             continue;
         
         auto elMatID = el->MaterialId();
