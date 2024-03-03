@@ -1,4 +1,5 @@
-
+DataInput/
+Meshes/
 .vscode
 **/.DS_Store
 CMakeLists.txt.user
@@ -15,3 +16,4 @@ compile_commands.json
 .ccls-cache
 Projects
 
+Obstruction_examples/Testing_Length.py
