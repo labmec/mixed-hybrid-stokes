@@ -121,9 +121,7 @@ public:
     
     virtual void ViscosityTensor(TPZFNMatrix<36, REAL>& D);
     
-    void ToVoigt(const TPZFNMatrix<9, STATE> &Sigma, TPZFNMatrix<6, STATE> &SVoigt) const;
-    
-    void FromVoigt(const TPZFNMatrix<6, STATE> &Svoigt, TPZFNMatrix<9, STATE> &S) const;
+    void FromVoigt(const TPZFNMatrix<6, STATE> &aigmaVoigt, TPZFNMatrix<9, STATE> &sigma) const;
 };
 
 #endif

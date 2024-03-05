@@ -30,9 +30,10 @@ int main()
 #endif
     bool printdata = false;
     int nThreads = 16;
+    int nThreadsError = 16;
     
     std::string filepath = "../DataInput/";
-    std::string filename = "Square_16_4_HdivS";
+    std::string filename = "Square_16_1";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
@@ -190,7 +191,7 @@ int main()
         };
         
         an.SetExact(flow->ExactSolution());
-        an.SetThreadsForError(nThreads);
+        an.SetThreadsForError(nThreadsError);
         
         TPZMaterial *mat = cmesh_m->FindMaterial(simData.DomainVec()[0].matID);
         TPZMatErrorCombinedSpaces<STATE> *matError = dynamic_cast<TPZMatErrorCombinedSpaces<STATE>*>(mat);

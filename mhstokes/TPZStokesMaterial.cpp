@@ -228,21 +228,10 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
                 const int n = fdimension * (fdimension+1)/2; //size of the vector in Voight notation
                 
                 TPZFNMatrix<6, REAL> sigmaVoight(n, 1, 0.);
-                StressTensor(val1, sigmaVoight, pressure);
-                
                 TPZFNMatrix<9, STATE> sigma(3, 3, 0.0);
-                int cont = fdimension-1;
                 
-                for(int i = 0; i < fdimension; i++)
-                {
-                    sigma(i, i) = sigmaVoight(i, 0);
-                    
-                    for(int j = i + 1; j < fdimension; j++)
-                    {
-                        sigma(i, j) = sigmaVoight(++cont,0);
-                        sigma(j, i) = sigmaVoight(cont, 0);
-                    }
-                }
+                StressTensor(val1, sigmaVoight, pressure);
+                FromVoigt(sigmaVoight, sigma);
                 
                 TPZFNMatrix<3, REAL> sigma_n(fdimension, 1, 0.0);
                 
@@ -272,19 +261,10 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
                 const int n = fdimension * (fdimension - 1) / 2;
                 
                 TPZFNMatrix<6, REAL> sigmaVoight(n, 1, 0.0);
-                StressTensor(val1, sigmaVoight, pressure);
-                
                 TPZFNMatrix<9, STATE> sigma(3, 3, 0.0);
-                int cont = fdimension-1;
                 
-                for(int  i=0; i<fdimension; i++){
-                    sigma(i,i) = sigmaVoight(i,0);
-                    
-                    for(int j= i + 1; j<fdimension; j++){
-                        sigma(i,j) = sigmaVoight(++cont,0);
-                        sigma(j,i) = sigmaVoight(cont,0);
-                    }
-                }
+                StressTensor(val1, sigmaVoight, pressure);
+                FromVoigt(sigmaVoight, sigma);
                 
                 TPZManVector<REAL, 3> sigma_n(fdimension,0.0);
                 
@@ -331,16 +311,19 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
 int TPZStokesMaterial::VariableIndex(const std::string& name) const {
     
     if (!strcmp("Pressure", name.c_str())) return 0;
-    if (!strcmp("Velocity", name.c_str())) return 1;
-    if (!strcmp("Force", name.c_str())) return 2;
-    if (!strcmp("Stress", name.c_str())) return 3;
+    if (!strcmp("PressExact", name.c_str())) return 1;
+    if (!strcmp("PressElError", name.c_str())) return 2;
+    
+    if (!strcmp("Velocity", name.c_str())) return 3;
     if (!strcmp("VelExact", name.c_str())) return 4;
-    if (!strcmp("PressExact", name.c_str())) return 5;
+    if (!strcmp("VelElError", name.c_str())) return 5;
+    
     if (!strcmp("SourceTerm", name.c_str())) return 6;
-    if (!strcmp("StressExact", name.c_str())) return 7;
-    if (!strcmp("VelElError", name.c_str())) return 8;
-    if (!strcmp("PressElError", name.c_str())) return 9;
-    if (!strcmp("StressElError", name.c_str())) return 10;
+    
+    if (!strcmp("Stress", name.c_str())) return 7;
+    if (!strcmp("StressExact", name.c_str())) return 8;
+    if (!strcmp("StressElError", name.c_str())) return 9;
+    
     
     std::cout << "\n\nVar index not implemented\n\n";
     DebugStop();
@@ -353,33 +336,36 @@ int TPZStokesMaterial::NSolutionVariables(int var) const{
     int aux;
     
     // 0 - pressure  [scalar]
-    // 1 - velocity [vector]
-    // 2 - external force [vector]
-    // 3 - stress [tensor]
+    // 1 - exact pressure [scalar]
+    // 2 - pressure element error [scalar]
+    
+    // 3 - velocity [vector]
     // 4 - exact velocity [vector]
-    // 5 - exact pressure [scalar]
+    // 5 - velocity element error [vector]
+    
     // 6 - source term [vector]
-    // 7 - exact stress [tensor]
-    // 8 - velocity element error [vector]
-    // 9 - pressure element error [scalar]
-    // 10 - stress element error [tensor]
+    
+    // 7 - stress [tensor]
+    // 8 - exact stress [tensor]
+    // 9 - stress element error [tensor]
+    
     switch (var) {
         case 0:
-        case 5:
-        case 9:
+        case 1:
+        case 2:
             aux = 1;
             break;
             
-        case 1:
-        case 2:
+        case 3:
         case 4:
+        case 5:
         case 6:
-        case 8:
             aux = 3;
             break;
-        case 3:
+        
         case 7:
-        case 10:
+        case 8:
+        case 9:
             aux = 9;
             break;
         default:
@@ -391,157 +377,124 @@ int TPZStokesMaterial::NSolutionVariables(int var) const{
 
 void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec, int var, TPZVec<STATE>& Solout) {
     
-    TPZManVector<STATE, 3> v_h = datavec[EVindex].sol[0];
+    const int n = fdimension * (fdimension + 1) / 2;
+    
+    TPZManVector<STATE, 3> u_h = datavec[EVindex].sol[0];
+    TPZFNMatrix<10,STATE> gradU_h = datavec[EVindex].dsol[0];
+    
     TPZManVector<STATE, 3> p_h = datavec[EPindex].sol[0];
+    
     TPZManVector<STATE, 4> sol_exact(4);
     TPZFNMatrix<9, STATE> gradsol_exact(3, 3);
+    STATE p_exact = 0.;
     
     if (this->HasExactSol())
     {
         fExactSol(datavec[EVindex].x, sol_exact, gradsol_exact);
+        p_exact = sol_exact[3];
     }
     
     Solout.Resize(NSolutionVariables(var));
     
     switch(var) {
             
-        case 0:{
+        case 0: // pressure
+        {
             Solout[0] = p_h[0];
-            break;
         }
-            
-        case 1:{
-            Solout[0] = v_h[0]; //Vx
-            Solout[1] = v_h[1]; //Vy
-            Solout[2] = v_h[2]; //Vz
             break;
+            
+        case 1: // exact pressure
+        {
+            Solout[0] = p_exact;
         }
-            
-        case 2:{
-            TPZVec<STATE> f(3,0.);
-            
-            if(this->HasForcingFunction()){
-                this->ForcingFunction()(datavec[EVindex].x, f);
-            }
-            
-            Solout[0] = f[0];
-            Solout[1] = f[1];
-            Solout[2] = f[2];
             break;
+        
+        case 2: // pressure element error
+        {
+            Solout[0] = abs(p_exact - p_h[0]);
         }
-        case 3: {
-            
-                TPZFNMatrix<10,STATE> gradUn = datavec[EVindex].dsol[0];
-                TPZFNMatrix<9,STATE> DUn_j(3,3,0.), sigma(3,3,0.);
-            
-                for (int e=0; e<Dimension(); e++) {
-                    for (int f=0; f<Dimension(); f++) {
-                         DUn_j(e,f)= 0.5 * (gradUn(e,f) + gradUn(f,e));
-                        sigma(e,f) = 2.*fviscosity*DUn_j(e,f);
-                    }
-                    sigma(e,e) -= p_h[0];
-                }
-            
-                for (int e=0; e<3; e++) {
-                    for (int f=0; f<3; f++) {
-                        Solout[e*3+f] = sigma(e,f);
-                    }
-                }
-            }
-            
             break;
             
-        case 4:
+        case 3: // velocity
+        {
+            Solout[0] = u_h[0]; // vx
+            Solout[1] = u_h[1]; // vy
+            Solout[2] = u_h[2]; // vz
+        }
+            break;
+        
+        case 4: // exact velocity
         {
             Solout[0] = sol_exact[0];
             Solout[1] = sol_exact[1];
             Solout[2] = sol_exact[2];
         }
             break;
-            
-        case 5:
+
+        case 5: // velocity element error
         {
-            Solout[0] = sol_exact[3];
+            Solout[0] = abs(sol_exact[0] - u_h[0]); // vx
+            Solout[1] = abs(sol_exact[1] - u_h[1]); // vy
+            Solout[2] = abs(sol_exact[2] - u_h[2]); // vz
         }
             break;
             
-        case 6:
+        case 6: // source term
         {
             TPZManVector<STATE, 3> f(3, 0.);
             
-            if (this->HasForcingFunction())
+            if (!this->HasForcingFunction())
                 this->ForcingFunction()(datavec[EVindex].x, f);
             
-            Solout[0] = f[0];
-            Solout[1] = f[1];
-            Solout[2] = f[2];
+            Solout[0] = f[0]; // fx
+            Solout[1] = f[1]; // fy
+            Solout[2] = f[2]; // fz
         }
             break;
             
-        case 7:
+        case 7: // stress
         {
-            TPZManVector<STATE, 4> sol_exact(4);
-            TPZFNMatrix<9, STATE> gradsol_exact(3, 3, 0.), Du_ij(3, 3, 0.), sigma_ij(3, 3, 0.);
+            TPZFNMatrix<6, STATE> sigmaVoigt(n, 1, 0.);
+            TPZFNMatrix<9, STATE> sigma(3, 3, 0.0);
             
-            fExactSol(datavec[EVindex].x, sol_exact, gradsol_exact);
-            STATE p_exact = sol_exact[3];
-            
-            
-            for (int i = 0; i < Dimension(); i++)
-            {
-                for (int j = 0; j < Dimension(); j++)
-                {
-                    Du_ij(i, j) = 0.5 * (gradsol_exact(i, j) + gradsol_exact(j, i));
-                    sigma_ij(i, j) = 2. * fviscosity * Du_ij(i, j);
-                }
-                
-                sigma_ij(i, i) -= p_exact;
-            }
+            StressTensor(gradU_h, sigmaVoigt, p_h[0]);
+            FromVoigt(sigmaVoigt, sigma);
             
             for (int i = 0; i < 3; i++)
                 for (int j = 0; j < 3; j++)
-                    Solout[i*3 + j] = sigma_ij(i, j);
-            
+                    Solout[i * 3 + j] = sigma(i, j);
         }
             break;
             
-        case 8:
+        case 8: // exact stress
         {
-            Solout[0] = abs(sol_exact[0] - v_h[0]);
-            Solout[1] = abs(sol_exact[1] - v_h[1]);
-            Solout[2] = abs(sol_exact[2] - v_h[2]);
-        }
-            break;
-            
-        case 9:
-        {
-            Solout[0] = abs(sol_exact[3] - p_h[0]);
-        }
-            break;
-            
-        case 10:
-        {
-            TPZFNMatrix<10, STATE> gradU_h = datavec[EVindex].dsol[0];
-            TPZFNMatrix<9, STATE> DU_h(3, 3, 0.0), DU_exact(3, 3, 0.0), sigma_h(3, 3, 0.0) , sigma_exact(3, 3, 0.0);
-            
-            for (int i = 0; i < Dimension(); i ++)
-            {
-                for (int j = 0; j < Dimension(); j ++)
-                {
-                    DU_h(i, j) = 0.5 * (gradU_h(i, j) + gradU_h(j, i));
-                    sigma_h(i, j) = 2.0 * fviscosity * DU_h(i, j);
-                    
-                    DU_exact(i, j) = 0.5 * (gradsol_exact(i, j) + gradsol_exact(j, i));
-                    sigma_exact(i, j) = 2.0 * fviscosity * DU_exact(i, j);
-                }
-                sigma_h(i, i) -= p_h[0];
-                
-                sigma_exact(i, i) -= sol_exact[3];
-            }
+            TPZFNMatrix<6, STATE> sigmaVoigt_exact(n, 1, 0.0);
+            TPZFNMatrix<9, STATE> sigma_exact(3, 3, 0.0);
+
+            StressTensor(gradsol_exact, sigmaVoigt_exact, p_exact);
+            FromVoigt(sigmaVoigt_exact, sigma_exact);
             
             for (int i = 0; i < 3; i++)
                 for (int j = 0; j < 3; j++)
-                    Solout[i*3 + j] = abs(sigma_exact(i, j) - sigma_h(i, j));
+                    Solout[i * 3 + j] = sigma_exact(i, j);
+        }
+            break;
+            
+        case 9: // stress element error
+        {   
+            TPZFNMatrix<6, STATE> sigmaVoigt(n, 1, 0.0), sigmaVoigt_exact(n, 1, 0.0);
+            TPZFNMatrix<9, STATE> sigma_h(3, 3, 0.0), sigma_exact(3, 3, 0.0);
+            
+            StressTensor(gradU_h, sigmaVoigt, p_h[0]);
+            StressTensor(gradsol_exact, sigmaVoigt_exact, p_exact);
+            
+            FromVoigt(sigmaVoigt, sigma_h);
+            FromVoigt(sigmaVoigt_exact, sigma_exact);
+            
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                    Solout[i * 3 + j] = abs(sigma_exact(i, j) - sigma_h(i, j));
         }
             break;
             
@@ -721,26 +674,18 @@ void TPZStokesMaterial::ViscosityTensor(TPZFNMatrix<36, REAL>& D){
     }
 }
 
-//void TPZStokesMaterial::ToVoigt(const TPZFNMatrix<9, STATE> &Sigma, TPZFNMatrix<6, STATE>& Svoigt) const {
-//    Svoigt(Exx,0) = Sigma(0,0);
-//    Svoigt(Exy,0) = Sigma(0,1);
-//    Svoigt(Eyy,0) = Sigma(1,1);
-//
-//    if(fdimension>2){
-//        Svoigt(Exz,0) = Sigma(0,2);
-//        Svoigt(Eyz,0) = Sigma(1,2);
-//        Svoigt(Ezz,0) = Sigma(2,2);
-//    }
-//}
-//
-//void TPZStokesMaterial::FromVoigt(const TPZFNMatrix<6,STATE> &Svoigt, TPZFNMatrix<9, STATE>& Sigma) const {
-//    Sigma(0,0) = Svoigt(Exx, 0);
-//    Sigma(0,1) = Svoigt(Exy, 0);
-//    Sigma(1,1) = Svoigt(Eyy, 0);
-//
-//    if(fdimension > 2){
-//        Sigma(0,2) = Svoigt(Exz,0);
-//        Sigma(1,2) = Svoigt(Eyz,0);
-//        Sigma(2,2) = Svoigt(Ezz,0);
-//    }
-//}
+void TPZStokesMaterial::FromVoigt(const TPZFNMatrix<6,STATE> &sigmaVoigt, TPZFNMatrix<9, STATE>& sigma) const
+{
+    int cont = fdimension - 1;
+    
+    for (int i = 0; i < fdimension; i++)
+    {
+        sigma(i, i) = sigmaVoigt(i, 0);
+        
+        for (int j = i + 1; j < fdimension; j++)
+        {
+            sigma(i, j) = sigmaVoigt(++cont, 0);
+            sigma(j, i) = sigmaVoigt(cont, 0);
+        }
+    }
+}
