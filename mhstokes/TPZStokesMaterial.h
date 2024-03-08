@@ -26,25 +26,12 @@ protected:
     double fviscosity;
     
     enum SpaceIndex {EVindex, EPindex, EGindex, EPMindex};
-    
-//    /// Velocity index in datavec
-//    int fVindex = 0;
-//
-//    /// Pressure index in datavec
-//    int fPindex = 1;
-//
-//    int fPMindex = 2;
-//
-//    int fVMindex = 3;
+
     
     /// Big number for penalization method
     REAL fBigNumber = pow(10,std::numeric_limits<STATE>::max_digits10*2/3);
     
 public:
-    enum MVoigt {
-        Exx, Exy, Eyy, Exz, Eyz, Ezz
-    };
-    
     /// Empty Constructor
     TPZStokesMaterial();
 
@@ -122,6 +109,12 @@ public:
     virtual void ViscosityTensor(TPZFNMatrix<36, REAL>& D);
     
     void FromVoigt(const TPZFNMatrix<6, STATE> &aigmaVoigt, TPZFNMatrix<9, STATE> &sigma) const;
+    
+    enum SolutionVars {ENone = -1,
+        EPressure = 0, EExactPressure = 1, EErrorPressure = 2,
+        EVelocity = 3, EExactVelocity = 4, EErrorVelocity = 5,
+        ESourceTerm = 6,
+        EStress = 7, EExactStress = 8, EErrorStress = 9};
 };
 
 #endif

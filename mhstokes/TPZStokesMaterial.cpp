@@ -310,19 +310,29 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
 
 int TPZStokesMaterial::VariableIndex(const std::string& name) const {
     
-    if (!strcmp("Pressure", name.c_str())) return 0;
-    if (!strcmp("PressExact", name.c_str())) return 1;
-    if (!strcmp("PressElError", name.c_str())) return 2;
+    if (!strcmp("Pressure", name.c_str())) 
+        return EPressure;
+    if (!strcmp("ExactPressure", name.c_str()))
+        return EExactPressure;
+    if (!strcmp("ErrorPressure", name.c_str()))
+        return EErrorPressure;
     
-    if (!strcmp("Velocity", name.c_str())) return 3;
-    if (!strcmp("VelExact", name.c_str())) return 4;
-    if (!strcmp("VelElError", name.c_str())) return 5;
+    if (!strcmp("Velocity", name.c_str())) 
+        return EVelocity;
+    if (!strcmp("ExactVelocity", name.c_str()))
+        return EErrorVelocity;
+    if (!strcmp("ErrorVelocity", name.c_str()))
+        return EErrorVelocity;
     
-    if (!strcmp("SourceTerm", name.c_str())) return 6;
+    if (!strcmp("SourceTerm", name.c_str())) 
+        return ESourceTerm;
     
-    if (!strcmp("Stress", name.c_str())) return 7;
-    if (!strcmp("StressExact", name.c_str())) return 8;
-    if (!strcmp("StressElError", name.c_str())) return 9;
+    if (!strcmp("Stress", name.c_str())) 
+        return EStress;
+    if (!strcmp("ExactStress", name.c_str()))
+        return EExactStress;
+    if (!strcmp("ErrorStress", name.c_str()))
+        return EErrorStress;
     
     
     std::cout << "\n\nVar index not implemented\n\n";
@@ -335,37 +345,23 @@ int TPZStokesMaterial::NSolutionVariables(int var) const{
     
     int aux;
     
-    // 0 - pressure  [scalar]
-    // 1 - exact pressure [scalar]
-    // 2 - pressure element error [scalar]
-    
-    // 3 - velocity [vector]
-    // 4 - exact velocity [vector]
-    // 5 - velocity element error [vector]
-    
-    // 6 - source term [vector]
-    
-    // 7 - stress [tensor]
-    // 8 - exact stress [tensor]
-    // 9 - stress element error [tensor]
-    
     switch (var) {
-        case 0:
-        case 1:
-        case 2:
+        case EPressure:
+        case EExactPressure:
+        case EErrorPressure:
             aux = 1;
             break;
             
-        case 3:
-        case 4:
-        case 5:
-        case 6:
+        case EVelocity:
+        case EExactVelocity:
+        case EErrorVelocity:
+        case ESourceTerm:
             aux = 3;
             break;
         
-        case 7:
-        case 8:
-        case 9:
+        case EStress:
+        case EExactStress:
+        case EErrorStress:
             aux = 9;
             break;
         default:
@@ -398,25 +394,25 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
     
     switch(var) {
             
-        case 0: // pressure
+        case EPressure: // pressure
         {
             Solout[0] = p_h[0];
         }
             break;
             
-        case 1: // exact pressure
+        case EExactPressure: // exact pressure
         {
             Solout[0] = p_exact;
         }
             break;
         
-        case 2: // pressure element error
+        case EErrorPressure: // pressure element error
         {
             Solout[0] = abs(p_exact - p_h[0]);
         }
             break;
             
-        case 3: // velocity
+        case EVelocity: // velocity
         {
             Solout[0] = u_h[0]; // vx
             Solout[1] = u_h[1]; // vy
@@ -424,7 +420,7 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
         }
             break;
         
-        case 4: // exact velocity
+        case EExactVelocity: // exact velocity
         {
             Solout[0] = sol_exact[0];
             Solout[1] = sol_exact[1];
@@ -432,7 +428,7 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
         }
             break;
 
-        case 5: // velocity element error
+        case EErrorVelocity: // velocity element error
         {
             Solout[0] = abs(sol_exact[0] - u_h[0]); // vx
             Solout[1] = abs(sol_exact[1] - u_h[1]); // vy
@@ -440,7 +436,7 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
         }
             break;
             
-        case 6: // source term
+        case ESourceTerm: // source term
         {
             TPZManVector<STATE, 3> f(3, 0.);
             
@@ -453,7 +449,7 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
         }
             break;
             
-        case 7: // stress
+        case EStress: // stress
         {
             TPZFNMatrix<6, STATE> sigmaVoigt(n, 1, 0.);
             TPZFNMatrix<9, STATE> sigma(3, 3, 0.0);
@@ -467,7 +463,7 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
         }
             break;
             
-        case 8: // exact stress
+        case EExactStress: // exact stress
         {
             TPZFNMatrix<6, STATE> sigmaVoigt_exact(n, 1, 0.0);
             TPZFNMatrix<9, STATE> sigma_exact(3, 3, 0.0);
@@ -481,8 +477,8 @@ void TPZStokesMaterial::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec,
         }
             break;
             
-        case 9: // stress element error
-        {   
+        case EErrorStress: // stress element error
+        {
             TPZFNMatrix<6, STATE> sigmaVoigt(n, 1, 0.0), sigmaVoigt_exact(n, 1, 0.0);
             TPZFNMatrix<9, STATE> sigma_h(3, 3, 0.0), sigma_exact(3, 3, 0.0);
             
