@@ -180,7 +180,7 @@ TPZCompMesh *CreateCMeshV(ProblemData *problem_data, TPZGeoMesh *gmesh)
     TPZCompMesh *cmesh_v = new TPZCompMesh(gmesh);
     cmesh_v->SetName("CMesh_U");
     
-    int dimension = problem_data->Dim();
+    const int dimension = problem_data->Dim();
     std::set<int> materialIDs;
     
     if (problem_data->DomainVec().size() != 0)
@@ -238,7 +238,7 @@ TPZCompMesh *CreateCMeshP(ProblemData *problem_data, TPZGeoMesh *gmesh)
     TPZCompMesh *cmesh_p = new TPZCompMesh(gmesh);
     cmesh_p->SetName("CMesh_p");
     
-    int dimension = problem_data->Dim();
+    const int dimension = problem_data->Dim();
     std::set<int> materialIDs;
     
     if (problem_data->DomainVec().size() != 0)
@@ -293,7 +293,7 @@ TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZG
     // creating materials
     if (problem_data->DomainVec().size() != 0)
     {
-        int dimension = problem_data->Dim();
+        const int dimension = problem_data->Dim();
         STATE viscosity = problem_data->DomainVec()[0].viscosity;
         
         // 1. for domain
@@ -375,16 +375,16 @@ void PrintResults(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m, ProblemData *prob
     if (problem_data->HasAnalyticSolution())
         fields = {
             "Pressure",
-            "PressExact",
-            "PressElError",
+            "ExactPressure",
+            "ErrorPressure",
             
             "Velocity",
-            "VelExact",
-            "VelElError",
+            "ExactVelocity",
+            "ErrorVelocity",
             
             "Stress",
-            "StressExact",
-            "StressElError"
+            "ExactStress",
+            "ErrorStress"
         };
     
     else
