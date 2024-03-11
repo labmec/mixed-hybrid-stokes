@@ -82,12 +82,12 @@ void TPZStokesMaterialTH::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& data
         int cont = dim;
         for (int i = 0; i < dim; i++)
         {
-            strainRate(i, j * dim + i) = dphiV(j, i);
+            strainRate(i, j * dim + i) = dphiV(i, j);
             
             for (int k = i + 1; k < dim; k++)
             {
-                strainRate(cont, dim * j + i) = dphiV(j, k);
-                strainRate(cont, dim * j + k) = dphiV(j, i);
+                strainRate(cont, dim * j + i) = dphiV(k, j);
+                strainRate(cont, dim * j + k) = dphiV(i, j);
                 cont++;
             }
         }
@@ -119,10 +119,10 @@ void TPZStokesMaterialTH::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& data
     
     // Divergence - Matrix B contribution
     factor = - 1.0 * weight;
-    ek.AddContribution(0, nShapeV, divPhiV, false, PhiP, true, factor);
+    ek.AddContribution(0, dim * nShapeV, divPhiV, false, PhiP, true, factor);
     
     // Divergence - Matrix BT contribution
-    ek.AddContribution(nShapeV, 0, PhiP, false, divPhiV, true, factor);
+    ek.AddContribution(dim * nShapeV, 0, PhiP, false, divPhiV, true, factor);
  
 #ifdef PZ_LOG
     if(logger.isDebugEnabled()){
@@ -171,7 +171,10 @@ void TPZStokesMaterialTH::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
                     
                     for (int k = 0; k < nShapeV; k++)
                     {
-                        ek(dim * j + i, dim * k + i) += phiV(j, 0) * phiV(k, 0) * BIGNUMBER * weight;
+                        for (int l = 0; l < dim; l++)
+                        {
+                            ek(dim * j + i, dim * k + l) += phiV(j, 0) * phiV(k, 0) * BIGNUMBER * weight;
+                        }
                     }
                 }
             }
@@ -196,6 +199,51 @@ void TPZStokesMaterialTH::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
         }
             break;
             
+        case 3: // Dirichlet X condition
+        {
+            for (int j = 0; j < nShapeV; j++)
+            {
+                ef(dim * j, 0) += BIGNUMBER * val2[0] * phiV(j, 0) * weight;
+                
+                for (int i = 0; i < nShapeV; i++)
+                {
+                    ek(dim * j, dim * i) += BIGNUMBER * phiV(j, 0) * phiV(i, 0) * weight;
+                }
+            }
+        }
+            break;
+        
+        case 4: // Dirichlet Y condition
+        {
+            for (int j = 0; j < nShapeV; j++)
+            {
+                ef(dim * j + 1, 0) += BIGNUMBER * val2[1] * phiV(j, 0) * weight;
+                
+                for (int i = 0; i < nShapeV; i++)
+                {
+                    ek(dim * j + 1, dim * i + 1) += BIGNUMBER * phiV(j, 0) * phiV(i, 0) * weight;
+                }
+            }
+        }
+            break;
+            
+        case 5: // Dirichlet Z condition
+        {
+#ifdef PZ_LOG
+            if (Dimension() != 3)
+                DebugStop();
+#endif
+            for (int j = 0; j < nShapeV; j++)
+            {
+                ef(dim * j + 2, 0) += BIGNUMBER * val2[2] * phiV(j, 0) * weight;
+                
+                for (int i = 0; i < nShapeV; i++)
+                {
+                    ek(dim * j + 2, dim * i + 2) += BIGNUMBER * phiV(j, 0) * phiV(i, 0) * weight;
+                }
+            }
+        }
+            break;
         default:
         {
             std::cout << "ERROR: BOUNDARY CONIDITON NOT IMPLEMENTED" << std::endl;
@@ -273,6 +321,8 @@ int TPZStokesMaterialTH::NSolutionVariables(int var) const{
 
 void TPZStokesMaterialTH::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datavec, int var, TPZVec<STATE>& Solout) {
     
+    Solout.Fill(0.0);
+    
     const int n = fdimension * (fdimension + 1) / 2;
     
     TPZManVector<STATE, 3> u_h = datavec[EVindex].sol[0];
@@ -316,7 +366,9 @@ void TPZStokesMaterialTH::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datave
         {
             Solout[0] = u_h[0]; // vx
             Solout[1] = u_h[1]; // vy
-            Solout[2] = u_h[2]; // vz
+            
+            if (Dimension() == 3)
+                Solout[2] = u_h[2]; // vz
         }
             break;
         
@@ -324,7 +376,9 @@ void TPZStokesMaterialTH::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datave
         {
             Solout[0] = sol_exact[0];
             Solout[1] = sol_exact[1];
-            Solout[2] = sol_exact[2];
+            
+            if (Dimension() == 3)
+                Solout[2] = sol_exact[2];
         }
             break;
 
@@ -332,7 +386,9 @@ void TPZStokesMaterialTH::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datave
         {
             Solout[0] = abs(sol_exact[0] - u_h[0]); // vx
             Solout[1] = abs(sol_exact[1] - u_h[1]); // vy
-            Solout[2] = abs(sol_exact[2] - u_h[2]); // vz
+            
+            if (Dimension() == 3)
+                Solout[2] = abs(sol_exact[2] - u_h[2]); // vz
         }
             break;
             
@@ -345,7 +401,9 @@ void TPZStokesMaterialTH::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datave
             
             Solout[0] = f[0]; // fx
             Solout[1] = f[1]; // fy
-            Solout[2] = f[2]; // fz
+            
+            if (Dimension() == 3)
+                Solout[2] = f[2]; // fz
         }
             break;
             
@@ -410,7 +468,7 @@ void TPZStokesMaterialTH::FillDataRequirements(TPZVec<TPZMaterialDataT<STATE>> &
         datavec[idata].fNeedsHSize = true;
         datavec[idata].fNeedsNormal = true;
     }
-    datavec[0].fNeedsDeformedDirectionsFad = true;
+    datavec[0].fNeedsDeformedDirectionsFad = false;
 }
 
 void TPZStokesMaterialTH::FillBoundaryConditionDataRequirements(int type, TPZVec<TPZMaterialDataT<STATE>> &datavec) const

@@ -3,25 +3,29 @@
 #endif
 
 #include <iostream>
+#include <fstream>
+#include <ostream>
+#include <string>
+#include "TPZMultiphysicsCompMesh.h"
+#include "TPZLinearAnalysis.h"
+#include "TPZSSpStructMatrix.h"
+#include "pzstepsolver.h"
+#include "pzfstrmatrix.h"
 #include "pzlog.h"
-#include "pzgmesh.h"
+#include "TPZGmshReader.h"
 #include "TPZVTKGeoMesh.h"
+#include "TPZVTKGenerator.h"
+#include "TPZSimpleTimer.h"
+#include <pzskylstrmatrix.h>
+
+#include "pzgmesh.h"
 #include "pzcmesh.h"
 #include "TPZNullMaterial.h"
 #include "pzbuildmultiphysicsmesh.h"
-#include "pzskylstrmatrix.h"
-#include "TPZMultiphysicsCompMesh.h"
-#include "pzstepsolver.h"
-#include "TPZLinearAnalysis.h"
-#include "TPZSSpStructMatrix.h"
-#include "pzfstrmatrix.h"
-#include "TPZSimpleTimer.h"
 #include "pzvisualmatrix.h"
 #include "TPZSYSMPMatrix.h"
-#include "TPZVTKGenerator.h"
 #include "TPZAnalyticSolution.h"
 #include "TPZGeoMeshTools.h"
-#include "TPZGmshReader.h"
 #include "tpzchangeel.h"
 #include "TPZRefPatternDataBase.h"
 #include "TPZRefPatternTools.h"
@@ -48,34 +52,34 @@ TPZCompMesh *CreateCMeshP(ProblemData *problem_data, TPZGeoMesh *gmesh);
 TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZGeoMesh *gmesh);
 void SolveProblemDirect(TPZLinearAnalysis &an, TPZCompMesh *cmesh);
 void PrintResults(TPZLinearAnalysis &an, TPZCompMesh *cmesh, ProblemData *problem_data, std::string file_name);
-void EvaluateErrors(std::string file_name, TPZLinearAnalysis &an, TPZAnalyticSolution *flow, TPZCompMesh *cmesh, ProblemData *problem_data)
-
-#ifdef PZ_LOG
-static TPZLogger logger("pz.TaylorHood");
-#endif
+void EvaluateErrors(std::string file_name, TPZLinearAnalysis &an, TPZAnalyticSolution *flow, TPZCompMesh *cmesh, ProblemData *problem_data);
 
 // **********************
 //     MAIN FUNCTION
 // **********************
-int main(int argc, char *argv())
+int main()
 {
+#ifdef PZ_LOG
+    TPZLogger::InitializePZLOG("log4cxx.cfg");
+//    TPZLogger::InitializePZLOG();
+#endif
+    
     std::cout << "--------- Starting simulation ---------" << std::endl;
     
     // reading problem data from json file
-    std::string file = "CouetteFlowTH";
-    
-    if(argc > 1)
-        file = std::string(argv[1]);
+    std::string file_path = "/Users/CarlosPuga/programming/HybridStokesResearch/DataInput/";
+    std::string file_name = "ConstantTH";
     
     ProblemData problem_data;
-    problem_data.ReadJson(file);
+
+    problem_data.ReadJson(file_path + file_name + ".json");
     
     // creating a analytical solution for ExactSol problem
     TStokesAnalytic *flow = new TStokesAnalytic();
     flow->fvisco = problem_data.DomainVec()[0].viscosity;
     flow->fvelocity = 1.;
     flow->fconstPressure = 1.;
-    flow->fExactSol = TStokesAnalytic::EPaperComp;
+    flow->fExactSol = TStokesAnalytic::ENone;
     flow->fDimension = problem_data.Dim();
     
     // create mesh
@@ -91,24 +95,28 @@ int main(int argc, char *argv())
     }
     
     // create computational meshes
-    problem_data.MeshVector().resize(2);
-    
     if (problem_data.DomainVec().size() > 1)
         DebugStop(); // please, implement the next lines correctly if many domains
     
     // velocity
-    TPZCompMesh cmesh_v = CreateCMeshV(&problem_data, gmesh);
+    TPZCompMesh *cmesh_v = CreateCMeshV(&problem_data, gmesh);
     {
-        std::ofstream out("cmesh_u.txt");
-        cmesh_v->Print(out);
+        std::ofstream out("cmesh_v.vtk");
+        TPZVTKGeoMesh::PrintCMeshVTK(cmesh_v, out);
+        std::ofstream out2("cmesh_v.txt");
+        cmesh_v->Print(out2);
     }
     
     // pressure
-    TPZCompMesh cmesh_p = CreateCMeshP(&problem_data, gmesh);
+    TPZCompMesh *cmesh_p = CreateCMeshP(&problem_data, gmesh);
     {
-        std::ofstream out("cmesh_p.txt");
-        cmesh_p->Print(out);
+        std::ofstream out("cmesh_p.vtk");
+        TPZVTKGeoMesh::PrintCMeshVTK(cmesh_p, out);
+        std::ofstream out2("cmesh_p.txt");
+        cmesh_p->Print(out2);
     }
+    
+//    problem_data.MeshVector().resize(2);
     
     // multiphysics
     TPZMultiphysicsCompMesh *cmesh_m = CreateMultiphysicsCMesh(&problem_data, gmesh);
@@ -131,11 +139,11 @@ int main(int argc, char *argv())
     }
     
     // Post Process
-    PrintResults(an, cmesh_m, &problem_data, file);
+    PrintResults(an, cmesh_m, &problem_data, file_name);
     
     // calculating error
     if (flow->fExactSol != 0)
-        EvaluateErrors(file, an, flow, cmesh, &problem_data);
+        EvaluateErrors(file_name, an, flow, cmesh_m, &problem_data);
     
     // Deleting pointers
     if (cmesh_m)
@@ -288,7 +296,7 @@ TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZG
     cmesh_m->SetName("CMesh_M");
     
     cmesh_m->SetDefaultOrder(problem_data->VelpOrder());
-    cmesh_m->SetAllCreateFunctionsContinuous();
+    cmesh_m->SetAllCreateFunctionsMultiphysicElem();
     
     // creating materials
     if (problem_data->DomainVec().size() != 0)
