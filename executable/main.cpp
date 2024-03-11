@@ -8,7 +8,6 @@
 #include <pzstepsolver.h>
 #include <pzfstrmatrix.h>
 #include <pzlog.h>
-#include <TPZSSpStructMatrix.h>
 #include <TPZGmshReader.h>
 #include <TPZVTKGeoMesh.h>
 #include <TPZVTKGenerator.h>
@@ -32,8 +31,8 @@ int main()
     int nThreads = 16;
     int nThreadsError = 16;
     
-    std::string filepath = "../DataInput/";
-    std::string filename = "Square_16_1";
+    std::string filepath = "/Users/CarlosPuga/programming/HybridStokesResearch/DataInput/";
+    std::string filename = "PoiseuilleTH";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
@@ -143,16 +142,16 @@ int main()
         fields = 
         {
             "Pressure",
-            "PressExact",
-            "PressElError",
+            "ExactPressure",
+            "ErrorPressure",
             
             "Velocity",
-            "VelExact",
-            "VelElError",
+            "ExactVelocity",
+            "ErrorVelocity",
             
             "Stress",
-            "StressExact",
-//            "StressElError"
+            "ExactStress",
+//            "ErrorStress"
         };
     else
      fields =
