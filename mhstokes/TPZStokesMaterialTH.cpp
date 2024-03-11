@@ -325,8 +325,12 @@ void TPZStokesMaterialTH::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datave
     
     const int n = fdimension * (fdimension + 1) / 2;
     
-    TPZManVector<STATE, 3> u_h = datavec[EVindex].sol[0];
-    TPZFNMatrix<10,STATE> gradU_h = datavec[EVindex].dsol[0];
+    TPZManVector<STATE, 3> v_h = datavec[EVindex].sol[0];
+    
+    TPZFNMatrix<10,STATE> gradV_el = datavec[EVindex].dsol[0];
+    TPZFNMatrix<10, STATE> gradV_h(fdimension, 1, 0.0);
+    auto axes = datavec[EVindex].axes;
+    TPZAxesTools<REAL>::Axes2XYZ(gradV_el, gradV_h, axes);
     
     TPZManVector<STATE, 3> p_h = datavec[EPindex].sol[0];
     
@@ -364,11 +368,11 @@ void TPZStokesMaterialTH::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datave
             
         case EVelocity: // velocity
         {
-            Solout[0] = u_h[0]; // vx
-            Solout[1] = u_h[1]; // vy
+            Solout[0] = v_h[0]; // vx
+            Solout[1] = v_h[1]; // vy
             
             if (Dimension() == 3)
-                Solout[2] = u_h[2]; // vz
+                Solout[2] = v_h[2]; // vz
         }
             break;
         
@@ -384,11 +388,11 @@ void TPZStokesMaterialTH::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datave
 
         case EErrorVelocity: // velocity element error
         {
-            Solout[0] = abs(sol_exact[0] - u_h[0]); // vx
-            Solout[1] = abs(sol_exact[1] - u_h[1]); // vy
+            Solout[0] = abs(sol_exact[0] - v_h[0]); // vx
+            Solout[1] = abs(sol_exact[1] - v_h[1]); // vy
             
             if (Dimension() == 3)
-                Solout[2] = abs(sol_exact[2] - u_h[2]); // vz
+                Solout[2] = abs(sol_exact[2] - v_h[2]); // vz
         }
             break;
             
@@ -412,7 +416,7 @@ void TPZStokesMaterialTH::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datave
             TPZFNMatrix<6, STATE> sigmaVoigt(n, 1, 0.);
             TPZFNMatrix<9, STATE> sigma(3, 3, 0.0);
             
-            StressTensor(gradU_h, sigmaVoigt, p_h[0]);
+            StressTensor(gradV_h, sigmaVoigt, p_h[0]);
             FromVoigt(sigmaVoigt, sigma);
             
             for (int i = 0; i < 3; i++)
@@ -440,7 +444,7 @@ void TPZStokesMaterialTH::Solution(const TPZVec<TPZMaterialDataT<STATE>>& datave
             TPZFNMatrix<6, STATE> sigmaVoigt(n, 1, 0.0), sigmaVoigt_exact(n, 1, 0.0);
             TPZFNMatrix<9, STATE> sigma_h(3, 3, 0.0), sigma_exact(3, 3, 0.0);
             
-            StressTensor(gradU_h, sigmaVoigt, p_h[0]);
+            StressTensor(gradV_h, sigmaVoigt, p_h[0]);
             StressTensor(gradsol_exact, sigmaVoigt_exact, p_exact);
             
             FromVoigt(sigmaVoigt, sigma_h);
