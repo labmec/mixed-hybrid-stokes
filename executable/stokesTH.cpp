@@ -66,9 +66,11 @@ int main()
     
     std::cout << "--------- Starting simulation ---------" << std::endl;
     
+    bool printMesh = true;
+    
     // reading problem data from json file
     std::string file_path = "/Users/CarlosPuga/programming/HybridStokesResearch/DataInput/";
-    std::string file_name = "ConstantTH";
+    std::string file_name = "PoiseuilleTH";
     
     ProblemData problem_data;
 
@@ -87,6 +89,7 @@ int main()
     std::string mesh_file = problem_data.MeshName();
     
     gmesh = ReadMeshFromGmsh(mesh_file, &problem_data);
+    if (printMesh)
     {
         std::ofstream out("gmesh.vtk");
         TPZVTKGeoMesh::PrintGMeshVTK(gmesh, out);
@@ -100,6 +103,7 @@ int main()
     
     // velocity
     TPZCompMesh *cmesh_v = CreateCMeshV(&problem_data, gmesh);
+    if (printMesh)
     {
         std::ofstream out("cmesh_v.vtk");
         TPZVTKGeoMesh::PrintCMeshVTK(cmesh_v, out);
@@ -109,6 +113,7 @@ int main()
     
     // pressure
     TPZCompMesh *cmesh_p = CreateCMeshP(&problem_data, gmesh);
+    if (printMesh)
     {
         std::ofstream out("cmesh_p.vtk");
         TPZVTKGeoMesh::PrintCMeshVTK(cmesh_p, out);
@@ -131,6 +136,7 @@ int main()
     
     TPZLinearAnalysis an(cmesh_m, renum);
     SolveProblemDirect(an, cmesh_m);
+    if (printMesh)
     {
         std::ofstream out("cmesh_m.vtk");
         TPZVTKGeoMesh::PrintCMeshVTK(cmesh_m, out);
@@ -316,6 +322,14 @@ TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZG
         for (const auto &bc : problem_data->TangentialBCs())
         {
             val2 = bc.value;
+                
+            if (bc.type == TPZStokesMaterialTH::BCType::ENeumannPress)
+            {
+                val2.Fill(0.0);
+                
+                val1.Identity();
+                val1 *= bc.value[0];
+            }
             
             TPZBndCond *matBC = mat->CreateBC(mat, bc.matID, bc.type, val1, val2);
             auto matBC2 = dynamic_cast<TPZBndCondT<STATE> *>(matBC);

@@ -147,9 +147,12 @@ void TPZStokesMaterialTH::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
     TPZManVector<STATE, 3> val2(3, 0.0);
     const auto &BIGNUMBER = fBigNumber;
     
+    REAL pressure = 0.0;
+    
     if (bc.HasForcingFunctionBC())
     {
         bc.ForcingFunctionBC()(datavec[EVindex].x, val2, val1);
+        pressure = val2[0];
     }
     else
     {
@@ -158,10 +161,10 @@ void TPZStokesMaterialTH::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
     }
     
     int dim = fdimension;
-    
+        
     switch (bc.Type())
     {
-        case 0: // Dirichlet condition
+        case EFullDirichlet: // Dirichlet condition
         {
             for (int j = 0; j < nShapeV; j++)
             {
@@ -171,10 +174,7 @@ void TPZStokesMaterialTH::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
                     
                     for (int k = 0; k < nShapeV; k++)
                     {
-                        for (int l = 0; l < dim; l++)
-                        {
-                            ek(dim * j + i, dim * k + l) += phiV(j, 0) * phiV(k, 0) * BIGNUMBER * weight;
-                        }
+                        ek(dim * j + i, dim * k + i) += phiV(j, 0) * phiV(k, 0) * BIGNUMBER * weight;
                     }
                 }
             }
@@ -193,13 +193,13 @@ void TPZStokesMaterialTH::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
         }
             break;
             
-        case 2: // Mixed Condition
+        case EMixed: // Mixed Condition
         {
             DebugStop(); // please implement me
         }
             break;
             
-        case 3: // Dirichlet X condition
+        case EDirichletX: // Dirichlet X condition
         {
             for (int j = 0; j < nShapeV; j++)
             {
@@ -213,7 +213,7 @@ void TPZStokesMaterialTH::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
         }
             break;
         
-        case 4: // Dirichlet Y condition
+        case EDirichletY: // Dirichlet Y condition
         {
             for (int j = 0; j < nShapeV; j++)
             {
@@ -227,7 +227,7 @@ void TPZStokesMaterialTH::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
         }
             break;
             
-        case 5: // Dirichlet Z condition
+        case EDirichletZ: // Dirichlet Z condition
         {
 #ifdef PZ_LOG
             if (Dimension() != 3)
@@ -244,6 +244,19 @@ void TPZStokesMaterialTH::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
             }
         }
             break;
+            
+        case ENeumannPress: // Pressure
+        {
+            for (int i = 0; i < dim; i++)
+                for (int j = 0; j < dim; j++)
+                    val2[i] += -val1(i, j) * datavec[EVindex].normal[j];
+            
+            for (int j = 0; j < nShapeV; j++)
+                for (int i = 0; i < dim; i++)
+                    ef(dim * j + i, 0) += val2[i] * phiV(j, 0) * weight;
+        }
+            break;
+
         default:
         {
             std::cout << "ERROR: BOUNDARY CONIDITON NOT IMPLEMENTED" << std::endl;
