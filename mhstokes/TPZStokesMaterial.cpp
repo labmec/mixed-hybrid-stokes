@@ -160,10 +160,8 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
         val2 = bc.Val2();
     }
     
-    STATE r = sqrt(datavec[0].x[0]*datavec[0].x[0] + datavec[0].x[1]*datavec[0].x[1]);
-    
     switch (bc.Type()) {
-        case 0: // Normal Velocity
+        case ENormVelocity: // Normal Velocity
         {
             REAL v_n = val2[0]; // if bc was set in .json file, the normal value was already pescribed
             if (bc.HasForcingFunctionBC()) // if the bc is set through an analytic solution, we need to compute its normal component
@@ -189,7 +187,7 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
             break;
         }
             
-        case 1: // Tangential Velocity
+        case ETanVelocity: // Tangential Velocity
         {
             TPZManVector<REAL, 3> v_t = {0., 0., 0.}; // for tangential bc, a vector is prescribed, so we take the inner product with the local tangential axe
             for(int i = 0; i < fdimension-1; i++){
@@ -221,7 +219,7 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
             break;
         }
             
-        case 2: // Normal Stress
+        case ENormStress: // Normal Stress
         {
             REAL sigma_nn = val2[0]; // if bc was set in .json file, the normal value was already prescribed
             if(bc.HasForcingFunctionBC()){ // if the bc is set through an analytic solution, we need to compute its normal component from the velocity gradient
@@ -254,7 +252,7 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
         }
             
             
-        case 3: // Tangential Stress
+        case ETanStress: // Tangential Stress
         {
             TPZManVector<REAL,3> sigma_nt(fdimension - 1, 0.);
             if(bc.HasForcingFunctionBC()){

@@ -181,15 +181,33 @@ void TPZStokesMaterialTH::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
         }
             break;
         
-        case 1: // Neumann condition
+        case ENeumann: // Neumann condition
         {
-            for (int j = 0; j < nShapeV; j++)
+            TPZFNMatrix<3, REAL> sigma_n(dim, 1, 0.0);
+            
+            if (bc.HasForcingFunctionBC())
             {
+                const int n = dim * (dim +1) / 2;
+                
+                TPZFNMatrix<6, REAL> sigmaVoigt(n, 1, 0.0);
+                TPZFNMatrix<9, STATE> sigma(3, 3, 0.0);
+                
+                StressTensor(val1, sigmaVoigt, pressure);
+                FromVoigt(sigmaVoigt, sigma);
+                
                 for (int i = 0; i < dim; i++)
-                {
-                    ef(dim * j + i, 0) += val2[i] * phiV(j, 0) * weight;
-                }
+                    for (int j = 0; j < dim; j++)
+                        sigma_n(i, 0) += sigma(i, j) * datavec[EVindex].normal[j];   
             }
+            else
+            {
+                for (int i = 0; i < fdimension; i++)
+                        sigma_n(i, 0) = val2[i];
+            }
+            
+            for (int j = 0; j < nShapeV; j++)
+                for (int i = 0; i < dim; i++)
+                    ef(dim * j + i, 0) += sigma_n(i, 0) * phiV(j, 0) * weight;
         }
             break;
             

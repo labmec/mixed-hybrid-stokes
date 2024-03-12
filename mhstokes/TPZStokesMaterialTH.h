@@ -33,7 +33,7 @@ protected:
 public:
     /// Empty Constructor
     TPZStokesMaterialTH();
-
+    
     /// Creates a material object and inserts it in the vector of material pointers of the mesh
     TPZStokesMaterialTH(int matID, int dimension, double viscosity);
     
@@ -102,6 +102,8 @@ public:
         EVelocity = 3, EExactVelocity = 4, EErrorVelocity = 5,
         ESourceTerm = 6,
         EStress = 7, EExactStress = 8, EErrorStress = 9};
+    
+    enum BCType {EFullDirichlet, ENeumann, EMixed, EDirichletX, EDirichletY, EDirichletZ, ENeumannPress};
 };
 
 #endif

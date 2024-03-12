@@ -115,6 +115,8 @@ public:
         EVelocity = 3, EExactVelocity = 4, EErrorVelocity = 5,
         ESourceTerm = 6,
         EStress = 7, EExactStress = 8, EErrorStress = 9};
+    
+    enum BcType {ENormVelocity, ETanVelocity, ENormStress, ETanStress};
 };
 
 #endif
