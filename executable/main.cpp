@@ -32,7 +32,7 @@ int main()
     int nThreadsError = 16;
     
     std::string filepath = "/Users/CarlosPuga/programming/HybridStokesResearch/DataInput/";
-    std::string filename = "PoiseuilleTH";
+    std::string filename = "Square_16_4_HdivS";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
@@ -105,6 +105,8 @@ int main()
     step.SetDirect(ELDLt);
     an.SetSolver(step);
     
+    std::ofstream simStatus(filename + "_Data.txt");
+    
     // ... the assemble
     std::cout << "Starting assemble...\n";
     TPZSimpleTimer ass_time("Assemble time");
@@ -124,6 +126,10 @@ int main()
     std::cout << "Finished solver...\n";
     
     std::cout << "Simulation Time: " << timer.ReturnTimeDouble()/1000. << std::endl;
+    
+    simStatus << "Simulation Time: " << timer.ReturnTimeDouble()/1000. << " s" << std::endl;
+    simStatus << "Total NEquations: " << cmesh_m->Solution().Rows() << std::endl;
+    simStatus << "Condensed NEquations: " << cmesh_m->NEquations() << std::endl;
     
     // printing meshes
     if (printdata)
@@ -163,7 +169,7 @@ int main()
             "Stress",
         };
     
-    TPZVTKGenerator vtk(cmesh_m, fields, filename, simData.Resolution());
+    TPZVTKGenerator vtk(cmesh_m, fields, filename, 3);
     vtk.Do();
     
     // Calculating error
@@ -198,12 +204,10 @@ int main()
         
         bool store_errors = false;
         std::ofstream ErrorOut(filename  + "_Errors.txt");
-        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         
+        TPZSimpleTimer post_time("PostProcess time");
         an.PostProcessError(Errors, store_errors);
-        
-        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        std::cout << "Time PostProc Error = " << (end - begin).count()/1000. << "s" << std::endl;
+        std::cout << "Time PostProc Error = " << post_time.ReturnTimeDouble()/1000 << "s" << std::endl;
         
         ErrorOut << "###### Computed Errors ######" << std::endl;
         for (int i = 0; i < Errors.size(); i++)
