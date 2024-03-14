@@ -149,6 +149,8 @@ void TPZStokesMaterialTH::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
     
     REAL pressure = 0.0;
     
+    int dim = fdimension;
+    
     if (bc.HasForcingFunctionBC())
     {
         bc.ForcingFunctionBC()(datavec[EVindex].x, val2, val1);
@@ -159,8 +161,6 @@ void TPZStokesMaterialTH::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &da
         val1 = bc.Val1();
         val2 = bc.Val2();
     }
-    
-    int dim = fdimension;
         
     switch (bc.Type())
     {

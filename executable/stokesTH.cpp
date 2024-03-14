@@ -40,7 +40,7 @@
 
 #include "ProblemData.h"
 
-const int global_nthread = 0;
+const int global_nthread = 16;
 
 // **********************
 // FUNCTION DECLARATIONS
@@ -49,7 +49,7 @@ const int global_nthread = 0;
 TPZGeoMesh *ReadMeshFromGmsh(std::string file_name, ProblemData *problem_data);
 TPZCompMesh *CreateCMeshV(ProblemData *problem_data, TPZGeoMesh *gmesh);
 TPZCompMesh *CreateCMeshP(ProblemData *problem_data, TPZGeoMesh *gmesh);
-TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZGeoMesh *gmesh);
+TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZGeoMesh *gmesh, TPZAnalyticSolution *sol);
 void SolveProblemDirect(TPZLinearAnalysis &an, TPZCompMesh *cmesh);
 void PrintResults(TPZLinearAnalysis &an, TPZCompMesh *cmesh, ProblemData *problem_data, std::string file_name);
 void EvaluateErrors(std::string file_name, TPZLinearAnalysis &an, TPZAnalyticSolution *flow, TPZCompMesh *cmesh, ProblemData *problem_data);
@@ -66,11 +66,11 @@ int main()
     
     std::cout << "--------- Starting simulation ---------" << std::endl;
     
-    bool printMesh = true;
+    bool printMesh = false;
     
     // reading problem data from json file
     std::string file_path = "/Users/CarlosPuga/programming/HybridStokesResearch/DataInput/";
-    std::string file_name = "PoiseuilleTH";
+    std::string file_name = "SquareTH8";
     
     ProblemData problem_data;
 
@@ -80,8 +80,8 @@ int main()
     TStokesAnalytic *flow = new TStokesAnalytic();
     flow->fvisco = problem_data.DomainVec()[0].viscosity;
     flow->fvelocity = 1.;
-    flow->fconstPressure = 1.;
-    flow->fExactSol = TStokesAnalytic::ENone;
+    flow->fconstPressure = 0;
+    flow->fExactSol = TStokesAnalytic::EPaperComp;
     flow->fDimension = problem_data.Dim();
     
     // create mesh
@@ -124,7 +124,7 @@ int main()
 //    problem_data.MeshVector().resize(2);
     
     // multiphysics
-    TPZMultiphysicsCompMesh *cmesh_m = CreateMultiphysicsCMesh(&problem_data, gmesh);
+    TPZMultiphysicsCompMesh *cmesh_m = CreateMultiphysicsCMesh(&problem_data, gmesh, flow);
     
     std::cout << cmesh_m->NEquations() << std::endl;
     
@@ -295,7 +295,7 @@ TPZCompMesh *CreateCMeshP(ProblemData *problem_data, TPZGeoMesh *gmesh)
 // **********************
 // MULTPHYSICS COMP MESH
 // **********************
-TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZGeoMesh *gmesh)
+TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZGeoMesh *gmesh, TPZAnalyticSolution *sol)
 {
     TPZMultiphysicsCompMesh *cmesh_m = new TPZMultiphysicsCompMesh(gmesh);
     
@@ -310,8 +310,20 @@ TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZG
         const int dimension = problem_data->Dim();
         STATE viscosity = problem_data->DomainVec()[0].viscosity;
         
+        if (dynamic_cast<TStokesAnalytic*>(sol))
+        {
+            TStokesAnalytic *flow = dynamic_cast<TStokesAnalytic*>(sol);
+            viscosity = flow->fvisco;
+            
+            if (flow->fExactSol == TStokesAnalytic::ENone)
+                sol = nullptr;
+        }
+        
         // 1. for domain
         TPZStokesMaterialTH *mat = new TPZStokesMaterialTH(problem_data->DomainVec()[0].matID, dimension, viscosity);
+        
+        if (sol) mat->SetExactSol(sol->ExactSolution(), 3);
+        if (sol) mat->SetForcingFunction(sol->ForceFunc(), 3);
         
         cmesh_m->InsertMaterialObject(mat);
         
@@ -333,9 +345,7 @@ TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZG
             
             TPZBndCond *matBC = mat->CreateBC(mat, bc.matID, bc.type, val1, val2);
             auto matBC2 = dynamic_cast<TPZBndCondT<STATE> *>(matBC);
-            
-            if (mat->HasExactSol())
-                matBC2->SetForcingFunctionBC(mat->ExactSol(), 4);
+            if (sol) matBC2->SetForcingFunctionBC(sol->ExactSolution(), 3);
             
             cmesh_m->InsertMaterialObject(matBC);
         }
