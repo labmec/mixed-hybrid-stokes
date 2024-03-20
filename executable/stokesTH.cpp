@@ -40,7 +40,7 @@
 
 #include "ProblemData.h"
 
-const int global_nthread = 16;
+const int global_nthread = 0;
 
 // **********************
 // FUNCTION DECLARATIONS
@@ -50,7 +50,7 @@ TPZGeoMesh *ReadMeshFromGmsh(std::string file_name, ProblemData *problem_data);
 TPZCompMesh *CreateCMeshV(ProblemData *problem_data, TPZGeoMesh *gmesh);
 TPZCompMesh *CreateCMeshP(ProblemData *problem_data, TPZGeoMesh *gmesh);
 TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZGeoMesh *gmesh, TPZAnalyticSolution *sol);
-void SolveProblemDirect(TPZLinearAnalysis &an, TPZCompMesh *cmesh);
+void SolveProblemDirect(TPZLinearAnalysis &an, TPZCompMesh *cmesh, std::string filename);
 void PrintResults(TPZLinearAnalysis &an, TPZCompMesh *cmesh, ProblemData *problem_data, std::string file_name);
 void EvaluateErrors(std::string file_name, TPZLinearAnalysis &an, TPZAnalyticSolution *flow, TPZCompMesh *cmesh, ProblemData *problem_data);
 
@@ -70,7 +70,7 @@ int main()
     
     // reading problem data from json file
     std::string file_path = "/Users/CarlosPuga/programming/HybridStokesResearch/DataInput/";
-    std::string file_name = "SquareTH8";
+    std::string file_name = "SquareTH16";
     
     ProblemData problem_data;
 
@@ -135,7 +135,7 @@ int main()
         renum = RenumType::ENone;
     
     TPZLinearAnalysis an(cmesh_m, renum);
-    SolveProblemDirect(an, cmesh_m);
+    SolveProblemDirect(an, cmesh_m, file_name);
     if (printMesh)
     {
         std::ofstream out("cmesh_m.vtk");
@@ -345,7 +345,7 @@ TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZG
             
             TPZBndCond *matBC = mat->CreateBC(mat, bc.matID, bc.type, val1, val2);
             auto matBC2 = dynamic_cast<TPZBndCondT<STATE> *>(matBC);
-            if (sol) matBC2->SetForcingFunctionBC(sol->ExactSolution(), 3);
+            if (sol) matBC2->SetForcingFunctionBC(sol->ExactSolution(), 5);
             
             cmesh_m->InsertMaterialObject(matBC);
         }
@@ -366,8 +366,11 @@ TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZG
 // **********************
 //    SOLVER FUNCTION
 // **********************
-void SolveProblemDirect(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m)
+void SolveProblemDirect(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m, std::string filename)
 {
+    // starting the simulation
+    TPZSimpleTimer timer;
+    
     TPZFStructMatrix<STATE> matskl(cmesh_m);
     matskl.SetNumThreads(global_nthread);
     an.SetStructuralMatrix(matskl);
@@ -376,6 +379,8 @@ void SolveProblemDirect(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m)
     TPZStepSolver<STATE> step;
     step.SetDirect(ELDLt); // ELU // ECholesky // ELDLt
     an.SetSolver(step);
+    
+    std::ofstream simStatus(filename + "_Data.txt");
     
     // assembles the system
     std::cout << "--------- Assemble ---------" << std::endl;
@@ -388,6 +393,12 @@ void SolveProblemDirect(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m)
     TPZSimpleTimer time_sol;
     an.Solve();
     std::cout << "Total time = " << time_sol.ReturnTimeDouble() / 1000. << " s" << std::endl;
+    
+    std::cout << "Simulation time = " << timer.ReturnTimeDouble() / 1000. << " s" << std::endl;
+    
+    simStatus << "Simulation Time: " << timer.ReturnTimeDouble() / 1000. << " s" << std::endl;
+    simStatus << "Number of Equations: " << cmesh_m->Solution().Rows() << std::endl;
+    simStatus << "Condensed NEquations: " << cmesh_m->NEquations() << std::endl;
     
     return;
 }
