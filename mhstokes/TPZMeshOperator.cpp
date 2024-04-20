@@ -396,7 +396,7 @@ TPZCompMesh *TPZMeshOperator::CreateCMeshV(ProblemData *simData, TPZGeoMesh *gme
                 if (!intercEl)
                     continue;
                 
-                intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder()+2);
+                intercEl->ForceSideOrder(compEl->Reference()->NSides()-1, simData->VelpOrder() + 2);
             }
         }
         
@@ -816,7 +816,7 @@ void TPZMeshOperator::CondenseElements(ProblemData *simData, TPZMultiphysicsComp
     for (int64_t iEnv = 0; iEnv < nEnvel; iEnv++)
     {
         TPZElementGroup *elGroup = elGroups[iEnv];
-        new TPZCondensedCompElT<STATE>(elGroup);
+        new TPZCondensedCompElT<STATE>(elGroup, false);
     }
     
     cmesh_m->SetName("CMesh_M_Condensed");

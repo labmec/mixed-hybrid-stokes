@@ -163,7 +163,7 @@ void ProblemData::ReadJson(std::string file){
     fAxiLambdaID = input["AxiLambdaID"];
     fAxiInterfaceID = input["AxiInterfaceID"];
     fFluxInterfaceID = input["FluxInterfaceID"];
-
+    
     if (fCondensedElement && fHdivtype != EConstant) fMeshVector.resize(4);
     else fMeshVector.resize(2);
 }
@@ -272,6 +272,9 @@ void ProblemData::ReadCylindersData()
 {
     std::ifstream file;
     file.open(fcsvFile);
+    
+    if (!file.is_open())
+        DebugStop();
     
     std::string line;
     
