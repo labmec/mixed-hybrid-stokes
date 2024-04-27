@@ -103,7 +103,7 @@ public:
         ESourceTerm = 6,
         EStress = 7, EExactStress = 8, EErrorStress = 9};
     
-    enum BCType {EFullDirichlet, ENeumann, EMixed, EDirichletX, EDirichletY, EDirichletZ, ENeumannPress};
+    enum BCType {EFullDirichlet=0, ENeumann=1, EMixed=2, EDirichletX=3, EDirichletY=4, EDirichletZ=5, ENeumannPress=6};
 };
 
 #endif

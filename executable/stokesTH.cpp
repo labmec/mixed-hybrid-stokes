@@ -40,19 +40,21 @@
 
 #include "ProblemData.h"
 
-const int global_nthread = 0;
+const int global_nthread = 16;
 
 // **********************
 // FUNCTION DECLARATIONS
 // **********************
 
-TPZGeoMesh *ReadMeshFromGmsh(std::string file_name, ProblemData *problem_data);
+TPZGeoMesh *ReadMeshFromGmsh(std::string file_name, ProblemData *problem_data, bool blend);
 TPZCompMesh *CreateCMeshV(ProblemData *problem_data, TPZGeoMesh *gmesh);
 TPZCompMesh *CreateCMeshP(ProblemData *problem_data, TPZGeoMesh *gmesh);
 TPZMultiphysicsCompMesh *CreateMultiphysicsCMesh(ProblemData *problem_data, TPZGeoMesh *gmesh, TPZAnalyticSolution *sol);
 void SolveProblemDirect(TPZLinearAnalysis &an, TPZCompMesh *cmesh, std::string filename);
 void PrintResults(TPZLinearAnalysis &an, TPZCompMesh *cmesh, ProblemData *problem_data, std::string file_name);
 void EvaluateErrors(std::string file_name, TPZLinearAnalysis &an, TPZAnalyticSolution *flow, TPZCompMesh *cmesh, ProblemData *problem_data);
+void SetExactArcRepresentation(TPZGeoMesh &gmesh, ProblemData *simData);
+void SetExactCylinderRepresentation(TPZGeoMesh &gmesh,  ProblemData *simData);
 
 // **********************
 //     MAIN FUNCTION
@@ -67,10 +69,11 @@ int main()
     std::cout << "--------- Starting simulation ---------" << std::endl;
     
     bool printMesh = false;
+    bool blend = true;
     
     // reading problem data from json file
     std::string file_path = "/Users/CarlosPuga/programming/HybridStokesResearch/DataInput/";
-    std::string file_name = "SquareTH16";
+    std::string file_name = "QuarterTaylorCouetteTH_2_16_C";
     
     ProblemData problem_data;
 
@@ -80,15 +83,15 @@ int main()
     TStokesAnalytic *flow = new TStokesAnalytic();
     flow->fvisco = problem_data.DomainVec()[0].viscosity;
     flow->fvelocity = 1.;
-    flow->fconstPressure = 0;
-    flow->fExactSol = TStokesAnalytic::EPaperComp;
+    flow->fconstPressure = 1.;
+    flow->fExactSol = TStokesAnalytic::ETaylorCouette;
     flow->fDimension = problem_data.Dim();
     
     // create mesh
     TPZGeoMesh *gmesh = nullptr;
     std::string mesh_file = problem_data.MeshName();
     
-    gmesh = ReadMeshFromGmsh(mesh_file, &problem_data);
+    gmesh = ReadMeshFromGmsh(mesh_file, &problem_data, blend);
     if (printMesh)
     {
         std::ofstream out("gmesh.vtk");
@@ -165,6 +168,8 @@ int main()
         delete gmesh;
     
     std::cout << "--------- Simulation finished ---------" << std::endl;
+    
+    return 0;
 }
 // *        END          *
 
@@ -172,13 +177,34 @@ int main()
 // **********************
 //       GEO MESH
 // **********************
-TPZGeoMesh *ReadMeshFromGmsh(std::string file_name, ProblemData *problem_data)
+TPZGeoMesh *ReadMeshFromGmsh(std::string file_name, ProblemData *problem_data, bool blend)
 {
     TPZGeoMesh *gmesh;
     gmesh = new TPZGeoMesh();
     
     TPZGmshReader reader;
     reader.GeometricGmshMesh(file_name, gmesh);
+    
+    if (problem_data->CsvFile() != "none" && blend)
+    {
+        switch (problem_data->Dim()) {
+            case 2:
+                {
+                    problem_data->ReadCirclesData();
+                    SetExactArcRepresentation(*gmesh, problem_data);
+                }
+                break;
+                
+            case 3:
+            {
+                problem_data->ReadCylindersData();
+                SetExactCylinderRepresentation(*gmesh, problem_data);
+            }
+                break;
+            default:
+                break;
+        }
+    }
     
     gmesh->BuildConnectivity();
     
@@ -439,7 +465,7 @@ void PrintResults(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m, ProblemData *prob
             "Stress",
         };
     
-    auto vtk = TPZVTKGenerator(cmesh_m, fields, file_name, problem_data->Resolution());
+    auto vtk = TPZVTKGenerator(cmesh_m, fields, file_name, 3);
     vtk.SetNThreads(global_nthread);
     vtk.Do();
     
@@ -493,3 +519,245 @@ void EvaluateErrors(std::string file_name, TPZLinearAnalysis &an, TPZAnalyticSol
         ErrorOut << "L2 " << fields[i] << " = " << Errors[i] << std::endl;
 }
 // *        END          *
+
+
+void SetExactArcRepresentation(TPZGeoMesh &gmesh, ProblemData *simData)
+{
+    TPZVec<ProblemData::ArcData> circles = simData->ArcDataVec();
+
+    std::map<int, int> arc_ids;
+    std::map<int, bool> found_arcs;
+    std::map<int, int> arc_newIDs;
+    
+    std::set<int> new_IDs;
+    int availableID = 0;
+    
+    // calculate availableID
+    for (auto domain : simData->DomainVec())
+        availableID += domain.matID;
+
+    for (auto bc : simData->NormalBCs())
+        availableID += bc.matID;
+
+    for (auto bc : simData->TangentialBCs())
+        availableID += bc.matID;
+    
+    availableID *= 10;
+    
+    for (int i = 0; i < circles.size(); i++)
+    {
+        arc_ids[circles[i].matID] = i;
+        arc_newIDs[circles[i].matID] = i + availableID;
+        new_IDs.insert(i+availableID);
+        found_arcs[circles[i].matID] = false;
+    }
+    
+    TPZManVector<TPZGeoElSide, 50> neighs;
+    
+    for (auto el : gmesh.ElementVec())
+    {
+        // this way we avoid processing recently inserted elements
+        if (!el || el->IsLinearMapping() == false) continue;
+        
+        const int matID = el->MaterialId();
+        const bool is_arc = arc_ids.find(matID) != arc_ids.end();
+        
+        if (is_arc) // found arc
+        {
+            const int nSides = el->NSides();
+            const int nNodes = el->NCornerNodes();
+            
+            found_arcs[matID] = true;
+            const int arc_pos = arc_ids[matID];
+            const REAL r = circles[arc_pos].radius;
+            const REAL xc = circles[arc_pos].xc;
+            const REAL yc = circles[arc_pos].yc;
+            const REAL zc = circles[arc_pos].zc;
+            
+            auto new_el = el->CreateBCGeoEl(nSides - 1, arc_newIDs[matID]);
+            auto *arc = TPZChangeEl::ChangeToArc3D(&gmesh, new_el->Index(), {xc, yc, zc}, r);
+        
+            // now we need to replace each neighbour by a blend element
+            // so it can be deformed accordingly
+            
+            TPZGeoElSide geoElSide(arc, arc->NSides() - 1);
+            
+            // now we iterate through all the neighbours of the linear side
+            TPZGeoElSide neighbour = geoElSide.Neighbour();
+            
+            // let us store all the neighbours
+            std::set<TPZGeoElSide> all_neighbours;
+            while (neighbour.Exists() && neighbour != geoElSide)
+            {
+                all_neighbours.insert(neighbour);
+                neighbour = neighbour.Neighbour();
+            }
+            
+            // let us replace all the neighbours
+            for (auto neighbour : all_neighbours)
+            {
+                const auto neigh_side = neighbour.Side();
+                auto neigh_el = neighbour.Element();
+                
+                /*
+                 let us take into account the possibility that
+                 one triangle might be neighbour of two cylinders
+                */
+                
+                if (!neigh_el->IsGeoBlendEl())
+                {
+                    const auto neigh_index = neigh_el->Index();
+                    TPZChangeEl::ChangeToGeoBlend(&gmesh, neigh_index);
+                }
+                else
+                {
+                    neigh_el->SetNeighbourForBlending(neigh_side);
+                }
+            }
+        }
+    }
+    
+    for (auto arc : found_arcs)
+    {
+        if (!arc.second)
+        {
+            PZError<<__PRETTY_FUNCTION__
+            <<"\n arc " << arc.first << " not found in mesh" << std::endl;
+        }
+    }
+}
+
+void SetExactCylinderRepresentation(TPZGeoMesh &gmesh,  ProblemData *simData)
+{
+    TPZVec<ProblemData::CylinderData> cylinders = simData->CylinderDataVec();
+
+    std::map<int, int> cylinder_ids;
+    std::map<int, bool> found_cylinders;
+    std::map<int, int> cylinder_newIDs;
+
+    int availableID = 0;
+    std::set<int> new_IDs;
+
+    // calculate availableID
+    for (auto domain : simData->DomainVec())
+        availableID += domain.matID;
+
+    for (auto bc : simData->NormalBCs())
+        availableID += bc.matID;
+
+    for (auto bc : simData->TangentialBCs())
+        availableID += bc.matID;
+
+    availableID *= 10;
+    
+    for (auto i = 0; i < cylinders.size(); i++)
+    {
+        cylinder_ids[cylinders[i].matID] = i;
+        cylinder_newIDs[cylinders[i].matID] = i + availableID;
+        new_IDs.insert(i + availableID);
+        found_cylinders[cylinders[i].matID] = false;
+    }
+    
+    TPZManVector<TPZGeoElSide, 50> neighs;
+    
+    std::set<TPZGeoEl*> blend_neighs;
+    for (auto el : gmesh.ElementVec())
+    {
+        // this way we avoid processing recently inserted elements
+        if (!el || el->IsLinearMapping() == false) continue;
+        
+        const int matID = el->MaterialId();
+        const bool is_cylinder = cylinder_ids.find(matID) != cylinder_ids.end();
+        
+        if (is_cylinder)
+        {
+            const int nSides = el->NSides();
+            const int nNodes = el->NCornerNodes();
+            
+            found_cylinders[matID] = true;
+            const int cylinder_pos = cylinder_ids[matID];
+            const auto &cylData = cylinders[cylinder_pos];
+            const REAL r = cylData.radius;
+            TPZManVector<REAL, 3> xc = {cylData.xc, cylData.yc, cylData.zc};
+            TPZManVector<REAL, 3> axis = {cylData.xaxis, cylData.yaxis, cylData.zaxis};
+            
+//            auto new_el = el->CreateBCGeoEl(nSides - 1, cylinder_newIDs[matID]);
+            auto cyl = TPZChangeEl::ChangeToCylinder(&gmesh, el->Index(), xc, axis);
+            
+            // let us store all the neighbours
+            std::set<TPZGeoElSide> all_neighbours;
+            {
+//                TPZGeoElSide elSide(el, nSides - 1);
+//                all_neighbours.insert(elSide);
+            }
+            
+            // just to ensure we wont remove any element twice
+            std::set<TPZGeoEl*> neigh_els;
+            
+//            neigh_els.insert(el);
+            
+            for (auto is = cyl->NNodes(); is < cyl->NSides(); is++)
+            {
+                /*
+                now we need to replace each neighbour by a blend element with a blend element
+                so it can be deformed accordingly
+                */
+
+                TPZGeoElSide geoElSide(cyl, is);
+
+                // now we iterate through all the neighbours of the given side
+                TPZGeoElSide neighbour = geoElSide.Neighbour();
+
+                while (neighbour.Exists() && neighbour != geoElSide)
+                {
+                    auto neigh_el = neighbour.Element();
+
+                    /*
+                    let us skip:
+                    1. neighbours that have been already identified (will be in neigh_els)
+                    2. neighbours that are in the cylinder wall as well
+                    */
+        
+                   auto check_el = neigh_els.find(neigh_el) == neigh_els.end();
+                   if (check_el && neigh_el->MaterialId() != matID)
+                   {
+                       all_neighbours.insert(neighbour);
+                       neigh_els.insert(neigh_el);
+                   }
+                   neighbour = neighbour.Neighbour();
+                }
+            }
+
+           // let us replace all the neighbours
+           for (auto neighbour : all_neighbours)
+           {
+               const auto neigh_side = neighbour.Side();
+               auto neigh_el = neighbour.Element();
+
+               /*
+               let us take into account the possibility that
+               one triangle might be neighbour of two cylinders
+               */
+
+               if (!neigh_el->IsGeoBlendEl())
+               {
+                   const auto neigh_index = neigh_el->Index();
+                   TPZChangeEl::ChangeToGeoBlend(&gmesh, neigh_index);
+               }
+               else
+               {
+                   neigh_el->SetNeighbourForBlending(neigh_side);
+               }
+           }
+        }
+    }
+
+    for (auto cylinder : found_cylinders)
+    {
+        if (!cylinder.second)
+        {
+            PZError<<__PRETTY_FUNCTION__
+            <<"\n cylinder " << cylinder.first << " not found in mesh" << std::endl;
+        }
+    }
+}
