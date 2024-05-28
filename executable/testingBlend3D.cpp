@@ -47,9 +47,11 @@ int main()
     bool print_mesh = false; // turn this on to print the mesh files
     bool blend = true; // switch this to use or not blend elements
     
+    std::string blend_file = (blend) ? "_B" : "_NB";
+    
     // reading problem data from json file
     std::string file_path = "/Users/CarlosPuga/programming/HybridStokesResearch/DataInput/"; // CHANGE THIS
-    std::string file_name = "QuarterTaylorCouette_1_4_C"; // first number is the VelpOrder, second number is the refinement level. Letter indicates whether it is Hdiv Standard or Constant
+    std::string file_name = "TaylorCouette_1_2_S"; // first number is the VelpOrder, second number is the refinement level. Letter indicates whether it is Hdiv Standard or Constant
     
     ProblemData problem_data;
     
@@ -101,11 +103,11 @@ int main()
     SolveProblemDirect(an, cmesh_m, file_name);
     
     // Post Process
-    PrintResults(an, cmesh_m, &problem_data, file_name);
+    PrintResults(an, cmesh_m, &problem_data, file_name + blend_file);
     
     // Error
     if (flow->fExactSol)
-        EvaluateErrors(file_name, an, flow, cmesh_m, &problem_data);
+        EvaluateErrors(file_name + blend_file, an, flow, cmesh_m, &problem_data);
     
     // Deleting mesh pointers
     if (cmesh_m)

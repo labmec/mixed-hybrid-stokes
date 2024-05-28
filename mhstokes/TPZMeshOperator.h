@@ -46,9 +46,9 @@ public:
 
     static void CheckSideOrientOfCompEl(ProblemData* simData, TPZGeoMesh* gmesh);
     
-    static void ConfigureObstructionFilter(TPZGeoMesh *gmesh, TPZMultiphysicsCompMesh *cmesh_m, ProblemData *simData, std::set<int64_t> &removeEquations);
+    static void ConfigureObstructionFilter(TPZGeoMesh *gmesh, TPZCompMesh *cmesh_m, ProblemData *simData, std::set<int64_t> &removeEquations);
     
-    static void ConfigureBoundaryFilter(TPZGeoMesh *gmesh, TPZMultiphysicsCompMesh *cmesh_m, ProblemData *simData, std::set<int64_t> &removeEquations);
+    static void ConfigureBoundaryFilter(TPZGeoMesh *gmesh, TPZCompMesh *cmesh_m, ProblemData *simData, std::set<int64_t> &removeEquations);
     
 //    static void SetExactArcRepresentation(const TPZAutoPointer<TPZGeoMesh> &gmesh, ProblemData *simData);
     static void SetExactArcRepresentation(TPZGeoMesh &gmesh, ProblemData *simData);
