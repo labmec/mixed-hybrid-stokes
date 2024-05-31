@@ -49,6 +49,25 @@ TPZGeoMesh *TPZMeshOperator::CreateGMesh(ProblemData *simData, bool blend)
 
     reader.GeometricGmshMesh(simData->MeshName() + ".msh", gmesh);
     
+//    {
+//        REAL maxDiff{-1};
+//        for(auto gel : gmesh->ElementVec()){
+//          if(gel->MaterialId()==5){
+//            const int nnodes = gel->NCornerNodes();
+//            TPZFNMatrix<12,REAL> coords(3,nnodes,0);
+//            gel->NodesCoordinates(coords);
+//            for(int in = 0; in < nnodes; in++){
+//              const auto x = coords.Get(0,in);
+//              const auto y = coords.Get(1,in);
+//              auto radius = std::sqrt(x*x+y*y);
+//              auto diff = std::abs(radius-0.045);
+//              if(diff > maxDiff) {maxDiff=diff;}
+//            }
+//          }
+//        }
+//        std::cout<<"max diff = "<<maxDiff<<std::endl;
+//      }
+    
     //     using geo blend
     if (simData->CsvFile() != "none" && blend)
     {
@@ -915,7 +934,7 @@ void TPZMeshOperator::CheckSideOrientOfCompEl(ProblemData* simData, TPZGeoMesh* 
     }
 }
 
-void TPZMeshOperator::ConfigureObstructionFilter(TPZGeoMesh *gmesh, TPZMultiphysicsCompMesh *cmesh_m, ProblemData *simData, std::set<int64_t> &removeEquations)
+void TPZMeshOperator::ConfigureObstructionFilter(TPZGeoMesh *gmesh, TPZCompMesh *cmesh_m, ProblemData *simData, std::set<int64_t> &removeEquations)
 {
     // Filter Function
     std::set<int64_t> removeConnectsSeq;
@@ -1006,7 +1025,7 @@ void TPZMeshOperator::ConfigureObstructionFilter(TPZGeoMesh *gmesh, TPZMultiphys
     }
 }
 
-void TPZMeshOperator::ConfigureBoundaryFilter(TPZGeoMesh *gmesh, TPZMultiphysicsCompMesh *cmesh_m, ProblemData *simData, std::set<int64_t> &removeEquations)
+void TPZMeshOperator::ConfigureBoundaryFilter(TPZGeoMesh *gmesh, TPZCompMesh *cmesh_m, ProblemData *simData, std::set<int64_t> &removeEquations)
 {
     // Filter Function
     std::set<int64_t> removeConnectSeq;

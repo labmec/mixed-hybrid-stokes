@@ -40,7 +40,7 @@ int main()
     bool printdata = false;
     
     std::string filepath = "/Users/CarlosPuga/programming/HybridStokesResearch/DataInput/";
-    std::string filename = "DifferentObstructions";
+    std::string filename = "Reference";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");

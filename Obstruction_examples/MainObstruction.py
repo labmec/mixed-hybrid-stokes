@@ -20,22 +20,19 @@ from TPZNoObstruction import TPZNoObstruction
 #%% ****************** 
 #     JSON DATA
 #   ******************
-file_name = "Df20"
-
-q1 = 0.000026198
-q2 = 2 * q1
+file_name = "Reference"
 
 mm = 1e-3
 cm = mm*10
 
 # "Input for module generation"
-length = 20*cm
+length = 40*cm
 radius = 45*mm
 
-lc = 125e-4
+lc = 1e-2
 
 # "Input for obstruction generation"
-obstruction = 20*mm/2
+obstruction = 80*mm/2
 
 json_data = {
         "MeshName": "../Meshes/"+file_name,
@@ -111,7 +108,6 @@ def main()->None:
 
     # "Input for mesh generation"
     mesh_dim = 3
-
     circle = ('Circular', {'radius': radius})
 
     # "Creating the obstructions"
@@ -123,8 +119,10 @@ def main()->None:
         # modules.append(TPZCrossObstruction(length, lc, circle, 2e-2, 2e-2, 1e-3))
         # modules.append(TPZMultipleObstruction(length, lc, circle, 5e-3, 3e-2))
         modules.append(TPZNoObstruction(_length = length, _lc = lc, _module_typology = circle))
+        modules.append(TPZNoObstruction(_length = length, _lc = lc, _module_typology = circle))
     
     "Moving them to the right place"
+    module: TPZSimpleObstruction
     for i, module in enumerate(modules):
         module.Move(0, 0, length*i)
     
@@ -134,16 +132,16 @@ def main()->None:
     physical_group = [
         [(3, [i + 1 for i, _ in enumerate(modules) ]), 1, "Domain"],
         [(2, [1]), 2, "PressIn"],
-        [(2, [12]), 3, "PressOut"],
-        [(2, [2, 3, 4, 5, 8, 9, 10, 11, 1 ,12]), 4, "NoSlip"],
+        [(2, [6]), 3, "PressOut"],
+        [(2, [2, 3, 4, 5, 8, 9, 10, 11, 1 ,6]), 4, "NoSlip"],
         [(2, [2, 3, 4, 5, 8, 9, 10, 11]), 5, "NoPenetration"],
-        [(2, [6]), 100, "Obstruction"]
+        # [(2, [6]), 100, "Obstruction"]
     ]
 
     # "Creating the elements"
     TPZMeshModeling.Synchronize()
 
-    # TPZMeshModeling.CreatePhysicalGroup(physical_group)
+    TPZMeshModeling.CreatePhysicalGroup(physical_group)
 
     TPZMeshModeling.CreateMesh(mesh_dim)
     
