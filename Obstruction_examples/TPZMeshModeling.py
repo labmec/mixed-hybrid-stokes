@@ -227,6 +227,20 @@ class TPZMeshModeling:
             var = var.capitalize()
             gmsh.option.setNumber("Geometry." + var, 1)
 
+    @staticmethod
+    def TurnOffRepresentation(*variables: str):
+        """
+        Turn off the selected entity CAD representation. 
+            - points
+            - curves
+            - surfaces
+            - volumes
+        """
+        for var in variables:
+            var = var.capitalize()
+            gmsh.option.setNumber("Geometry." + var, 0)
+
+    @staticmethod
     def TurnOnLabels(*variables: str):
         """
         Turn on the selected entities' labels. 
@@ -238,6 +252,34 @@ class TPZMeshModeling:
         for var in variables:
             var = var.capitalize()  + "Numbers"
             gmsh.option.setNumber("Geometry." + var, 1)
+
+    @staticmethod
+    def TurnOffLabels(*variables: str):
+        """
+        Turn off the selected entities' labels. 
+            - points
+            - curves
+            - surfaces
+            - volumes
+        """
+        for var in variables:
+            var = var.capitalize()  + "Numbers"
+            gmsh.option.setNumber("Geometry." + var, 0)
+
+    @staticmethod 
+    def SetDescription(description: str = "description")->None:
+        """
+        Sets the description of the model
+        description options
+            - description: all information available
+            - entity_tag: only the entity tag
+            - physical_tag: only the physical group tag
+            - entity_name: only the entity name
+            - physical_name: only the physical group name
+        """
+        description_int: dict = {"description": 0, "entity_tag":1, "physical_tag":2, "entity_name":3, "physical_name":4}
+        
+        gmsh.option.setNumber("Geometry.LabelType", description_int[description])
 
     @staticmethod
     def TurnOnNormals(size: int=50)->None:
