@@ -29,6 +29,7 @@ const int global_nthread = 16;
 void SolveProblem(TPZLinearAnalysis &an, TPZCompMesh *cmesh, std::string filename, ProblemData *problem_data, TPZGeoMesh *gmesh);
 void PrintResults(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m, ProblemData *problem_data, std::string file_name);
 void EvaluateErrors(std::string file_name, TPZLinearAnalysis &an, TPZAnalyticSolution *flow, TPZCompMesh *cmesh, ProblemData *problem_data);
+void ComputeIntegralFlux(TPZCompMesh *cmesh, int matid, REAL& flux);
 
 int main()
 {
@@ -39,7 +40,7 @@ int main()
     
     bool printdata = false;
     
-    std::string filepath = "/Users/CarlosPuga/programming/HybridStokesResearch/DataInput/";
+    std::string filepath = "/home/giavancini/Dev/obstrutor/";
     std::string filename = "Reference";
 
     ProblemData simData;
@@ -94,6 +95,9 @@ int main()
     
     // starting the simulation
     SolveProblem(an, cmesh_m, filename, &simData, gmesh);
+
+    REAL integratedFlux;
+    ComputeIntegralFlux(cmesh_m, 3, integratedFlux);
         
     // printing meshes
     if (printdata)
@@ -273,4 +277,39 @@ void EvaluateErrors(std::string file_name, TPZLinearAnalysis &an, TPZAnalyticSol
     
     for (int i = 0; i < Errors.size(); i++)
         ErrorOut << "L2 " << fields[i] << " = " << Errors[i] << std::endl;
+}
+
+void ComputeIntegralFlux(TPZCompMesh *cmesh, int matid, REAL& flux)
+{
+    //Getting the equations number of the DOFs associated with the material id
+    int64_t nel = cmesh->NElements();
+    std::set<int64_t> equations;
+    REAL area = 0.;
+    for (int64_t el = 0; el < nel; el++) {
+        TPZCompEl *cel = cmesh->Element(el);
+        if (!cel) continue;
+        TPZGeoEl *gel = cel->Reference();
+        if (!gel) continue; //condensed elements and element group have no reference
+        if (gel->MaterialId() != matid) continue;
+        area += gel->Volume();
+        int ncon = cel->NConnects();
+        for (int ic = 0; ic < ncon; ic++) {
+            TPZConnect &c = cel->Connect(ic);
+            int seqnum = c.SequenceNumber();
+            int pos = cmesh->Block().Position(seqnum);
+            int blocksize = cmesh->Block().Size(seqnum);
+            for (int ieq = 0; ieq < blocksize; ieq++) {
+                equations.insert(pos+ieq);
+            }
+        }
+    }
+
+    //Sum the flux coefficients
+    flux = 0.0;
+    for (auto eq : equations) {
+        TPZFMatrix<STATE>& sol = cmesh->Solution();
+        flux += sol(eq,0);
+    }
+    std::cout << "Integral flux = " << flux << std::endl;
+    std::cout << "Area = " << area << std::endl;
 }

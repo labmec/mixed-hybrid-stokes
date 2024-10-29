@@ -26,16 +26,16 @@ mm = 1e-3
 cm = mm*10
 
 # "Input for module generation"
-length = 40*cm
+length = 50*cm
 radius = 45*mm
 
 lc = 1e-2
 
 # "Input for obstruction generation"
-obstruction = 80*mm/2
+obstruction = 20*mm/2
 
 json_data = {
-        "MeshName": "../Meshes/"+file_name,
+        "MeshName": "/home/giavancini/Dev/obstrutor/"+file_name,
         "CreateMsh": False,
         "HdivType": 1,
         "VelpOrder": 2,
@@ -111,15 +111,9 @@ def main()->None:
     circle = ('Circular', {'radius': radius})
 
     # "Creating the obstructions"
-    circular = True
-
     modules = []
-    if circular:
-        # modules.append(TPZSimpleObstruction(length, lc, circle, obstruction))
-        # modules.append(TPZCrossObstruction(length, lc, circle, 2e-2, 2e-2, 1e-3))
-        # modules.append(TPZMultipleObstruction(length, lc, circle, 5e-3, 3e-2))
-        modules.append(TPZNoObstruction(_length = length, _lc = lc, _module_typology = circle))
-        modules.append(TPZNoObstruction(_length = length, _lc = lc, _module_typology = circle))
+    modules.append(TPZSimpleObstruction(_length = length, _lc = lc, _module_typology = circle, _obstruction_radius = obstruction))
+    modules.append(TPZNoObstruction(_length = length, _lc = lc, _module_typology = circle))
     
     "Moving them to the right place"
     module: TPZSimpleObstruction
@@ -132,16 +126,29 @@ def main()->None:
     physical_group = [
         [(3, [i + 1 for i, _ in enumerate(modules) ]), 1, "Domain"],
         [(2, [1]), 2, "PressIn"],
-        [(2, [6]), 3, "PressOut"],
-        [(2, [2, 3, 4, 5, 8, 9, 10, 11, 1 ,6]), 4, "NoSlip"],
+        [(2, [12]), 3, "PressOut"],
+        [(2, [2, 3, 4, 5, 8, 9, 10, 11, 1 , 12]), 4, "NoSlip"],
         [(2, [2, 3, 4, 5, 8, 9, 10, 11]), 5, "NoPenetration"],
-        # [(2, [6]), 100, "Obstruction"]
+        [(2, [6]), 100, "Obstruction"],
+        [(2, [7]), 101, "Orifice"],
     ]
 
     # "Creating the elements"
     TPZMeshModeling.Synchronize()
 
     TPZMeshModeling.CreatePhysicalGroup(physical_group)
+
+    gmsh.model.mesh.field.add("Cylinder", 1)
+    gmsh.model.mesh.field.setNumber(1, "Radius", obstruction)
+    gmsh.model.mesh.field.setNumber(1, "VIn", 0.5*lc)
+    gmsh.model.mesh.field.setNumber(1, "VOut", lc)
+    gmsh.model.mesh.field.setNumber(1, "XAxis", 0)
+    gmsh.model.mesh.field.setNumber(1, "XCenter", 0)
+    gmsh.model.mesh.field.setNumber(1, "YAxis", 0)
+    gmsh.model.mesh.field.setNumber(1, "YCenter", 0)
+    gmsh.model.mesh.field.setNumber(1, "ZAxis", 1)
+    gmsh.model.mesh.field.setNumber(1, "ZCenter", length)
+    gmsh.model.mesh.field.setAsBackgroundMesh(1)
 
     TPZMeshModeling.CreateMesh(mesh_dim)
     
