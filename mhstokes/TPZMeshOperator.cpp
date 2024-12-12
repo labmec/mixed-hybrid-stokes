@@ -1240,7 +1240,7 @@ void TPZMeshOperator::SetExactCylinderRepresentation(TPZGeoMesh &gmesh,  Problem
             TPZManVector<REAL, 3> axis = {cylData.xaxis, cylData.yaxis, cylData.zaxis};
             
 //            auto new_el = el->CreateBCGeoEl(nSides - 1, cylinder_newIDs[matID]);
-            auto cyl = TPZChangeEl::ChangeToCylinder(&gmesh, el->Index(), xc, axis);
+            auto cyl = TPZChangeEl::ChangeToCylinder(&gmesh, el->Index(), xc, axis, r);
             
             // let us store all the neighbours
             std::set<TPZGeoElSide> all_neighbours;

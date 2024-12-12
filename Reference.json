@@ -5,7 +5,7 @@
     "VelpOrder": 2,
     "TracpOrder": 1,
     "Dim": 3,
-    "Resolution": 0,
+    "Resolution": 1,
     "StaticCondensation": true,
     "isAxisymmetric": 0,
     "HasAnalyticSolution": false,

@@ -21,15 +21,24 @@
 #include <pzstrmatrixot.h>
 #include <TPZSpStructMatrix.h>
 #include "TPZIdentitySolver.h"
-
 #include <TPZPardisoSolver.h>
+#include "TPZGeoMeshTools.h"
+#include "pzvec_extras.h"
 
 const int global_nthread = 16;
+
+struct PostProcElData {
+  TPZGeoEl* gel;
+  TPZManVector<REAL,1> qsi = {-10}; // a value that is not valid
+  TPZManVector<REAL,3> x = {0.,0.,0.};
+};
 
 void SolveProblem(TPZLinearAnalysis &an, TPZCompMesh *cmesh, std::string filename, ProblemData *problem_data, TPZGeoMesh *gmesh);
 void PrintResults(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m, ProblemData *problem_data, std::string file_name);
 void EvaluateErrors(std::string file_name, TPZLinearAnalysis &an, TPZAnalyticSolution *flow, TPZCompMesh *cmesh, ProblemData *problem_data);
 void ComputeIntegralFlux(TPZCompMesh *cmesh, int matid, REAL& flux);
+void FindElementsAndPtsToPostProc(TPZGeoMesh* gmesh, TPZStack<PostProcElData>& postProcData, const int matid, const int npts, const REAL z0, const REAL zf);
+void PostProcDataForArticle(TPZGeoMesh* gmesh, TPZStack<PostProcElData>& postProcData);
 
 int main()
 {
@@ -111,6 +120,10 @@ int main()
     
     // Post Process
     PrintResults(an, cmesh_m, &simData, filename);
+
+    TPZStack<PostProcElData> postProcData;
+    FindElementsAndPtsToPostProc(gmesh, postProcData, simData.DomainVec()[0].matID, 1001, 0.0, 1000.0);
+    PostProcDataForArticle(gmesh, postProcData);
     
     // Calculating error
     if (flow->fExactSol)
@@ -312,4 +325,62 @@ void ComputeIntegralFlux(TPZCompMesh *cmesh, int matid, REAL& flux)
     }
     std::cout << "Integral flux = " << flux << std::endl;
     std::cout << "Area = " << area << std::endl;
+}
+
+void FindElementsAndPtsToPostProc(TPZGeoMesh* gmesh, TPZStack<PostProcElData>& postProcData, const int matid, const int npts, const REAL z0, const REAL zf) {
+  const REAL dz = (zf - z0) / (npts - 1);
+
+  int64_t InitialElIndex = -1;
+  for (auto gel : gmesh->ElementVec()) {
+    if (gel && gel->MaterialId() == matid) {
+      InitialElIndex = gel->Index();
+      break;
+    }
+  }
+
+  TPZManVector<REAL,3> xvec(3, 0.);
+  xvec[0] = xvec[1] = 0;
+  for (int i = 0; i < npts; i++) {
+    const REAL z = z0 + i * dz;
+    xvec[2] = z;
+    TPZManVector<REAL,3> qsi(3, 0.0);        
+    TPZGeoEl* gel = TPZGeoMeshTools::FindElementByMatId(gmesh, xvec, qsi, InitialElIndex, {matid});
+    if (!gel) {
+      std::cout << "Element not found for z = " << z << std::endl;
+      DebugStop();
+    }
+#ifdef PZDEBUG
+    TPZManVector<REAL, 3> xcheck(3);
+    gel->X(qsi, xcheck);
+    REAL distance = dist(xvec, xcheck);
+    if(distance > 1.e-8){
+      DebugStop(); // check if the element found is the correct one
+    }
+#endif
+    postProcData.Push({gel, qsi, xvec}); // Creates a struct entry with gel and qsi.
+  }
+
+}
+
+void PostProcDataForArticle(TPZGeoMesh* gmesh, TPZStack<PostProcElData>& postProcData) {
+  std::ofstream out("plot_over_line.txt");
+  out << std::setprecision(15);
+  for (auto& data : postProcData) {
+    TPZVec<REAL> qsi(3, 0.0);
+    TPZCompEl* cel = data.gel->Reference();
+    if(!cel) DebugStop();
+    TPZMaterial* mat = cel->Material();
+    TPZStokesMaterial* stokesmat = dynamic_cast<TPZStokesMaterial*>(mat);
+    if(!stokesmat) DebugStop();
+    const int uind = stokesmat->VariableIndex("Velocity");
+    const int pind = stokesmat->VariableIndex("Pressure");
+    TPZManVector<STATE, 9> output(3);
+    cel->Solution(data.qsi,uind,output);
+    const REAL velz = output[2];
+    cel->Solution(data.qsi,pind,output);
+    const REAL pressure = output[0];
+
+    std::cout << "z = " << data.x[2] << " velZ = " << velz << " p = " << pressure << std::endl;
+    out << data.x[2] << " " << velz << " " << pressure << std::endl;
+    }
 }

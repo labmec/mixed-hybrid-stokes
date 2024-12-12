@@ -32,7 +32,7 @@ radius = 45*mm
 lc = 1e-2
 
 # "Input for obstruction generation"
-obstruction = 20*mm/2
+obstruction_diameter = 10*mm
 
 json_data = {
         "MeshName": "/home/giavancini/Dev/obstrutor/"+file_name,
@@ -41,7 +41,7 @@ json_data = {
         "VelpOrder": 2,
         "TracpOrder": 1,
         "Dim": 3,
-        "Resolution": 0,
+        "Resolution": 1,
         "StaticCondensation": True,
         "isAxisymmetric": 0,
         "HasAnalyticSolution": False,
@@ -112,7 +112,7 @@ def main()->None:
 
     # "Creating the obstructions"
     modules = []
-    modules.append(TPZSimpleObstruction(_length = length, _lc = lc, _module_typology = circle, _obstruction_radius = obstruction))
+    modules.append(TPZSimpleObstruction(_length = length, _lc = lc, _module_typology = circle, _obstruction_radius = obstruction_diameter/2))
     modules.append(TPZNoObstruction(_length = length, _lc = lc, _module_typology = circle))
     
     "Moving them to the right place"
@@ -139,8 +139,8 @@ def main()->None:
     TPZMeshModeling.CreatePhysicalGroup(physical_group)
 
     gmsh.model.mesh.field.add("Cylinder", 1)
-    gmsh.model.mesh.field.setNumber(1, "Radius", obstruction)
-    gmsh.model.mesh.field.setNumber(1, "VIn", 0.5*lc)
+    gmsh.model.mesh.field.setNumber(1, "Radius", 1.2*obstruction_diameter/2)
+    gmsh.model.mesh.field.setNumber(1, "VIn", 0.25*lc)
     gmsh.model.mesh.field.setNumber(1, "VOut", lc)
     gmsh.model.mesh.field.setNumber(1, "XAxis", 0)
     gmsh.model.mesh.field.setNumber(1, "XCenter", 0)
