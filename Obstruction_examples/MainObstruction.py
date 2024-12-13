@@ -32,7 +32,7 @@ radius = 45*mm
 lc = 1e-2
 
 # "Input for obstruction generation"
-obstruction_diameter = 10*mm
+obstruction_diameter = 20*mm
 
 json_data = {
         "MeshName": "/home/giavancini/Dev/obstrutor/"+file_name,

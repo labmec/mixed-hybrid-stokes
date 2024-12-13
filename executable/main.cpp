@@ -25,7 +25,7 @@
 #include "TPZGeoMeshTools.h"
 #include "pzvec_extras.h"
 
-const int global_nthread = 16;
+const int global_nthread = 32;
 
 struct PostProcElData {
   TPZGeoEl* gel;
@@ -36,9 +36,9 @@ struct PostProcElData {
 void SolveProblem(TPZLinearAnalysis &an, TPZCompMesh *cmesh, std::string filename, ProblemData *problem_data, TPZGeoMesh *gmesh);
 void PrintResults(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m, ProblemData *problem_data, std::string file_name);
 void EvaluateErrors(std::string file_name, TPZLinearAnalysis &an, TPZAnalyticSolution *flow, TPZCompMesh *cmesh, ProblemData *problem_data);
-void ComputeIntegralFlux(TPZCompMesh *cmesh, int matid, REAL& flux);
+void ComputeIntegralFlux(TPZCompMesh *cmesh, int matid, std::ofstream &out);
 void FindElementsAndPtsToPostProc(TPZGeoMesh* gmesh, TPZStack<PostProcElData>& postProcData, const int matid, const int npts, const REAL z0, const REAL zf);
-void PostProcDataForArticle(TPZGeoMesh* gmesh, TPZStack<PostProcElData>& postProcData);
+void PostProcDataForArticle(TPZGeoMesh* gmesh, TPZStack<PostProcElData>& postProcData, std::ofstream &out);
 
 int main()
 {
@@ -49,8 +49,8 @@ int main()
     
     bool printdata = false;
     
-    std::string filepath = "/home/giavancini/Dev/obstrutor/";
-    std::string filename = "Reference";
+    std::string filepath = "/home/giavancini/dev/obstructor-analyses/mixed-hybrid-stokes/";
+    std::string filename = "Obstructor-10mm";
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
@@ -93,20 +93,17 @@ int main()
     // static condensation
     if (simData.CondensedElements())
         TPZMeshOperator::CondenseElements(&simData, cmesh_m, gmesh);
-    
-    cmesh_m->SaddlePermute();
-    
-    RenumType renum = RenumType::EMetis;
-    if (global_nthread == 0)
-        renum = RenumType::ENone;
-    
-    TPZLinearAnalysis an(cmesh_m, renum);
+        
+    TPZLinearAnalysis an(cmesh_m, RenumType::EMetis);
     
     // starting the simulation
     SolveProblem(an, cmesh_m, filename, &simData, gmesh);
 
-    REAL integratedFlux;
-    ComputeIntegralFlux(cmesh_m, 3, integratedFlux);
+    std::ofstream out(filename + "-data.txt");
+    ComputeIntegralFlux(cmesh_m, 3, out);
+    TPZStack<PostProcElData> postProcData;
+    FindElementsAndPtsToPostProc(gmesh, postProcData, simData.DomainVec()[0].matID, 1001, 0.0, 1.0);
+    PostProcDataForArticle(gmesh, postProcData, out);
         
     // printing meshes
     if (printdata)
@@ -120,10 +117,6 @@ int main()
     
     // Post Process
     PrintResults(an, cmesh_m, &simData, filename);
-
-    TPZStack<PostProcElData> postProcData;
-    FindElementsAndPtsToPostProc(gmesh, postProcData, simData.DomainVec()[0].matID, 1001, 0.0, 1000.0);
-    PostProcDataForArticle(gmesh, postProcData);
     
     // Calculating error
     if (flow->fExactSol)
@@ -181,8 +174,6 @@ void SolveProblem(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m, std::string filen
     step.SetDirect(ELDLt);
     an.SetSolver(step);
     
-    std::ofstream simStatus(filename + "_Data.txt");
-    
     // ... the assemble
     std::cout << "Starting assemble...\n";
     TPZSimpleTimer ass_time("Assemble time");
@@ -205,10 +196,6 @@ void SolveProblem(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m, std::string filen
     std::cout << "Finished solver...\n";
     
     std::cout << "Simulation Time: " << timer.ReturnTimeDouble()/1000. << std::endl;
-    
-    simStatus << "Simulation Time: " << timer.ReturnTimeDouble()/1000. << " s" << std::endl;
-    simStatus << "Total NEquations: " << cmesh_m->Solution().Rows() << std::endl;
-    simStatus << "Condensed NEquations: " << cmesh_m->NEquations() << std::endl;
     
     return;
 }
@@ -292,7 +279,7 @@ void EvaluateErrors(std::string file_name, TPZLinearAnalysis &an, TPZAnalyticSol
         ErrorOut << "L2 " << fields[i] << " = " << Errors[i] << std::endl;
 }
 
-void ComputeIntegralFlux(TPZCompMesh *cmesh, int matid, REAL& flux)
+void ComputeIntegralFlux(TPZCompMesh *cmesh, int matid, std::ofstream& out)
 {
     //Getting the equations number of the DOFs associated with the material id
     int64_t nel = cmesh->NElements();
@@ -318,69 +305,91 @@ void ComputeIntegralFlux(TPZCompMesh *cmesh, int matid, REAL& flux)
     }
 
     //Sum the flux coefficients
-    flux = 0.0;
+    REAL integralflux = 0.0;
     for (auto eq : equations) {
         TPZFMatrix<STATE>& sol = cmesh->Solution();
-        flux += sol(eq,0);
+        integralflux += sol(eq,0);
     }
-    std::cout << "Integral flux = " << flux << std::endl;
+    std::cout << "Integral flux = " << integralflux << std::endl;
+    out << "Integral flux = " << integralflux << std::endl;
     std::cout << "Area = " << area << std::endl;
+    out << "Area = " << area << std::endl;
 }
 
-void FindElementsAndPtsToPostProc(TPZGeoMesh* gmesh, TPZStack<PostProcElData>& postProcData, const int matid, const int npts, const REAL z0, const REAL zf) {
-  const REAL dz = (zf - z0) / (npts - 1);
+void FindElementsAndPtsToPostProc(TPZGeoMesh *gmesh, TPZStack<PostProcElData> &postProcData, const int matid, const int npts, const REAL z0, const REAL zf)
+{
+    const REAL dz = (zf - z0) / (npts - 1);
 
-  int64_t InitialElIndex = -1;
-  for (auto gel : gmesh->ElementVec()) {
-    if (gel && gel->MaterialId() == matid) {
-      InitialElIndex = gel->Index();
-      break;
+    int64_t InitialElIndex = -1;
+    for (auto gel : gmesh->ElementVec())
+    {
+        if (gel && gel->MaterialId() == matid)
+        {
+            InitialElIndex = gel->Index();
+            break;
+        }
     }
-  }
 
-  TPZManVector<REAL,3> xvec(3, 0.);
-  xvec[0] = xvec[1] = 0;
-  for (int i = 0; i < npts; i++) {
-    const REAL z = z0 + i * dz;
-    xvec[2] = z;
-    TPZManVector<REAL,3> qsi(3, 0.0);        
-    TPZGeoEl* gel = TPZGeoMeshTools::FindElementByMatId(gmesh, xvec, qsi, InitialElIndex, {matid});
-    if (!gel) {
-      std::cout << "Element not found for z = " << z << std::endl;
-      DebugStop();
-    }
+    TPZManVector<REAL, 3> xvec(3, 0.);
+    xvec[0] = xvec[1] = 0;
+    for (int i = 0; i < npts; i++)
+    {
+        const REAL z = z0 + i * dz;
+        xvec[2] = z;
+        TPZManVector<REAL, 3> qsi(3, 0.0);
+        TPZGeoEl *gel = TPZGeoMeshTools::FindElementByMatId(gmesh, xvec, qsi, InitialElIndex, {matid});
+        if (!gel)
+        {
+            std::cout << "Element not found for z = " << z << std::endl;
+            DebugStop();
+        }
 #ifdef PZDEBUG
-    TPZManVector<REAL, 3> xcheck(3);
-    gel->X(qsi, xcheck);
-    REAL distance = dist(xvec, xcheck);
-    if(distance > 1.e-8){
-      DebugStop(); // check if the element found is the correct one
-    }
+        TPZManVector<REAL, 3> xcheck(3);
+        gel->X(qsi, xcheck);
+        REAL distance = dist(xvec, xcheck);
+        if (distance > 1.e-8)
+        {
+            DebugStop(); // check if the element found is the correct one
+        }
 #endif
-    postProcData.Push({gel, qsi, xvec}); // Creates a struct entry with gel and qsi.
-  }
-
+        postProcData.Push({gel, qsi, xvec}); // Creates a struct entry with gel and qsi.
+    }
 }
 
-void PostProcDataForArticle(TPZGeoMesh* gmesh, TPZStack<PostProcElData>& postProcData) {
-  std::ofstream out("plot_over_line.txt");
-  out << std::setprecision(15);
-  for (auto& data : postProcData) {
-    TPZVec<REAL> qsi(3, 0.0);
-    TPZCompEl* cel = data.gel->Reference();
-    if(!cel) DebugStop();
-    TPZMaterial* mat = cel->Material();
-    TPZStokesMaterial* stokesmat = dynamic_cast<TPZStokesMaterial*>(mat);
-    if(!stokesmat) DebugStop();
-    const int uind = stokesmat->VariableIndex("Velocity");
-    const int pind = stokesmat->VariableIndex("Pressure");
-    TPZManVector<STATE, 9> output(3);
-    cel->Solution(data.qsi,uind,output);
-    const REAL velz = output[2];
-    cel->Solution(data.qsi,pind,output);
-    const REAL pressure = output[0];
+void PostProcDataForArticle(TPZGeoMesh *gmesh, TPZStack<PostProcElData> &postProcData, std::ofstream &out)
+{
+    std::ofstream out_graph("plot_over_line.txt");
+    out_graph << std::setprecision(15);
+    REAL deltaP = 0;
+    for (auto &data : postProcData)
+    {
+        TPZVec<REAL> qsi(3, 0.0);
+        TPZCompEl *cel = data.gel->Reference();
+        if (!cel)
+            DebugStop();
+        TPZMaterial *mat = cel->Material();
+        TPZStokesMaterial *stokesmat = dynamic_cast<TPZStokesMaterial *>(mat);
+        if (!stokesmat)
+            DebugStop();
+        const int uind = stokesmat->VariableIndex("Velocity");
+        const int pind = stokesmat->VariableIndex("Pressure");
+        TPZManVector<STATE, 9> output(3);
+        cel->Solution(data.qsi, uind, output);
+        const REAL velz = output[2];
+        cel->Solution(data.qsi, pind, output);
+        const REAL pressure = output[0];
 
-    std::cout << "z = " << data.x[2] << " velZ = " << velz << " p = " << pressure << std::endl;
-    out << data.x[2] << " " << velz << " " << pressure << std::endl;
+        if (fabs(data.x[2]-0.475) <= 1.e-8)
+        {
+            deltaP += pressure;
+        }
+        else if (fabs(data.x[2]-0.525) <= 1.e-8)
+        {
+            deltaP -= pressure;
+        }
+
+        out_graph << data.x[2] << " " << velz << " " << pressure << std::endl;
     }
+    std::cout << "DeltaP = " << deltaP << std::endl;
+    out << "DeltaP = " << deltaP << std::endl;
 }

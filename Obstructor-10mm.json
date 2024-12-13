@@ -1,5 +1,5 @@
 {
-    "MeshName": "/home/giavancini/Dev/obstrutor/Reference",
+    "MeshName": "/home/giavancini/dev/obstructor-analyses/mixed-hybrid-stokes/Obstructor-10mm",
     "CreateMsh": false,
     "HdivType": 1,
     "VelpOrder": 2,
