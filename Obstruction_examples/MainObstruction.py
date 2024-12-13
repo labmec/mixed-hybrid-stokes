@@ -32,7 +32,7 @@ radius = 45*mm
 lc = 1e-2
 
 # "Input for obstruction generation"
-obstruction_diameter = 20*mm
+obstruction_diameter = 2*mm
 
 json_data = {
         "MeshName": "/home/giavancini/Dev/obstrutor/"+file_name,
@@ -140,7 +140,7 @@ def main()->None:
 
     gmsh.model.mesh.field.add("Cylinder", 1)
     gmsh.model.mesh.field.setNumber(1, "Radius", 1.2*obstruction_diameter/2)
-    gmsh.model.mesh.field.setNumber(1, "VIn", 0.25*lc)
+    gmsh.model.mesh.field.setNumber(1, "VIn", 0.05*lc)
     gmsh.model.mesh.field.setNumber(1, "VOut", lc)
     gmsh.model.mesh.field.setNumber(1, "XAxis", 0)
     gmsh.model.mesh.field.setNumber(1, "XCenter", 0)

@@ -40,7 +40,7 @@ void ComputeIntegralFlux(TPZCompMesh *cmesh, int matid, std::ofstream &out);
 void FindElementsAndPtsToPostProc(TPZGeoMesh* gmesh, TPZStack<PostProcElData>& postProcData, const int matid, const int npts, const REAL z0, const REAL zf);
 void PostProcDataForArticle(TPZGeoMesh* gmesh, TPZStack<PostProcElData>& postProcData, std::ofstream &out);
 
-int main()
+int main(int argc, char *argv[])
 {
 #ifdef PZ_LOG
 //    TPZLogger::InitializePZLOG("log4cxx.cfg");
@@ -50,7 +50,13 @@ int main()
     bool printdata = false;
     
     std::string filepath = "/home/giavancini/dev/obstructor-analyses/mixed-hybrid-stokes/";
-    std::string filename = "Obstructor-10mm";
+    std::string filename = "Obstructor-";
+    if (argc > 1)
+        filename += argv[1];
+    else
+        filename += "10";
+    filename += "mm";
+    std::cout << filename << std::endl;
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
@@ -358,8 +364,8 @@ void FindElementsAndPtsToPostProc(TPZGeoMesh *gmesh, TPZStack<PostProcElData> &p
 
 void PostProcDataForArticle(TPZGeoMesh *gmesh, TPZStack<PostProcElData> &postProcData, std::ofstream &out)
 {
-    std::ofstream out_graph("plot_over_line.txt");
-    out_graph << std::setprecision(15);
+    out << std::setprecision(15);
+    out << "Plot over line (z, velz, pressure)" << std::endl;
     REAL deltaP = 0;
     for (auto &data : postProcData)
     {
@@ -388,7 +394,7 @@ void PostProcDataForArticle(TPZGeoMesh *gmesh, TPZStack<PostProcElData> &postPro
             deltaP -= pressure;
         }
 
-        out_graph << data.x[2] << " " << velz << " " << pressure << std::endl;
+        out << data.x[2] << " " << velz << " " << pressure << std::endl;
     }
     std::cout << "DeltaP = " << deltaP << std::endl;
     out << "DeltaP = " << deltaP << std::endl;
