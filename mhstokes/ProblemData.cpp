@@ -34,6 +34,7 @@ void ProblemData::ReadJson(std::string file){
     if(input.find("MeshName") == input.end()) DebugStop();
     if(input.find("CreateMsh") == input.end()) DebugStop();
     if(input.find("HdivType")==input.end()) DebugStop();
+    if(input.find("MaterialType")==input.end()) DebugStop();
     if(input.find("isAxisymmetric")==input.end()) DebugStop();
     if(input.find("VelpOrder") == input.end()) DebugStop();
     if(input.find("TracpOrder") == input.end()) DebugStop();
@@ -58,7 +59,9 @@ void ProblemData::ReadJson(std::string file){
     fMshFile = input["CreateMsh"];
     
     fHdivtype = input["HdivType"];
-    
+
+    fMaterialtype = input["MaterialType"];
+
     fAxisymmetric = input["isAxisymmetric"];
 
     fVelpOrder = input["VelpOrder"];

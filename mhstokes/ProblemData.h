@@ -69,6 +69,8 @@ private:
     bool fMshFile = false;
     
     HDivType fHdivtype = EStandard; // 0 -> Standard & 1 -> Constant
+
+    int fMaterialtype = 0; // 0 -> Stokes & 1 -> Navier-Stokes
     
     int fVelpOrder = -1; // polynomial approximation order for velocity
     
@@ -141,6 +143,9 @@ public:
     
     const HDivType& HdivType() const {return fHdivtype;}
     void SetHdivType(HDivType hdivtype) {fHdivtype = hdivtype;}
+
+    const int& MaterialType() const {return fMaterialtype;}
+    void SetMaterialType(int materialtype) {fMaterialtype = materialtype;}
 
     const int& Axisymmetric() const {return fAxisymmetric;}
     void SetAxisymmetric(int axisymmetric) {fAxisymmetric = axisymmetric;}

@@ -10,6 +10,7 @@
 #include "TPZInterface1dStokesMaterial.h"
 #include "TPZInterface1dFlux.h"
 #include "TPZStokesMaterial.h"
+#include "TPZNavierStokesMaterial.h"
 #include "TPZAxisymStokesMaterial.h"
 #include "TPZ1dStokesMaterial.h"
 #include "TPZMixedLinearElasticMaterial.h"

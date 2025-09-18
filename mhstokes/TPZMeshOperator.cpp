@@ -127,7 +127,7 @@ void TPZMeshOperator::InsertLagrangeMultipliers(ProblemData *simData, TPZGeoMesh
             
             int64_t nneighs = neighbourSet.size();
             
-            for (int stack_i = 0; stack_i < nneighs; stack_i++)
+            for (int stack_i = 0; stack_i < nneighs; stack_i++) // loop over all neighbours of the boundary element
             {
                 TPZGeoElSide neighbour = neighbourSet[stack_i];
                 int neighMatID = neighbour.Element()->MaterialId();
@@ -141,27 +141,27 @@ void TPZMeshOperator::InsertLagrangeMultipliers(ProblemData *simData, TPZGeoMesh
                 if(neighbour.Element()->HasSubElement())
                     DebugStop();
                 
-                TPZGeoElBC(neighbour, simData->InterfaceID());
+                TPZGeoElBC(neighbour, simData->InterfaceID()); // (const TPZGeoElSide &elside,int matid) creating first interface element
                 
-                neighbour = neighbour.Neighbour();
+                neighbour = neighbour.Neighbour(); // getting the neighbour of the neighbour element, which should be the lambda element
                 
                 if (neighbour.Element()->MaterialId() != simData->InterfaceID())
                     DebugStop();
                 
-                TPZGeoElBC(neighbour, simData->LambdaID());
+                TPZGeoElBC(neighbour, simData->LambdaID()); // creating lambda element
                 
-                neighbour = neighbour.Neighbour();
+                neighbour = neighbour.Neighbour(); // getting the neighbour of lambda, which should be the second 
                 
                 if (neighbour.Element()->MaterialId() != simData->LambdaID())
                     DebugStop();
                 
-                TPZGeoElBC(neighbour, 21);
+                TPZGeoElBC(neighbour, 21); // creating second interface element
             }
         }
     }
     
     // we look for two domain neighbour elements
-    for (int64_t el = 0; el < nEl; el++)
+    for (int64_t el = 0; el < nEl; el++) // loop over all elements
     {
         TPZGeoEl *geoEl = gmesh->Element(el);
 
@@ -169,20 +169,20 @@ void TPZMeshOperator::InsertLagrangeMultipliers(ProblemData *simData, TPZGeoMesh
             continue;
         if (geoEl->HasSubElement())
             continue;
-        if (geoEl->Dimension() != gmesh->Dimension())
+        if (geoEl->Dimension() != gmesh->Dimension()) // skip any lower dimensional element, such as boundary elements
             continue;
 
         int nside = geoEl->NSides();
 
         if (simData->DomainVec().size() != 0)
         {
-            for (int side = 0; side < nside; side++)
+            for (int side = 0; side < nside; side++) // loop over all sides of the element
             {
-                if (geoEl->SideDimension(side) != gmesh->Dimension() - 1)
+                if (geoEl->SideDimension(side) != gmesh->Dimension() - 1) // only sides that are lines (for 2D) or faces (for 3D)
                     continue;
                 
-                TPZGeoElSide geoElSide(geoEl, side);
-                TPZGeoElSide neighbour = geoElSide.Neighbour();
+                TPZGeoElSide geoElSide(geoEl, side); // side object
+                TPZGeoElSide neighbour = geoElSide.Neighbour(); // neighbour of the side object
 
                 if (neighbour == geoElSide)
                     continue;
@@ -192,46 +192,46 @@ void TPZMeshOperator::InsertLagrangeMultipliers(ProblemData *simData, TPZGeoMesh
                 TPZGeoElSide neighbour2 = neighbour;
                 while (neighbour2 != geoElSide)
                 {
-                    if (neighbour2.Element()->MaterialId() == simData->InterfaceID())
+                    if (neighbour2.Element()->MaterialId() == simData->InterfaceID()) // not interface elements
                     {
                         break;
                     }
                     
-                    if (neighbour2.Element()->Dimension() == gmesh->Dimension())
-                        neighbour = neighbour2;
-                        
-                    neighbour2 = neighbour2.Neighbour();
+                    if (neighbour2.Element()->Dimension() == gmesh->Dimension()) // if the neighbour2 is a domain element
+                        neighbour = neighbour2; // domain element, neighbour to the element that we are keeping track of
+
+                    neighbour2 = neighbour2.Neighbour(); // goes to the next neighbour until it comes back to the original side
                 }
 
                 if (neighbour2 == geoElSide)
                 {
-                    TPZGeoElBC(geoElSide, simData->InterfaceID());
-                    TPZGeoElBC(neighbour, simData->InterfaceID());
+                    TPZGeoElBC(geoElSide, simData->InterfaceID()); // (const TPZGeoElSide &elside, int matid) Creates a geometric element along side of el
+                    TPZGeoElBC(neighbour, simData->InterfaceID()); // creating first interface element
                     
-                    neighbour2 = neighbour.Neighbour();
-                    neighbour = geoElSide.Neighbour();
+                    neighbour2 = neighbour.Neighbour(); // getting the neighbour of the second element, which should be the interface element
+                    neighbour = geoElSide.Neighbour(); // getting the neighbour of the first element, which should be the interface element
                     
                     if(neighbour.Element()->MaterialId() != simData->InterfaceID() || neighbour2.Element()->MaterialId() != simData->InterfaceID())
                         DebugStop();
                     
-                    TPZGeoElBC(neighbour, simData->LambdaID());
+                    TPZGeoElBC(neighbour, simData->LambdaID()); // creating lambda element
                     TPZGeoElBC(neighbour2, simData->LambdaID());
                     
-                    neighbour = neighbour.Neighbour();
-                    neighbour2 = neighbour2.Neighbour();
+                    neighbour = neighbour.Neighbour(); // getting the neighbour of the interface of first element, which should be the lambda element
+                    neighbour2 = neighbour2.Neighbour(); // getting the neighbour of the interface of second element, which should be the lambda element
                     
                     if (neighbour.Element()->MaterialId() != simData->LambdaID() || neighbour2.Element()->MaterialId() != simData->LambdaID())
                         DebugStop();
                     
-                    TPZGeoElBC(neighbour, 21);
+                    TPZGeoElBC(neighbour, 21); // creating second interface element
                     TPZGeoElBC(neighbour2, 21);
                     
-                    neighbour = neighbour.Neighbour();
+                    neighbour = neighbour.Neighbour(); // getting the neighbour of lambda, which should be the second interface element
                     
                     if (neighbour.Element()->MaterialId() != 21)
                         DebugStop();
                     
-                    TPZGeoElBC(neighbour, simData->TanVelID());
+                    TPZGeoElBC(neighbour, simData->TanVelID()); // creating tangential velocity element
                 }
             }
         }
@@ -635,8 +635,15 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
                 sol = nullptr;
         }
         
-        TPZStokesMaterial *material = new TPZStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), viscosity);
-        
+        TPZStokesMaterial *material = nullptr;
+        if (simData->MaterialType() == 0)
+        {
+            material = new TPZStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), viscosity);
+        }
+        else
+        {
+            material = new TPZNavierStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), viscosity);
+        }
         if (sol) material->SetExactSol(sol->ExactSolution(), 3);
         if (sol) material->SetForcingFunction(sol->ForceFunc(), 3);
             

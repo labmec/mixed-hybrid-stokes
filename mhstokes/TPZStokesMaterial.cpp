@@ -12,7 +12,7 @@
 static TPZLogger logger("pz.stokesmaterial");
 #endif
 
-TPZStokesMaterial::TPZStokesMaterial(): TBase() {
+TPZStokesMaterial::TPZStokesMaterial(): TBase() { //!Inherits from TBase
     
 }
 
@@ -32,7 +32,7 @@ TVar TPZStokesMaterial::TensorInnerProduct(TPZFMatrix<TVar> &S, TPZFMatrix<TVar>
     
     for(int i=0; i<S.Cols(); i++){
         for(int j=0; j<S.Rows(); j++){
-            Val += S(i,j)*T(i,j);
+            Val += S(i,j)*T(i,j); //! Inner product of two tensors
         }
     }
     
@@ -44,10 +44,10 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
     int64_t dimension = Dimension(); // problems dimension
 
     int64_t nShapeV = datavec[EVindex].fVecShapeIndex.NElements(); // number of velocity Hdiv shape functions
-    TPZFNMatrix<150, REAL> PhiV(dimension, nShapeV, 0.0);
+    TPZFNMatrix<150, REAL> PhiV(dimension, nShapeV, 0.0); //matrix to store velocity shape functions
     TPZFNMatrix<20, REAL>& divPhiV = datavec[EVindex].divphi;
 
-    TPZFMatrix<REAL>& PhiP = datavec[EPindex].phi;
+    TPZFMatrix<REAL>& PhiP = datavec[EPindex].phi; // matrix to store pressure shape functions
     int64_t nShapeP = PhiP.Rows(); // number of pressure H1 shape functions
 
     const int nterms = dimension * (dimension + 1) / 2;
@@ -60,8 +60,8 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
             int cont = dimension-1;
             for (int64_t i = 0; i < dimension; i++)
             {
-                PhiV(i, j) = datavec[EVindex].fDeformedDirectionsFad(i, j).val();
-                StrainRate(i,j) = datavec[EVindex].fDeformedDirectionsFad(i, j).fastAccessDx(i);
+                PhiV(i, j) = datavec[EVindex].fDeformedDirectionsFad(i, j).val(); // Directions on the deformed element. Used for H(div) and H(curl) approximation spaces.
+                StrainRate(i,j) = datavec[EVindex].fDeformedDirectionsFad(i, j).fastAccessDx(i); //Derivative of the velocity shape functions on the deformed element.
                 for (int64_t k = i+1; k < dimension && k != i; k++)
                 {
                     StrainRate(++cont,j) = 0.5*(datavec[EVindex].fDeformedDirectionsFad(i, j).fastAccessDx(k) + datavec[EVindex].fDeformedDirectionsFad(k, j).fastAccessDx(i));
@@ -69,6 +69,7 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
             }
         }
     }
+
 
     TPZFNMatrix<9, REAL> VoightCorrection(nterms, nterms, 0.0); //This is to multiply by 2 the off diagonal part of strain rate tensor to account for its symmetry
     for (int64_t i = 0; i < nterms; i++)
@@ -78,12 +79,12 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
     
     TPZFNMatrix<3,REAL> SourceTerm(dimension, 1.0, 0.0);
     TPZVec<REAL> sourceAux(3);
-    if (this->HasForcingFunction())
+    if (this->HasForcingFunction()) // if forcing function is given
     {
-        this->ForcingFunction()(datavec[EVindex].x, sourceAux);
+        this->ForcingFunction()(datavec[EVindex].x, sourceAux); // This call will calculate sourceAux at the given point of integration x
         for (int64_t i = 0; i < dimension; i++)
         {
-            SourceTerm(i,0) = sourceAux[i] * fviscosity;
+            SourceTerm(i,0) = sourceAux[i] * fviscosity; //Assign SourceTerm this ForcingFunction
         }
     }
 
@@ -92,21 +93,22 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
 
     //Flux Matrix A contribution
     TPZFNMatrix<150, REAL> matrixC;
-    VoightCorrection.Multiply(StrainRate, matrixC);
-   
-    REAL factor = 2.0 * fviscosity * weight;
+    VoightCorrection.Multiply(StrainRate, matrixC); //multiplies StrainRate by VoightCorrection and stores in matrixC
+
+    REAL factor = 2.0 * fviscosity * weight; // 2*mu
     ek.AddContribution(0, 0, StrainRate, true, matrixC, false, factor);
     
     factor = fviscosity*weight;
-    ek.AddContribution(0, 0, divPhiV, false, divPhiV, true, factor);
+    ek.AddContribution(0, 0, divPhiV, false, divPhiV, true, factor); //! Dont know Ask Giovane
 
     //Divergence Matrix B contribution
     factor = -1.0 * weight;
     ek.AddContribution(0, nShapeV, divPhiV, false, PhiP, true, factor);
 
     //Divergence Matrix BT contribution
-    ek.AddContribution(nShapeV, 0, PhiP, false, divPhiV, true, factor);
-    
+    ek.AddContribution(nShapeV, 0, PhiP, false, divPhiV, true, factor); // alpha*(A.B)
+    // (row to positioning block matrix, column to positioning block matrix, A, B, transpose or not, alpha)
+
     if(datavec.size()>2)
     {
         TPZFMatrix<REAL>& phiG = datavec[EGindex].phi;
