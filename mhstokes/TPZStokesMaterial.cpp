@@ -320,7 +320,7 @@ int TPZStokesMaterial::VariableIndex(const std::string& name) const {
     if (!strcmp("Velocity", name.c_str())) 
         return EVelocity;
     if (!strcmp("ExactVelocity", name.c_str()))
-        return EErrorVelocity;
+        return EExactVelocity;
     if (!strcmp("ErrorVelocity", name.c_str()))
         return EErrorVelocity;
     

@@ -1,9 +1,11 @@
 {	
-	"MeshName": "../Meshes/PoiseuilleFlow",
+	"MeshName": "/home/itopo/NS_Research/mixed-hybrid-stokes/examples/Meshes/PoiseuilleFlow",
 
 	"CreateMsh": true,
 
 	"HdivType": 1,
+
+	"MaterialType": 0,
 
 	"VelpOrder": 1, // approximation order for velocity
 

@@ -1,4 +1,5 @@
 add_executable(TestOseen testOseen.cpp)
+add_executable(TestMain main.cpp)
 add_executable(Test1d 1dtest.cpp)
 add_executable(TestMatrix testMatrix.cpp)
 add_executable(TaylorHood stokesTH.cpp)
@@ -6,6 +7,7 @@ add_executable(Blend3D testingBlend3D.cpp)
 add_executable(TestContribute testContribute.cpp)
 
 target_link_libraries(TestOseen libsources)
+target_link_libraries(TestMain libsources)
 target_link_libraries(Test1d libsources)
 target_link_libraries(TestMatrix libsources)
 target_link_libraries(TaylorHood libsources)

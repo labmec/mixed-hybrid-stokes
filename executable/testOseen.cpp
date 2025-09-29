@@ -165,7 +165,7 @@ void SolveProblem(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m, std::string filen
 {
     TPZSimpleTimer timer;
     
-    TPZSSpStructMatrix<> strmat(cmesh_m);
+    TPZFStructMatrix<> strmat(cmesh_m);
     // TPZSkylineStructMatrix<REAL> strmat(cmesh_m);
     strmat.SetNumThreads(global_nthread);
         

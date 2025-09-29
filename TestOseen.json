@@ -2,11 +2,11 @@
     "MeshName": "/home/itopo/NS_Research/mixed-hybrid-stokes/TestOseen",
     "CreateMsh": false,
     "HdivType": 0, // Hdiv Standard
-    "MaterialType": 1,
+    "MaterialType": 0,
     "VelpOrder": 2,
     "TracpOrder": 1,
     "Dim": 2,
-    "Resolution": 0,
+    "Resolution": 5,
     "StaticCondensation": true,
     "isAxisymmetric": 0,
     "HasAnalyticSolution": true,

@@ -61,22 +61,36 @@ void TPZNavierStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &
 
     TPZManVector<REAL, 3> Beta(dim,0.); //Initializing Beta vector
     TPZFMatrix<REAL> gradBeta(dim,dim); 
-    if (this->HasExactSol()) // if an exact solution is given
+    // if (this->HasExactSol()) // if an exact solution is given
+    // {
+    //     fExactSol(datavec[EVindex].x, Beta, gradBeta); //Assign Beta some exact solution
+    // }
+    // else
+    // {
+    //     if (fBeta) // if fBeta is set, call the function to compute Beta
+    //     {
+    //         fBeta(datavec[EVindex].x, Beta); //Assign Beta vector with the value of the beta function at the integration point
+    //     }
+    //     else
+    //     {
+    //         DebugStop();
+    //     }
+    // }
+    if (fBeta) // if an exact solution is given
     {
-        fExactSol(datavec[EVindex].x, Beta, gradBeta); //Assign Beta some exact solution
+        fBeta(datavec[EVindex].x, Beta); //Assign Beta vector with the value of the beta function at the integration point
     }
     else
     {
-        if (fBeta) // if fBeta is set, call the function to compute Beta
+        if (this->HasExactSol()) // if fBeta is set, call the function to compute Beta
         {
-            fBeta(datavec[EVindex].x, Beta); //Assign Beta vector with the value of the beta function at the integration point
+            fExactSol(datavec[EVindex].x, Beta, gradBeta); //Assign Beta some exact solution
         }
         else
         {
             DebugStop();
         }
     }
-    //!Make this as a choice either Analytical solution or providing some function
 
     //[[Exx, Exy, Eyx], ...]^T;
     TPZFNMatrix<150, REAL> GradPhiVBeta(dim, nShapeV, 0.0);

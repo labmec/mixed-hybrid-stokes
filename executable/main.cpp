@@ -49,24 +49,32 @@ int main(int argc, char *argv[])
     
     bool printdata = false;
     
-    std::string filepath = "/home/giavancini/dev/obstructor-analyses/mixed-hybrid-stokes/";
-    std::string filename = "Obstructor-";
-    if (argc > 1)
-        filename += argv[1];
-    else
-        filename += "10";
-    filename += "mm";
-    std::cout << filename << std::endl;
+    std::string filepath = "/home/itopo/NS_Research/mixed-hybrid-stokes/examples/Input Data/";
+    std::string filename = "PoiseuilleFlow"; //"TestOseen";
+    // if (argc > 1)
+    //     filename += argv[1];
+    // else
+    //     filename += "10";
+    // filename += "mm";
+    // std::cout << filename << std::endl;
 
     ProblemData simData;
     simData.ReadJson(filepath + filename + ".json");
     
     // creating a analytical solution for ExactSol problem
-    TStokesAnalytic *flow = new TStokesAnalytic();
+    // TStokesAnalytic *flow = new TStokesAnalytic();
+    // flow->fvisco = simData.DomainVec()[0].viscosity;
+    // flow->fvelocity = 1.;
+    // flow->fconstPressure = 1.;
+    // flow->fExactSol = TStokesAnalytic::ENone;
+    // flow->fDimension = simData.Dim();
+
+    TStokesAnalytic *flow = new TStokesAnalytic(); // Getting an exact solution already implemented 
     flow->fvisco = simData.DomainVec()[0].viscosity;
     flow->fvelocity = 1.;
     flow->fconstPressure = 1.;
-    flow->fExactSol = TStokesAnalytic::ENone;
+    flow->fProblemType = TStokesAnalytic::EStokes; // Used in Pablo's Doctor //{EStokes, ENavierStokes, EOseen, ENavierStokesCDG, EOseenCDG, EBrinkman}
+    flow->fExactSol = TStokesAnalytic::EPoisFlow; // Used in Pablo's Doctor //{ENone, ECavity,  EKovasznay, EKovasznayCDG, ESinCos, ENoFlow, ESinCos3D, EPconst, EObstacles, EOneCurve , ESinCosBDS, ESinCosBDS3D, EGatica3D, ECouplingSD, ECouplingNSD, EVugs2D, EVugs3D, EInfiltrationNS, EConstantFlow, ECouetteFlow, EPoisFlow, ETaylorCouette, EElbow, EPaperComp, ESimpleF}
     flow->fDimension = simData.Dim();
     
     // creating the meshes
@@ -108,7 +116,7 @@ int main(int argc, char *argv[])
     std::ofstream out(filename + "-data.txt");
     ComputeIntegralFlux(cmesh_m, 3, out);
     TPZStack<PostProcElData> postProcData;
-    FindElementsAndPtsToPostProc(gmesh, postProcData, simData.DomainVec()[0].matID, 1001, 0.0, 1.0);
+    //FindElementsAndPtsToPostProc(gmesh, postProcData, simData.DomainVec()[0].matID, 1001, 0.0, 1.0); //! VER PORQUE DEU RUIM AQUI
     PostProcDataForArticle(gmesh, postProcData, out);
         
     // printing meshes
