@@ -126,6 +126,7 @@ void TPZStokesMaterial::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& datave
         ek(nShapeV+nShapeP, nShapeV+nShapeP+1) += phiG(0,0)*phipM(0,0)*weight;
     }
 
+
 #ifdef PZ_LOG
     if(logger.isDebugEnabled()){
         std::stringstream sout;
@@ -163,7 +164,7 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
     }
     
     switch (bc.Type()) {
-        case ENormVelocity: // Normal Velocity
+        case ENormVelocity: // Normal Velocity --> Dirichlet
         {
             REAL v_n = val2[0]; // if bc was set in .json file, the normal value was already pescribed
             if (bc.HasForcingFunctionBC()) // if the bc is set through an analytic solution, we need to compute its normal component
@@ -221,7 +222,7 @@ void TPZStokesMaterial::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &data
             break;
         }
             
-        case ENormStress: // Normal Stress
+        case ENormStress: // Normal Stress --> Neumann
         {
             REAL sigma_nn = val2[0]; // if bc was set in .json file, the normal value was already prescribed
             if(bc.HasForcingFunctionBC()){ // if the bc is set through an analytic solution, we need to compute its normal component from the velocity gradient

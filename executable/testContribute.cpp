@@ -307,7 +307,7 @@ void TestContributeNS(TPZGeoMesh *gmesh, TPZCompMesh* cmeshFlux, TPZCompMesh* cm
   // NSmat->SetForcingFunction(analyticSol->ForceFunc(), 2); //! DO IT
 
   //TODO Setting Beta Function 
-  NSmat->setBetaFunc(BetaOseen);
+  // NSmat->setBetaFunc(BetaOseen);
   // analyticSol->Solution(datavec[0].x, Beta, gradBeta); // Setting Beta as an analytical solution
 
   // TODO Contribute
@@ -353,7 +353,7 @@ int main (int argc, char * const argv[]) {
 
   TestContributeNS(gmesh, cmeshFlux, cmeshPressure, cmesh, ke, fe);
   std::stringstream sout;
-  ke.fMat.Print("kel", std::cout, EMathematicaInput);
+  // ke.fMat.Print("kel", std::cout, EMathematicaInput);
   // ke.Print(std::cout);
 
 

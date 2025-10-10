@@ -73,9 +73,10 @@ int main(int argc, char *argv[])
     TStokesAnalytic *analyticSol = new TStokesAnalytic(); // Getting an exact solution already implemented 
     analyticSol->fvisco = simData.DomainVec()[0].viscosity;
     analyticSol->fvelocity = 1.;
-    analyticSol->fconstPressure = 1.;
+    analyticSol->fconstPressure = 37.;
     analyticSol->fProblemType = TStokesAnalytic::EOseen; // Used in Pablo's Doctor //{EStokes, ENavierStokes, EOseen, ENavierStokesCDG, EOseenCDG, EBrinkman}
     analyticSol->fExactSol = TStokesAnalytic::EKovasznay; // Used in Pablo's Doctor //{ENone, ECavity,  EKovasznay, EKovasznayCDG, ESinCos, ENoFlow, ESinCos3D, EPconst, EObstacles, EOneCurve , ESinCosBDS, ESinCosBDS3D, EGatica3D, ECouplingSD, ECouplingNSD, EVugs2D, EVugs3D, EInfiltrationNS, EConstantFlow, ECouetteFlow, EPoisFlow, ETaylorCouette, EElbow, EPaperComp, ESimpleF}
+    //analyticSol->fExactSol = TStokesAnalytic::EPaperComp;
     analyticSol->fDimension = simData.Dim();
     
     // creating the meshes
@@ -187,7 +188,8 @@ void SolveProblem(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m, std::string filen
     
     // setting solver
     TPZStepSolver<STATE> step;
-    step.SetDirect(ELDLt);
+    //step.SetDirect(ELDLt);
+    step.SetDirect(ELU);
     an.SetSolver(step);
     
     // ... the assemble

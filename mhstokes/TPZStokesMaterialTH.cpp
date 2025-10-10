@@ -123,6 +123,7 @@ void TPZStokesMaterialTH::Contribute(const TPZVec<TPZMaterialDataT<STATE>>& data
     
     // Divergence - Matrix BT contribution
     ek.AddContribution(dim * nShapeV, 0, PhiP, false, divPhiV, true, factor);
+
  
 #ifdef PZ_LOG
     if(logger.isDebugEnabled()){
