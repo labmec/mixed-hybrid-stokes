@@ -1,0 +1,96 @@
+{
+    "MeshName": "/home/itopo/NS_Research/mixed-hybrid-stokes/TestOseen_k3",
+    "CreateMsh": false,
+    "HdivType": 0,
+    "MaterialType": 1,
+    "VelpOrder": 2,
+    "TracpOrder": 1,
+    "Dim": 2,
+    "Resolution": 2,
+    "StaticCondensation": true,
+    "isAxisymmetric": 0,
+    "HasAnalyticSolution": true,
+    "Domain": [
+        {
+            "name": "Domain",
+            "matID": 1,
+            "viscosity": 0.1
+        }
+    ],
+    "NormalBoundary": [
+        {
+            "name": "BottomNormal",
+            "type": 0,
+            "value": 0,
+            "matID": 2
+        },
+        {
+            "name": "RightNormal",
+            "type": 0,
+            "value": 0,
+            "matID": 3
+        },
+        {
+            "name": "TopNormal",
+            "type": 0,
+            "value": 0,
+            "matID": 4
+        },
+        {
+            "name": "LeftNormal",
+            "type": 0,
+            "value": 0,
+            "matID": 5
+        }
+    ],
+    "TangentialBoundary": [
+        {
+            "name": "BottomTan",
+            "type": 1,
+            "value": [
+                0,
+                0,
+                0
+            ],
+            "matID": 6
+        },
+        {
+            "name": "RightTan",
+            "type": 1,
+            "value": [
+                0,
+                0,
+                0
+            ],
+            "matID": 7
+        },
+        {
+            "name": "TopTan",
+            "type": 1,
+            "value": [
+                0,
+                0,
+                0
+            ],
+            "matID": 8
+        },
+        {
+            "name": "LeftTan",
+            "type": 1,
+            "value": [
+                0,
+                0,
+                0
+            ],
+            "matID": 9
+        }
+    ],
+    "AxisymmetryDomain": [],
+    "AxisymmetryBoundary": [],
+    "LambdaID": 10,
+    "InterfaceID": 20,
+    "AxiLambdaID": 30,
+    "AxiInterfaceID": 40,
+    "FluxInterfaceID": 50,
+    "ObstructionID": 100
+}

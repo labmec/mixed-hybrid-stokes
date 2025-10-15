@@ -1,7 +1,7 @@
 {
     "MeshName": "/home/itopo/NS_Research/mixed-hybrid-stokes/TestOseen",
     "CreateMsh": false,
-    "HdivType": 0, // Hdiv Standard
+    "HdivType": 0, 
     "MaterialType": 1,
     "VelpOrder": 2,
     "TracpOrder": 1,
@@ -20,7 +20,7 @@
     "NormalBoundary": [
         {
             "name": "BottomNormal",
-            "type": 0, // Normal velocity
+            "type": 0, 
             "value": 0,
             "matID": 2
         },
@@ -46,7 +46,7 @@
     "TangentialBoundary": [
         {
             "name": "BottomTan",
-            "type": 1, // Tangential velocity
+            "type": 1, 
             "value": [
                 0,
                 0,

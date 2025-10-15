@@ -109,7 +109,7 @@ public:
     virtual void ViscosityTensor(TPZFNMatrix<36, REAL>& D);
     
     void FromVoigt(const TPZFNMatrix<6, STATE> &aigmaVoigt, TPZFNMatrix<9, STATE> &sigma) const;
-    
+
     enum SolutionVars {ENone = -1,
         EPressure = 0, EExactPressure = 1, EErrorPressure = 2,
         EVelocity = 3, EExactVelocity = 4, EErrorVelocity = 5,

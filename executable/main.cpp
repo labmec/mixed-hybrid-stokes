@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     
     bool printdata = false;
     
-    std::string filepath = "/home/itopo/NS_Research/mixed-hybrid-stokes/examples/Input Data/";
+    std::string filepath = "/home/itopo/NS_Research/mixed-hybrid-stokes/";
     std::string filename = "PoiseuilleFlow"; //"TestOseen";
     // if (argc > 1)
     //     filename += argv[1];

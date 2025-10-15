@@ -26,6 +26,18 @@
 #include "ProblemData.h"
 #include "pzreal.h"
 
+//!TIRAR ISSO
+void BetaOseen(const TPZVec<REAL> &x, TPZVec<REAL> &beta) {
+  // Define the beta function for the Oseen problem
+  double visc = 1.0;
+  double h = 1.0;
+  beta[0] = (1/visc)*2*(h*h-x[1]*x[1]);  
+  beta[1] = 0.;
+  if (beta.size() > 2){
+    beta[3] = 0.;
+  }
+}
+
 void TPZMeshOperator::GenerateMshFile(ProblemData *simData)
 {
     std::string command;
@@ -641,8 +653,11 @@ TPZMultiphysicsCompMesh *TPZMeshOperator::CreateMultiPhysicsMesh(ProblemData *si
             material = new TPZStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), viscosity);
         }
         else
-        {
+        {   //!MUDAR ISSO
             material = new TPZNavierStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), viscosity);
+            TPZNavierStokesMaterial *nsMaterial = new TPZNavierStokesMaterial(simData->DomainVec()[0].matID, simData->Dim(), viscosity);
+            //nsMaterial->setBetaFunc(BetaOseen); 
+            //material = nsMaterial;
         }
         if (sol) material->SetExactSol(sol->ExactSolution(), 3);
         if (sol) material->SetForcingFunction(sol->ForceFunc(), 3);
