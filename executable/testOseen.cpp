@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     
     bool printdata = false;
     
-    std::string filepath = "/home/itopo/NS_Research/mixed-hybrid-stokes/";
+    std::string filepath = "/home/marina/programming/NS-Research/mixed-hybrid-stokes/";
     std::string filename = "TestOseen_";
     //std::string filename = "PoiseuilleFlow";
     if (argc > 1){
@@ -77,8 +77,8 @@ int main(int argc, char *argv[])
     analyticSol->fvelocity = 1.;
     analyticSol->fconstPressure = 37.;
     analyticSol->fProblemType = TStokesAnalytic::EOseen; // Used in Pablo's Doctor //{EStokes, ENavierStokes, EOseen, ENavierStokesCDG, EOseenCDG, EBrinkman}
-    //analyticSol->fExactSol = TStokesAnalytic::EKovasznay; // Used in Pablo's Doctor //{ENone, ECavity,  EKovasznay, EKovasznayCDG, ESinCos, ENoFlow, ESinCos3D, EPconst, EObstacles, EOneCurve , ESinCosBDS, ESinCosBDS3D, EGatica3D, ECouplingSD, ECouplingNSD, EVugs2D, EVugs3D, EInfiltrationNS, EConstantFlow, ECouetteFlow, EPoisFlow, ETaylorCouette, EElbow, EPaperComp, ESimpleF}
-    analyticSol->fExactSol = TStokesAnalytic::EPoisFlow; // Poiseuille Flow
+    analyticSol->fExactSol = TStokesAnalytic::EKovasznay; // Used in Pablo's Doctor //{ENone, ECavity,  EKovasznay, EKovasznayCDG, ESinCos, ENoFlow, ESinCos3D, EPconst, EObstacles, EOneCurve , ESinCosBDS, ESinCosBDS3D, EGatica3D, ECouplingSD, ECouplingNSD, EVugs2D, EVugs3D, EInfiltrationNS, EConstantFlow, ECouetteFlow, EPoisFlow, ETaylorCouette, EElbow, EPaperComp, ESimpleF}
+    //analyticSol->fExactSol = TStokesAnalytic::EPoisFlow; // Poiseuille Flow
     analyticSol->fDimension = simData.Dim();
     
     // creating the meshes
@@ -168,7 +168,8 @@ void SolveProblem(TPZLinearAnalysis &an, TPZCompMesh *cmesh_m, std::string filen
 {
     TPZSimpleTimer timer;
     
-    TPZFStructMatrix<> strmat(cmesh_m);
+    TPZSpStructMatrix<> strmat(cmesh_m);
+    // TPZFStructMatrix<> strmat(cmesh_m);
     // TPZSkylineStructMatrix<REAL> strmat(cmesh_m);
     strmat.SetNumThreads(global_nthread);
         

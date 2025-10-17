@@ -1,5 +1,5 @@
 {
-    "MeshName": "/home/itopo/NS_Research/mixed-hybrid-stokes/TestOseen_k3",
+    "MeshName": "/home/marina/programming/NS-Research/mixed-hybrid-stokes/TestOseen_k3",
     "CreateMsh": false,
     "HdivType": 0,
     "MaterialType": 1,

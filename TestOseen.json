@@ -1,5 +1,5 @@
 {
-    "MeshName": "/home/itopo/NS_Research/mixed-hybrid-stokes/TestOseen",
+    "MeshName": "/home/marina/programming/NS-Research/mixed-hybrid-stokes/TestOseen",
     "CreateMsh": false,
     "HdivType": 0, 
     "MaterialType": 1,
@@ -26,7 +26,7 @@
         },
         {
             "name": "RightNormal",
-            "type": 0, 
+            "type": 2, 
             "value": 0,
             "matID": 3
         },
