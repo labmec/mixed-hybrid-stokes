@@ -49,7 +49,8 @@ int main(int argc, char *argv[])
     
     bool printdata = false;
     
-    std::string filepath = "/home/marina/programming/NS-Research/mixed-hybrid-stokes/";
+    std::string filepath = "/home/itopo/NS_Research/mixed-hybrid-stokes/";
+    //std::string filepath = "/home/marina/programming/NS-Research/mixed-hybrid-stokes/";
     std::string filename = "TestOseen_";
     //std::string filename = "PoiseuilleFlow";
     if (argc > 1){
@@ -297,7 +298,11 @@ void EvaluateErrors(std::string file_name, TPZLinearAnalysis &an, TPZAnalyticSol
     ErrorOut << "###### Computed Errors ######" << std::endl;
     
     for (int i = 0; i < Errors.size(); i++)
-        ErrorOut << "L2 " << fields[i] << " = " << Errors[i] << std::endl;
+        // ErrorOut << "L2 " << fields[i] << " = " << Errors[i] << std::endl;
+        ErrorOut << "L2 " << fields[i] << " ";
+    ErrorOut << std::endl;
+    for (int i = 0; i < Errors.size(); i++)
+        ErrorOut << Errors[i] << " ";
 }
 
 void ComputeIntegralFlux(TPZCompMesh *cmesh, int matid, std::ofstream& out)
