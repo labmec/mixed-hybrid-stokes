@@ -1,0 +1,3 @@
+###### Computed Errors ######
+L2 p error L2 p_ex error L2 u error L2 u_ex error L2 div error L2 div_ex error L2 sigma error L2 sigma_ex error L2 dev_sigma error L2 dev_sigma_ex error 
+3.89637e-06 0.987155 2.65569e-05 2.4442 3.97471e-12 2.61458e-18 6.78178e-06 1.39605 3.95337e-06 0.00416161 

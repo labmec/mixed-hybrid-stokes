@@ -49,8 +49,8 @@ int main(int argc, char *argv[])
     
     bool printdata = false;
     
-    std::string filepath = "/home/itopo/NS_Research/mixed-hybrid-stokes/";
-    //std::string filepath = "/home/marina/programming/NS-Research/mixed-hybrid-stokes/";
+    //std::string filepath = "/home/itopo/NS_Research/mixed-hybrid-stokes/";
+    std::string filepath = "/home/marina/programming/NS-Research/mixed-hybrid-stokes/";
     std::string filename = "TestOseen_";
     //std::string filename = "PoiseuilleFlow";
     if (argc > 1){
