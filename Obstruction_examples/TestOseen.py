@@ -1,7 +1,7 @@
 import json
 
 
-viscosity = 0.00033333333333
+viscosity = 0.000333333333
 Re = int(1/viscosity)
 size = [1, 2, 3, 4, 5, 6]
 
@@ -53,6 +53,9 @@ for k in size:
 
 List_errors_dat = []
 List_errors_mathematica = []
+List_errors_latex = []
+new_List_errors_latex = []
+index = 0
 for line in List_errors:
     if 'e' in line:
         line = line.replace('e', 'E')
@@ -61,6 +64,14 @@ for line in List_errors:
     line = line.replace(' ', ', ')
     line = line.replace('e', '*10^')
     List_errors_mathematica.append(line)
+for line in List_errors:
+    List_errors_latex.append(line.split())
+for line in List_errors_latex:
+    aux = []
+    for i, error in enumerate(line):
+        if i in [0, 2, 4, 6]:
+            aux.append('$'+error+'$')
+    new_List_errors_latex.append(aux)
 
 
 with open(f"Results_TestOseen_Re{Re}.txt", "w", encoding="utf-8") as f:
@@ -71,3 +82,10 @@ with open(f"Results_TestOseen_Re{Re}.txt", "w", encoding="utf-8") as f:
     for line in List_errors_mathematica:
         f.write(line)
         f.write('\n')
+    f.write('\n')
+    for line in new_List_errors_latex:
+        f.write(' & '.join(line))
+        f.write('\n')
+
+# print(List_errors_latex)
+# print(new_List_errors_latex)
